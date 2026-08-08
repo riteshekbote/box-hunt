@@ -27,3 +27,4 @@ testability: AUTH_HELPED
 [PARKED] XSS via crafted filename/title: requires creating a shared link with malicious metadata (write op forbidden by rules 1-2) -> AUTH_HELPED.
 [PARKED] Embed token leakage: requires a pre-existing shared/preview link, not available in this cycle -> AUTH_HELPED.
 [NEXT] PROBE: GET https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and header "Origin: https://attacker.invalid"; record status, redirect Location chain, and response headers (Access-Control-*, CSP, X-Frame-Options, Referrer-Policy). Then pause 2s; stop if first 4xx/429/403. (advances RECON->SURFACE header inventory)
+## 2026-08-08 22:00:20 UTC cloud.app.box.com (ling3)
