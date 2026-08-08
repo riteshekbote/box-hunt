@@ -1,0 +1,58 @@
+name: Triage - Rank and Consolidate (Box)
+
+on:
+  schedule:
+    - cron: "12,42 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: box-triage
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Merge, rank, archive
+        run: |
+          mkdir -p reports
+          python3 << 'PY'
+          import re, glob, os, datetime
+          stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+          rows = []
+          for f in glob.glob('leads/*.md'):
+              t = open(f, errors='ignore').read()
+              for m in re.finditer(r'^\[HYP\] (.*)$', t, re.M):
+                  title = m.group(1).strip()
+                  asset = (re.search(r'^asset:\s*(\S+)', t, re.M) or [None,'?'])[1]
+                  conf = int((re.search(r'^confidence:\s*(\d+)', t, re.M) or [None, 0])[1])
+                  rows.append((conf, asset, title, f))
+          rows.sort(reverse=True)
+          with open('reports/hypotheses.md', 'a') as out:
+              out.write('\n## RANKED %s\n' % stamp)
+              seen = set()
+              for conf, asset, title, f in rows[:12]:
+                  key = title.lower()[:60]
+                  if key in seen: continue
+                  seen.add(key)
+                  out.write('- [%s] %s: %s (from %s)\n' % (conf, asset, title, re.sub(r'^leads/','',f)))
+              for f in glob.glob('leads/*.md'):
+                  for l in re.findall(r'^\[NEXT\][^\n]*', open(f, errors='ignore').read(), re.M):
+                      out.write('- NEXT: %s\n' % l[:160])
+          print('merged', len(rows), 'hypotheses')
+          PY
+
+      - name: Commit
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add reports || true
+          git diff --cached --quiet || git commit -m "triage $(date -u +'%Y-%m-%d-%H-%M')"
+          git pull --rebase origin main || true
+          git push origin main || true

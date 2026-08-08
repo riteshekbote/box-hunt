@@ -1,0 +1,169 @@
+name: Box Hunt - Analyst Pipeline (per-host read-only)
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  UA: "box-research/1.0 +research (read-only)"
+
+jobs:
+  analyst:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: analyst-${{ matrix.host }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [api.box.com, app.box.com, account.box.com, upload.box.com, dl.boxcloud.com, notes.services.box.com, m.box.com, cloud.app.box.com]
+        model:
+          - { id: opencode/big-pickle, name: bigpickle }
+          - { id: opencode/ling-3.0-flash-free, name: ling3 }
+
+    env:
+      HOST: ${{ matrix.host }}
+      MODEL_ID: ${{ matrix.model.id }}
+      MODEL_NAME: ${{ matrix.model.name }}
+      PROBE_ALLOW: ${{ matrix.host }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install OpenCode
+        run: |
+          for i in 1 2 3; do
+            if curl -fsSL https://opencode.ai/install | bash; then break; fi
+            echo "install attempt $i failed, retrying in 15s..."; sleep 15
+          done
+          export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
+          opencode --version
+
+      - name: Pull Box OpenAPI spec (best effort, read-only; publish if fetched)
+        continue-on-error: true
+        run: |
+          for u in "https://api.box.com/2.0/openapi.json" "https://developer.box.com/openapi.json"; do
+            if curl -s --max-time 20 "$u" -o spec.json && [ -s spec.json ] && grep -q '"openapi"\|"swagger"' spec.json; then
+              mkdir -p docs; mv spec.json docs/box-openapi-$(date -u +%Y%m%d).json
+              echo "spec fetched from $u"; break
+            fi
+          done || true
+          ls docs >/dev/null 2>&1
+
+      - name: Prepare context
+        run: |
+          mkdir -p leads reports docs
+          [ -f "state_${HOST}.json" ] || echo '{"phase":"RECON","status":"IN_PROGRESS"}' > "state_${HOST}.json"
+          {
+            echo "=== SCOPE + RULES ==="
+            cat scope.txt
+            echo "=== MY HOST STATE ==="
+            cat "state_${HOST}.json"
+            echo "=== MY LAST LEADS (tail) ==="
+            tail -40 "leads/host-${HOST}.md" 2>/dev/null || echo none
+            echo "=== RANKED HYPOTHESES (tail) ==="
+            tail -30 reports/hypotheses.md 2>/dev/null || echo none
+            echo "=== ROBOT PROBE RESULTS (tail) ==="
+            tail -40 "probe-results-${HOST}.md" 2>/dev/null || echo none
+            echo "=== LATEST SPEC FILE (tail, if any) ==="
+            ls docs/*.json >/dev/null 2>&1 && tail -c 20000 $(ls -t docs/*.json | head -1) 2>/dev/null || echo no-spec
+          } > ctx.txt
+
+      - name: Analyst + researcher run
+        run: |
+          cat ctx.txt > analyst-prompt.txt
+          cat >> analyst-prompt.txt << 'PROMPT_EOF'
+          You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
+          (mapped from APP_ORIGIN). Session rules:
+          1. ONLY read-only HTTP (GET/HEAD/OPTIONS); never any write.
+          2. NEVER touch signrequest/sr-staging-1 or any host outside scope.txt (honeypot warning in scope.txt).
+          3. Politeness: 1 req/2s, <=60/cycle, UA box-research; on first 4xx/429/403 -> log & stop probing host.
+          4. All findings from your own read-only probes or the context above; never fabricate.
+          Emit ONLY these blocks:
+
+          [NEW] <asset>: <one line, discovered or changed>
+          [HYP] <title>
+          class: <IDOR|SSRF|AUTH|XSS|BUSLOGIC|MISCONFIG|OATH|DESER|OTHER>
+          asset: <host/path>
+          confidence: <0-100>
+          reasoning: <facts only, 2-3 lines>
+          evidence_needed: <what proves it>
+          verify_steps: <exact read-only HTTP requests>
+          impact: <attacker outcome + severity>
+          testability: <PASSIVE|AUTH_HELPED|HUMAN_ONLY>
+          [PARKED] <title>: <why left for now>
+          [NEXT] <PROBE>: <one concrete read-only request to run this cycle>
+          [LEARN] <ACCEPTED|REJECTED> <class> @ <asset>: <reason>
+          Always: 1 phase deeper per cycle (RECON->SURFACE->HYPOTHESIS->POC); on EXHAUSTED start new surface.
+          Begin.
+          PROMPT_EOF
+          export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
+          timeout -k 15 18m opencode run --model "$MODEL_ID" < analyst-prompt.txt > analyst-out.txt 2>&1 || true
+          grep -E '^\[(NEW|CHANGED|HYP|PARKED|NEXT|LEARN|RISK)\]|^class:|^confidence:|^asset:|^impact:|^testability:|^verify_steps:|^reasoning:|^evidence:' analyst-out.txt > lead.txt || true
+          mkdir -p leads reports
+          {
+            echo "## $(date -u +'%Y-%m-%d %H:%M:%S UTC') ${HOST} (${MODEL_NAME})"
+            cat lead.txt
+          } >> "leads/host-${HOST}.md"
+
+      - name: Run passive verifier robot (read-only)
+        shell: bash
+        run: |
+          python3 << 'ROBOT_PY'
+          import re, glob, ssl, urllib.request, os, time
+          host = os.environ.get('HOST', '').lower()
+          urls, seen = [], set()
+          for f in glob.glob('lead.txt') + glob.glob('analyst-out.txt'):
+            for m in re.finditer(r'https?://[^\s"\'\)\]\}]+', open(f, errors='ignore').read()):
+              u = m.group(0).strip('.,;)]}>')
+              if u.lower().startswith('https://') and host in u.lower() and u not in seen:
+                seen.add(u); urls.append(u[:300])
+          ctx = ssl.create_default_context()
+          rows = []
+          for u in urls[:12]:
+            try:
+              req = urllib.request.Request(u, method='GET', headers={'User-Agent': 'box-research/1.0', 'Range': 'bytes=0-1'})
+              with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+                rows.append('%s -> %s' % (u, r.status))
+            except urllib.error.HTTPError as e:
+              rows.append('%s -> HTTP %s' % (u, e.code))
+            except Exception as e:
+              rows.append('%s -> ERR %s' % (u, str(e)[:60]))
+          if rows:
+            with open('probe-results-%s.md' % host.replace('.', '-'), 'a') as fo:
+              fo.write('\n## %s %s\n%s\n' % (time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()), host, '\n'.join(rows)))
+            print('\n'.join(rows))
+          else:
+            print('no verbatim probes (host=%s)' % host)
+          ROBOT_PY
+
+      - name: Save state
+        run: |
+          python3 << 'PY'
+          import json, os
+          p = 'state_%s.json' % os.environ['HOST']
+          st = json.load(open(p)) if os.path.exists(p) else {}
+          t = open('analyst-out.txt', errors='ignore').read()
+          import re
+          if re.search(r'STATUS_PHASE|PHASE:\s*(RECON|SURFACE|HYPOTHESIS|POC)', t, re.I):
+            pass
+          phases = ['RECON','SURFACE','HYPOTHESIS','POC']
+          cur = st.get('phase','RECON')
+          st['phase'] = phases[min(phases.index(cur)+1, 3)] if cur in phases else 'RECON'
+          json.dump(st, open(p,'w'), indent=2)
+          PY
+
+      - name: Commit
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add leads reports docs state_*.json probe-results-*.md ctx.txt analyst-out.txt lead.txt || true
+          git diff --cached --quiet || git commit -m "cycle ${HOST} $(date -u +'%Y-%m-%d-%H-%M')"
+          git pull --rebase origin main || true
+          git push origin main || true
