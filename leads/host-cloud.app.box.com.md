@@ -29,3 +29,4 @@ testability: AUTH_HELPED
 [NEXT] PROBE: GET https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and header "Origin: https://attacker.invalid"; record status, redirect Location chain, and response headers (Access-Control-*, CSP, X-Frame-Options, Referrer-Policy). Then pause 2s; stop if first 4xx/429/403. (advances RECON->SURFACE header inventory)
 ## 2026-08-08 22:00:20 UTC cloud.app.box.com (ling3)
 ## 2026-08-09 11:38:41 UTC cloud.app.box.com (ling3)
+## 2026-08-09 19:10:03 UTC cloud.app.box.com (ling3)
