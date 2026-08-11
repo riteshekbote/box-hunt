@@ -28,3 +28,17 @@ testability: PASSIVE
 [PARKED] XSS via crafted filename/title in embedded preview: requires a crafted file in a viewer context (writes/upload out of scope); revisit only with new rules.
 [PARKED] Embed token/URL leakage in preview query string: embed tokens require authenticated creation flow (AUTH_HELPED); parked for a later auth phase.
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization"; record status and every Access-Control-Allow-* response header. Then one GET https://cloud.app.box.com/ with the same UA + Origin header; record whether Access-Control-Allow-Origin is present and its exact value. Stop this host if first 4xx/429/403.
+## 2026-08-11 21:08:27 UTC api.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: 200/206 status patterns (executor) prove a live range-capable origin but carry zero header evidence; ACAO never observed, so CORS cannot be accepted on status alone — needs explicit header capture this cycle.
+[HYP] CORS misconfiguration on preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 30
+reasoning: Repeated 200/206 (executor) confirm live SPA/range server; the alternating 200/206 on plain GET suggests a range/cache layer worth fingerprinting. No ACAO/ACAC header has ever been recorded, so both reflection and absence remain plausible.
+verify_steps: 1) OPTIONS / with Origin + Access-Control-Request-Method: GET + Access-Control-Request-Headers: authorization; 2) GET / with Origin: https://attacker.invalid; capture FULL headers on both.
+impact: If ACAO reflects arbitrary origins, a hostile page could read authenticated preview responses cross-origin → exposure of previewed file content; medium/low since preview pages rarely carry credentials without tokens.
+testability: PASSIVE
+[NEW] cloud.app.box.com/: alternating 200/206 on plain GET (executor) hints at a range-capable front origin; 206 source (CDN vs SPA asset server) uncharacterized — add non-existent-path probe to fingerprint 404 behavior.
+[NEXT] PROBE: run 3 sequential read-only requests against cloud.app.box.com, each with UA "box-research/1.0 +(research)", 2s apart, all header captures REQUIRED and appended verbatim to probe-results-next.md:
+[PARKED] XSS via crafted filename/title in embedded preview: requires crafted file content in a viewer context (writes/upload out of scope); revisit only with new rules.
+[PARKED] Embed token/URL leakage in preview query string: embed token creation needs authenticated flows (AUTH_HELPED); parked until an auth phase.

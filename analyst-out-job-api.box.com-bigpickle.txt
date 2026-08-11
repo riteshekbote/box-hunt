@@ -1,22 +1,25 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root serves 200/206 with dynamic content across multiple cycles; origin is live and serving the SPA, so CORS header inspection is viable, but status alone cannot prove reflection — need header-level evidence.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: 200/206 status patterns (executor) prove a live range-capable origin but carry zero header evidence; ACAO never observed, so CORS cannot be accepted on status alone — needs explicit header capture this cycle.
 
 [HYP] CORS misconfiguration on preview origin
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 25
-reasoning: Repeated 200/206 responses (executor) confirm a live SPA origin, but no ACAO/ACAC evidence was recorded; status-only data cannot discriminate a real CORS flaw from a no-header baseline. Preflight is the cheapest discriminating, read-only test.
-evidence_needed: Access-Control-Allow-Origin echoing attacker-controlled Origin on GET or OPTIONS, ideally paired with Access-Control-Allow-Credentials: true.
-verify_steps: |
-  - OPTIONS / with Origin: https://attacker.invalid, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization; record status + all Access-Control-Allow-* headers.
-  - GET / with Origin: https://attacker.invalid; record presence/value of Access-Control-Allow-Origin (reflected vs static).
-  - If ACAO reflects attacker origin, test one authenticated-predecessor path (api.box.com reads already in leads) for the same header behavior.
-impact: Attacker-controlled page reading authenticated preview responses cross-origin → exposure of embedded/previewed file content; lower severity if no credentials allowed.
+confidence: 30
+reasoning: Repeated 200/206 (executor) confirm live SPA/range server; the alternating 200/206 on plain GET suggests a range/cache layer worth fingerprinting. No ACAO/ACAC header has ever been recorded, so both reflection and absence remain plausible.
+evidence_needed: OPTIONS/GET responses with the exact response-header set, presence/absence and exact value of Access-Control-Allow-Origin when sending Origin: https://attacker.invalid.
+verify_steps: 1) OPTIONS / with Origin + Access-Control-Request-Method: GET + Access-Control-Request-Headers: authorization; 2) GET / with Origin: https://attacker.invalid; capture FULL headers on both.
+impact: If ACAO reflects arbitrary origins, a hostile page could read authenticated preview responses cross-origin → exposure of previewed file content; medium/low since preview pages rarely carry credentials without tokens.
 testability: PASSIVE
 
-[PARKED] XSS via crafted filename/title in embedded preview: requires a crafted file in a viewer context (writes/upload out of scope); revisit only with new rules.
-[PARKED] Embed token/URL leakage in preview query string: embed tokens require authenticated creation flow (AUTH_HELPED); parked for a later auth phase.
+[NEW] cloud.app.box.com/: alternating 200/206 on plain GET (executor) hints at a range-capable front origin; 206 source (CDN vs SPA asset server) uncharacterized — add non-existent-path probe to fingerprint 404 behavior.
 
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization"; record status and every Access-Control-Allow-* response header. Then one GET https://cloud.app.box.com/ with the same UA + Origin header; record whether Access-Control-Allow-Origin is present and its exact value. Stop this host if first 4xx/429/403.
+[NEXT] PROBE: run 3 sequential read-only requests against cloud.app.box.com, each with UA "box-research/1.0 +(research)", 2s apart, all header captures REQUIRED and appended verbatim to probe-results-next.md:
+ 1) GET /nonexistent-bhb-20260811x -> record status + Content-Type + Server header (fingerprints 404 handler/framework);
+ 2) GET / with Range: bytes=0-127 -> record status, Content-Type, Content-Length, and Content-Range (explains the 206 source);
+ 3) GET / with Origin: https://attacker.invalid -> record the FULL response header list, explicitly stating whether Access-Control-Allow-Origin is present and its exact value.
+Stop after the first 4xx/429/403 from this host.
+
+[PARKED] XSS via crafted filename/title in embedded preview: requires crafted file content in a viewer context (writes/upload out of scope); revisit only with new rules.
+[PARKED] Embed token/URL leakage in preview query string: embed token creation needs authenticated flows (AUTH_HELPED); parked until an auth phase.
