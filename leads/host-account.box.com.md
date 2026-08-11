@@ -26,3 +26,4 @@ testability: PASSIVE
 [PARKED] Embed token/URL leakage in preview query string: observing a real preview token requires an authenticated embed/shared-link context we don't hold; no read-only evidence this cycle. AUTH_HELPED.
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)"; record HTTP status and all Access-Control-* response headers verbatim.
 ## 2026-08-11 22:00:01 UTC account.box.com (ling3)
+## 2026-08-11 22:45:02 UTC account.box.com (ling3)
