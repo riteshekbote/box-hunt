@@ -8,10 +8,13 @@ on:
 permissions:
   contents: write
 
+env:
+  UA: "box-research/1.0 +research (read-only)"
+
 jobs:
   triage:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     concurrency:
       group: box-triage
       cancel-in-progress: false
@@ -19,12 +22,69 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Merge, rank, archive
+      - name: Execute NEXT probes (read-only, scope-allowlisted)
         run: |
-          mkdir -p reports
+          python3 << 'PY'
+          import re, glob, ssl, urllib.request, urllib.error, time, os
+          ALLOWED = {'api.box.com','app.box.com','account.box.com','upload.box.com',
+                     'dl.boxcloud.com','notes.services.box.com','m.box.com','cloud.app.box.com'}
+          ctx = ssl.create_default_context()
+          probes, seen = [], set()
+          for f in glob.glob('leads/*.md'):
+              for m in re.finditer(r'^\[NEXT\]\s*(?:PROBE)?:?\s*(?:GET|HEAD|OPTIONS)\s+(https?://\S+)', open(f, errors='ignore').read(), re.M|re.I):
+                  u = m.group(1).strip().strip('.,;)]}>')
+                  if len(u) > 600: u = u[:600]
+                  try:
+                      host = urllib.parse.urlparse(u).hostname or ''
+                  except Exception:
+                      continue
+                  if host.lower() not in ALLOWED or u in seen: continue
+                  seen.add(u); probes.append(u)
+          # also grab any bare URLs in NEXT lines
+          for f in glob.glob('leads/*.md'):
+              for m in re.finditer(r'^\[NEXT\][^\n]*', open(f, errors='ignore').read(), re.M):
+                  line = m.group(0)
+                  for u in re.findall(r'https?://[^\s"\'\)\]\}]+', line):
+                      u = u.strip('.,;)]}>')
+                      if len(u) > 600: u = u[:600]
+                      try:
+                          host = urllib.parse.urlparse(u).hostname or ''
+                      except Exception:
+                          continue
+                      if host.lower() in ALLOWED and u not in seen:
+                          seen.add(u); probes.append(u)
+          probes = probes[:14]
+          if not probes:
+              print('no NEXT probes pending'); raise SystemExit(0)
+          rows = []
+          for u in probes:
+              time.sleep(2)  # politeness: 1 req/2s
+              try:
+                  req = urllib.request.Request(u, method='GET', headers={'User-Agent': 'box-research/1.0', 'Range': 'bytes=0-1'})
+                  with urllib.request.urlopen(req, timeout=12, context=ctx) as r:
+                      rows.append('%s -> %s (len %s)' % (u, r.status, r.headers.get('Content-Length','?')))
+              except urllib.error.HTTPError as e:
+                  rows.append('%s -> HTTP %s' % (u, e.code))
+              except Exception as e:
+                  rows.append('%s -> ERR %s' % (u, str(e)[:60]))
+          stamp = time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())
+          with open('probe-results-next.md', 'a') as fo:
+              fo.write('\n## %s (executor)\n%s\n' % (stamp, '\n'.join(rows)))
+          print('\n'.join(rows))
+          PY
+
+      - name: Merge, rank with evidence, archive
+        run: |
           python3 << 'PY'
           import re, glob, os, datetime
           stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+          evidence = {}
+          for f in glob.glob('probe-results-*.md'):
+              for line in open(f, errors='ignore'):
+                  m = re.match(r'https?://([^/\s]+)(\S*)\s*->\s*(HTTP )?(\d{3}|ERR|len)', line.strip())
+                  if m:
+                      host = m.group(1).lower()
+                      evidence.setdefault(host, []).append(line.strip()[:140])
           rows = []
           for f in glob.glob('leads/*.md'):
               t = open(f, errors='ignore').read()
@@ -41,18 +101,21 @@ jobs:
                   key = title.lower()[:60]
                   if key in seen: continue
                   seen.add(key)
-                  out.write('- [%s] %s: %s (from %s)\n' % (conf, asset, title, re.sub(r'^leads/','',f)))
-              for f in glob.glob('leads/*.md'):
-                  for l in re.findall(r'^\[NEXT\][^\n]*', open(f, errors='ignore').read(), re.M):
-                      out.write('- NEXT: %s\n' % l[:160])
-          print('merged', len(rows), 'hypotheses')
+                  ev = evidence.get(asset.lower(), [])[:2]
+                  evtag = ''
+                  if ev:
+                      evtag = '  (evidence: ' + ' | '.join(ev) + ')'
+                  out.write('- [%s] %s: %s (from %s)%s\n' % (conf, asset, title, re.sub(r'^leads/','',f), evtag))
+          print('merged', len(rows), 'hypotheses; evidence hosts:', len(evidence))
           PY
 
       - name: Commit
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
-          git add reports || true
+          git add reports probe-results-*.md || true
           git diff --cached --quiet || git commit -m "triage $(date -u +'%Y-%m-%d-%H-%M')"
-          git pull --rebase origin main || true
-          git push origin main || true
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin main && break
+            sleep 10
+          done || true
