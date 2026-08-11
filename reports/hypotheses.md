@@ -409,3 +409,8 @@
 - [25] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-api.box.com.md)
 - [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
 - [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-11 21:26:15 UTC
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
