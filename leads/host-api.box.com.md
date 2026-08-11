@@ -42,3 +42,4 @@ testability: PASSIVE
 [NEXT] PROBE: run 3 sequential read-only requests against cloud.app.box.com, each with UA "box-research/1.0 +(research)", 2s apart, all header captures REQUIRED and appended verbatim to probe-results-next.md:
 [PARKED] XSS via crafted filename/title in embedded preview: requires crafted file content in a viewer context (writes/upload out of scope); revisit only with new rules.
 [PARKED] Embed token/URL leakage in preview query string: embed token creation needs authenticated flows (AUTH_HELPED); parked until an auth phase.
+## 2026-08-11 22:00:14 UTC api.box.com (ling3)
