@@ -53,3 +53,4 @@ testability: PASSIVE
 [PARKED] Embed token/URL leakage in preview query string: unchanged — needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root is reachable and returns 200/206 without a login redirect, so header/status probes are valid on this origin; prior 404/302-to-login assumption cleared.
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-bah-request-id"; record status, then verbatim values of Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Vary, Content-Type. Pause 2s; on first 4xx/403/429, stop probing cloud.app.box.com for the cycle.
+## 2026-08-11 19:35:39 UTC cloud.app.box.com (ling3)
