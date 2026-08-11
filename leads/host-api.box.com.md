@@ -44,3 +44,4 @@ testability: PASSIVE
 [PARKED] Embed token/URL leakage in preview query string: embed token creation needs authenticated flows (AUTH_HELPED); parked until an auth phase.
 ## 2026-08-11 22:00:14 UTC api.box.com (ling3)
 ## 2026-08-11 22:44:59 UTC api.box.com (ling3)
+## 2026-08-11 23:23:59 UTC api.box.com (ling3)
