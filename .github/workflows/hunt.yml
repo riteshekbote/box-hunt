@@ -36,14 +36,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install OpenCode
+      - name: Install OpenCode (retry-hard)
         run: |
-          for i in 1 2 3; do
-            if curl -fsSL https://opencode.ai/install | bash; then break; fi
-            echo "install attempt $i failed, retrying in 15s..."; sleep 15
+          export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
+          for i in 1 2 3 4 5; do
+            if command -v opencode >/dev/null 2>&1; then break; fi
+            if curl -fsSL --retry 3 --max-time 60 https://opencode.ai/install | bash; then break; fi
+            echo "install attempt $i failed, retrying in 20s..."; sleep 20
           done
           export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
-          opencode --version
+          if ! command -v opencode >/dev/null 2>&1; then
+            # fallback: direct GitHub release fetch
+            curl -fsSL --max-time 60 https://api.github.com/repos/anomalyco/opencode/releases/latest \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); a=[x for x in d['assets'] if x['name']=='opencode-linux-x64.tar.gz'][0]; print(a['browser_download_url'])" \
+              | xargs -I{} sh -c 'curl -fsSL -o /tmp/oc.tar.gz "{}" && mkdir -p "$HOME/.opencode/bin" && tar -xzf /tmp/oc.tar.gz -C "$HOME/.opencode/bin" && chmod +x "$HOME/.opencode/bin/opencode"'
+            export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
+          fi
+          command -v opencode && opencode --version || (echo "FATAL: no opencode"; exit 127)
 
       - name: Pull Box OpenAPI spec (best effort, read-only; publish if fetched)
         continue-on-error: true
@@ -56,9 +65,10 @@ jobs:
           done || true
           ls docs >/dev/null 2>&1
 
-      - name: Prepare context
+      - name: Prepare context (per-job files)
         run: |
           mkdir -p leads reports docs
+          J="job-${HOST}-${MODEL_NAME}"
           [ -f "state_${HOST}.json" ] || echo '{"phase":"RECON","status":"IN_PROGRESS"}' > "state_${HOST}.json"
           {
             echo "=== SCOPE + RULES ==="
@@ -66,25 +76,35 @@ jobs:
             echo "=== MY HOST STATE ==="
             cat "state_${HOST}.json"
             echo "=== MY LAST LEADS (tail) ==="
-            tail -40 "leads/host-${HOST}.md" 2>/dev/null || echo none
+            tail -60 "leads/host-${HOST}.md" 2>/dev/null || echo none
             echo "=== RANKED HYPOTHESES (tail) ==="
-            tail -30 reports/hypotheses.md 2>/dev/null || echo none
+            tail -40 reports/hypotheses.md 2>/dev/null || echo none
             echo "=== ROBOT PROBE RESULTS (tail) ==="
             tail -40 "probe-results-${HOST}.md" 2>/dev/null || echo none
+            echo "=== NEXT-EXECUTOR RESULTS (tail) ==="
+            tail -60 probe-results-next.md 2>/dev/null || echo none
             echo "=== LATEST SPEC FILE (tail, if any) ==="
             ls docs/*.json >/dev/null 2>&1 && tail -c 20000 $(ls -t docs/*.json | head -1) 2>/dev/null || echo no-spec
-          } > ctx.txt
+          } > "ctx-${J}.txt"
 
       - name: Analyst + researcher run
         run: |
-          cat ctx.txt > analyst-prompt.txt
-          cat >> analyst-prompt.txt << 'PROMPT_EOF'
+          J="job-${HOST}-${MODEL_NAME}"
+          cat "ctx-${J}.txt" > "analyst-prompt-${J}.txt"
+          cat >> "analyst-prompt-${J}.txt" << 'PROMPT_EOF'
           You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
           (mapped from APP_ORIGIN). Session rules:
           1. ONLY read-only HTTP (GET/HEAD/OPTIONS); never any write.
           2. NEVER touch signrequest/sr-staging-1 or any host outside scope.txt (honeypot warning in scope.txt).
           3. Politeness: 1 req/2s, <=60/cycle, UA box-research; on first 4xx/429/403 -> log & stop probing host.
           4. All findings from your own read-only probes or the context above; never fabricate.
+          5. PROBE-FIRST: your [NEXT] lines are EXECUTED by the executor robot between cycles and the results
+             are appended to probe-results-next.md, which you see in context. Build on that evidence:
+             if a probe came back 200 with content, tighten the hypothesis and emit the next probe.
+             If it came back 404/302-to-login, mark the hypothesis PARKED with the observed response.
+             NEVER emit the same [NEXT] twice in a row for the same asset - that is a no-op.
+          6. When you have evidence (status + body facts) for a hypothesis, raise confidence and emit
+             [CONFIRMED] instead of re-listing [HYP].
           Emit ONLY these blocks:
 
           [NEW] <asset>: <one line, discovered or changed>
@@ -104,12 +124,12 @@ jobs:
           Begin.
           PROMPT_EOF
           export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
-          timeout -k 15 18m opencode run --model "$MODEL_ID" < analyst-prompt.txt > analyst-out.txt 2>&1 || true
-          grep -E '^\[(NEW|CHANGED|HYP|PARKED|NEXT|LEARN|RISK)\]|^class:|^confidence:|^asset:|^impact:|^testability:|^verify_steps:|^reasoning:|^evidence:' analyst-out.txt > lead.txt || true
+          timeout -k 15 18m opencode run --model "$MODEL_ID" < "analyst-prompt-${J}.txt" > "analyst-out-${J}.txt" 2>&1 || true
+          grep -E '^\[(NEW|CHANGED|HYP|PARKED|NEXT|LEARN|RISK|CONFIRMED)\]|^class:|^confidence:|^asset:|^impact:|^testability:|^verify_steps:|^reasoning:|^evidence:' "analyst-out-${J}.txt" > "lead-${J}.txt" || true
           mkdir -p leads reports
           {
             echo "## $(date -u +'%Y-%m-%d %H:%M:%S UTC') ${HOST} (${MODEL_NAME})"
-            cat lead.txt
+            cat "lead-${J}.txt"
           } >> "leads/host-${HOST}.md"
 
       - name: Run passive verifier robot (read-only)
@@ -118,8 +138,9 @@ jobs:
           python3 << 'ROBOT_PY'
           import re, glob, ssl, urllib.request, os, time
           host = os.environ.get('HOST', '').lower()
+          j = 'job-%s-%s' % (host, os.environ.get('MODEL_NAME', ''))
           urls, seen = [], set()
-          for f in glob.glob('lead.txt') + glob.glob('analyst-out.txt'):
+          for f in ['lead-%s.txt' % j, 'analyst-out-%s.txt' % j]:
             for m in re.finditer(r'https?://[^\s"\'\)\]\}]+', open(f, errors='ignore').read()):
               u = m.group(0).strip('.,;)]}>')
               if u.lower().startswith('https://') and host in u.lower() and u not in seen:
@@ -135,6 +156,7 @@ jobs:
               rows.append('%s -> HTTP %s' % (u, e.code))
             except Exception as e:
               rows.append('%s -> ERR %s' % (u, str(e)[:60]))
+            time.sleep(2)
           if rows:
             with open('probe-results-%s.md' % host.replace('.', '-'), 'a') as fo:
               fo.write('\n## %s %s\n%s\n' % (time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()), host, '\n'.join(rows)))
@@ -143,27 +165,30 @@ jobs:
             print('no verbatim probes (host=%s)' % host)
           ROBOT_PY
 
-      - name: Save state
+      - name: Save state (evidence-gated)
         run: |
           python3 << 'PY'
-          import json, os
+          import json, os, glob, re
           p = 'state_%s.json' % os.environ['HOST']
           st = json.load(open(p)) if os.path.exists(p) else {}
-          t = open('analyst-out.txt', errors='ignore').read()
-          import re
-          if re.search(r'STATUS_PHASE|PHASE:\s*(RECON|SURFACE|HYPOTHESIS|POC)', t, re.I):
-            pass
+          t = open('analyst-out-%s.txt' % 'job-%s-%s' % (os.environ['HOST'], os.environ['MODEL_NAME']), errors='ignore').read()
           phases = ['RECON','SURFACE','HYPOTHESIS','POC']
           cur = st.get('phase','RECON')
-          st['phase'] = phases[min(phases.index(cur)+1, 3)] if cur in phases else 'RECON'
+          advanced = bool(re.search(r'\[(CONFIRMED|PARKED)\]', t, re.I))
+          if advanced:
+            st['phase'] = phases[min(phases.index(cur)+1, 3)] if cur in phases else 'RECON'
+            st['last_advance'] = __import__('datetime').datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+          st['status'] = 'IN_PROGRESS'
           json.dump(st, open(p,'w'), indent=2)
           PY
 
-      - name: Commit
+      - name: Commit (rebase-safe)
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
-          git add leads reports docs state_*.json probe-results-*.md ctx.txt analyst-out.txt lead.txt || true
-          git diff --cached --quiet || git commit -m "cycle ${HOST} $(date -u +'%Y-%m-%d-%H-%M')"
-          git pull --rebase origin main || true
-          git push origin main || true
+          git add leads reports docs state_*.json probe-results-*.md ctx-*.txt analyst-prompt-*.txt analyst-out-*.txt lead-*.txt || true
+          git diff --cached --quiet || git commit -m "cycle ${HOST}/${MODEL_NAME} $(date -u +'%Y-%m-%d-%H-%M')"
+          for i in 1 2 3 4 5 6; do
+            git pull --rebase origin main && git push origin main && break
+            echo "sync attempt $i failed, retrying in 15s..."; sleep 15
+          done || true
