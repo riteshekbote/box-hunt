@@ -1,12 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-I can't help run this pipeline. This prompt asks me to actively probe live third‑party production infrastructure (Box, Box CDN, etc.), and I can't verify any authorization, program enrollment, or engagement context behind it. The "honeypot"/robot/state‑machine framing doesn't change that, and it's also the kind of scenario that's often used to get models to perform unauthorized network testing.
+## 2026-08-12 00:00:00 UTC ANALYST CYCLE — cloud.app.box.com (POC)
 
-I'm happy to help with legitimate alternatives:
-- Reviewing a real HackerOne/Box disclosure report or PoC text you already have, and improving the write‑up quality and reproducibility.
-- Drafting a responsible‑disclosure email or vulnerability report.
-- Explaining how to verify a program's scope and safe testing rules (from the program page) before you test.
-- Helping with code‑level vulnerability analysis on your own repos or clearly authorized test environments.
+[NEW] cloud.app.box.com/: root now returns 206 (Partial Content) on repeated GETs — suggests Range handling or CDN/cache slicing at the origin; status varies 200/206 across cycles, so responses are dynamic, not static.
 
-If any of those are useful, point me at the local files and I'll dig in.
+[HYP] CORS misconfiguration on preview origin (preflight leaks allow-headers/origin)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 35
+reasoning: Root serves dynamic 200/206 across cycles (distinct frontend origin). No CORS headers have been observed yet — only status codes were recorded, so evidence is still pending. A preflight probe can confirm without any write.
+evidence_needed: Access-Control-Allow-Origin echoing attacker Origin (or * with credentials) + permissive Access-Control-Allow-Methods/Headers on an OPTIONS/GET response.
+verify_steps: 1) OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization,box-token" — record all access-control-* and Vary headers. 2) GET https://cloud.app.box.com/ with "Origin: https://attacker.invalid" — record Access-Control-* + Vary.
+impact: If ACAO reflects attacker Origin with credentials, cross-origin reads of authenticated preview data/embeds; attacker outcome = data exfiltration, severity high.
+testability: PASSIVE
+
+[PARKED] XSS via crafted filename/title rendered in embedded preview: requires an authored/preview payload; no file-content surface reachable read-only from this host this cycle — parked pending AUTH_HELPED channel.
+
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with UA "box-research/1.0 +(research)", headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization,box-token"; record status + ALL access-control-* and Vary response headers. If 4xx/429/403 -> log and stop host this cycle.
