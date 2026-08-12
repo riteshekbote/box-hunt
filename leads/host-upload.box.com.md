@@ -66,3 +66,4 @@ impact: Cross-origin read of preview-origin responses from an attacker page; med
 testability: PASSIVE
 [NEXT] PROBE: send `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`; report status code + every `Access-Control-*` and `Vary` response header verbatim (do not follow redirects; on first 4xx/429/403 log and stop probing this host). This preflight has not been executed yet — the executor's last cycle only ran the standard GET set.
 ## 2026-08-12 21:07:07 UTC upload.box.com (ling3)
+## 2026-08-12 21:57:34 UTC upload.box.com (ling3)
