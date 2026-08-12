@@ -106,3 +106,4 @@ testability: PASSIVE
 [PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rules 1-2) -> AUTH_HELPED.
 [PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
 [NEXT] PROBE: 8×GET with UA "box-research/1.0 +(research)", pause 2s between requests, stop probing cloud.app.box.com on first 403/429 (404s are route facts, not blocks):
+## 2026-08-12 21:57:34 UTC cloud.app.box.com (ling3)
