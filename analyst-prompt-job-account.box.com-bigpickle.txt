@@ -34,7 +34,8 @@
   9. AUTH_HELPED / HUMAN_ONLY items are PARKED in output - never attempted without explicit new rule.=== MY HOST STATE ===
 {
   "phase": "POC",
-  "status": "IN_PROGRESS"
+  "status": "IN_PROGRESS",
+  "last_advance": "2026-08-11 21:08:45 UTC"
 }=== MY LAST LEADS (tail) ===
 ## 2026-08-08 19:41:53 UTC account.box.com (ling3)
 ## 2026-08-09 01:20:35 UTC account.box.com (ling3)
@@ -50,29 +51,24 @@
 ## 2026-08-11 18:30:24 UTC account.box.com (ling3)
 ## 2026-08-11 19:35:40 UTC account.box.com (ling3)
 ## 2026-08-11 20:20:50 UTC account.box.com (bigpickle)
+## 2026-08-11 21:08:45 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root returns 200/206 across cycles (206 implies range/stream CDN behavior); Content-Length not captured; no Access-Control header data recorded yet.
+[HYP] CORS misconfiguration on preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 30
+reasoning: Root serves 200/206 (JS embed/preview host). CORS reflection state is unknown — prior executor runs captured only status, not response headers. An embedded-content origin echoing attacker Origin + Allow-Credentials would let an attacker page read preview/embed responses cross-origin.
+verify_steps: (1) OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid" + "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)"; record status + all Access-Control-* response headers. (2) If preflight reflects, GET https://cloud.app.box.com/ with the same Origin and record the ACAO header.
+impact: Cross-origin read of preview/embed responses → file metadata and preview token disclosure to an attacker page. Medium-High.
+testability: PASSIVE
+[PARKED] XSS via crafted filename/title rendered in embedded preview: proving it needs an attacker-controlled filename in the DOM, which requires upload/rename (forbidden write). No read-only POC path. HUMAN_ONLY.
+[PARKED] Embed token/URL leakage in preview query string: observing a real preview token requires an authenticated embed/shared-link context we don't hold; no read-only evidence this cycle. AUTH_HELPED.
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)"; record HTTP status and all Access-Control-* response headers verbatim.
+## 2026-08-11 22:00:01 UTC account.box.com (ling3)
+## 2026-08-11 22:45:02 UTC account.box.com (ling3)
+## 2026-08-11 23:23:52 UTC account.box.com (ling3)
+## 2026-08-12 00:04:11 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-cloud.app.box.com.md)
-- NEXT: [NEXT] PROBE: GET https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and header "Origin: https://attacker.invalid"; record status, redirect Locat
-
-## RANKED 2026-08-11 15:34:10 UTC
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-cloud.app.box.com.md)
-- NEXT: [NEXT] PROBE: GET https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and header "Origin: https://attacker.invalid"; record status, redirect Locat
-
-## RANKED 2026-08-11 16:29:06 UTC
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-cloud.app.box.com.md)
-- NEXT: [NEXT] PROBE: GET https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and header "Origin: https://attacker.invalid"; record status, redirect Locat
-
-## RANKED 2026-08-11 17:24:46 UTC
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-cloud.app.box.com.md)
-
-## RANKED 2026-08-11 17:34:40 UTC
 - [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
 - [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
 - [20] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-cloud.app.box.com.md)
@@ -89,6 +85,28 @@
 
 ## RANKED 2026-08-11 20:22:31 UTC
 - [25] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-api.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-11 21:26:15 UTC
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-11 22:22:28 UTC
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-11 23:21:13 UTC
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 00:39:13 UTC
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
 - [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
 - [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
@@ -108,6 +126,18 @@ https://cloud.app.box.com/ -> 206 (len ?)
 https://cloud.app.box.com/ -> 200 (len ?)
 
 ## 2026-08-11 20:22:31 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 21:26:15 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 22:22:28 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 23:21:13 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-12 00:39:13 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 === LATEST SPEC FILE (tail, if any) ===
 no-spec

@@ -29,3 +29,15 @@ testability: PASSIVE
 ## 2026-08-11 22:45:02 UTC account.box.com (ling3)
 ## 2026-08-11 23:23:52 UTC account.box.com (ling3)
 ## 2026-08-12 00:04:11 UTC account.box.com (ling3)
+## 2026-08-12 02:37:03 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com/: Root GET / again 206 (2026-08-12 00:39 UTC); consistent 200/206 with no 401/302 across all cycles confirms an unauthenticated, Range-enabled CDN-backed embed origin. Executor still records status only — Content-Range, Content-Length, and every Access-Control-* header remain uncaptured.
+[HYP] CORS misconfiguration on preview origin (header capture via ranged GET)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 40
+reasoning: Every cycle returns 200/206 with content and no auth redirect, so the origin answers anonymously and honors Range. CORS state is unmeasured because prior executor runs logged only status; a ranged GET carrying an attacker Origin is a cheap discriminator for ACAO reflection. (Last cycle's OPTIONS preflight was not reflected in executor results.)
+verify_steps: (1) GET https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Range: bytes=0-1", UA "box-research/1.0 +(research)"; record status, Content-Type, Content-Range, Content-Length, all Access-Control-* headers. (2) If no ACAO: OPTIONS https://cloud.app.box.com/ with "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-requested-with"; record status + Access-Control-* headers.
+impact: Reflected Origin + Allow-Credentials would let an attacker page cross-origin read preview/embed responses (metadata, preview tokens). Medium-High.
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: stable unauthenticated 200/206 keeps CORS hypothesis viable; only header data is missing.
+[NEXT] PROBE: GET https://cloud.app.box.com/ with headers "Range: bytes=0-1", "Origin: https://attacker.invalid", UA "box-research/1.0 +(research)"; record status, Content-Range, Content-Length, and all Access-Control-* response headers verbatim.

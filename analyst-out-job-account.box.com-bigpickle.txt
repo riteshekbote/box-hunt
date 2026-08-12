@@ -1,20 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: root returns 200/206 across cycles (206 implies range/stream CDN behavior); Content-Length not captured; no Access-Control header data recorded yet.
+[NEW] cloud.app.box.com/: Root GET / again 206 (2026-08-12 00:39 UTC); consistent 200/206 with no 401/302 across all cycles confirms an unauthenticated, Range-enabled CDN-backed embed origin. Executor still records status only — Content-Range, Content-Length, and every Access-Control-* header remain uncaptured.
 
-[HYP] CORS misconfiguration on preview origin
+[HYP] CORS misconfiguration on preview origin (header capture via ranged GET)
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 30
-reasoning: Root serves 200/206 (JS embed/preview host). CORS reflection state is unknown — prior executor runs captured only status, not response headers. An embedded-content origin echoing attacker Origin + Allow-Credentials would let an attacker page read preview/embed responses cross-origin.
-evidence_needed: Response to OPTIONS preflight or GET-with-Origin showing Access-Control-Allow-Origin = attacker Origin and/or Access-Control-Allow-Credentials: true.
-verify_steps: (1) OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid" + "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)"; record status + all Access-Control-* response headers. (2) If preflight reflects, GET https://cloud.app.box.com/ with the same Origin and record the ACAO header.
-impact: Cross-origin read of preview/embed responses → file metadata and preview token disclosure to an attacker page. Medium-High.
+confidence: 40
+reasoning: Every cycle returns 200/206 with content and no auth redirect, so the origin answers anonymously and honors Range. CORS state is unmeasured because prior executor runs logged only status; a ranged GET carrying an attacker Origin is a cheap discriminator for ACAO reflection. (Last cycle's OPTIONS preflight was not reflected in executor results.)
+evidence_needed: One response echoing Origin in Access-Control-Allow-Origin (and/or a preflight echoing Access-Control-Request-Method/Headers).
+verify_steps: (1) GET https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Range: bytes=0-1", UA "box-research/1.0 +(research)"; record status, Content-Type, Content-Range, Content-Length, all Access-Control-* headers. (2) If no ACAO: OPTIONS https://cloud.app.box.com/ with "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-requested-with"; record status + Access-Control-* headers.
+impact: Reflected Origin + Allow-Credentials would let an attacker page cross-origin read preview/embed responses (metadata, preview tokens). Medium-High.
 testability: PASSIVE
 
-[PARKED] XSS via crafted filename/title rendered in embedded preview: proving it needs an attacker-controlled filename in the DOM, which requires upload/rename (forbidden write). No read-only POC path. HUMAN_ONLY.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: stable unauthenticated 200/206 keeps CORS hypothesis viable; only header data is missing.
 
-[PARKED] Embed token/URL leakage in preview query string: observing a real preview token requires an authenticated embed/shared-link context we don't hold; no read-only evidence this cycle. AUTH_HELPED.
+[NEXT] PROBE: GET https://cloud.app.box.com/ with headers "Range: bytes=0-1", "Origin: https://attacker.invalid", UA "box-research/1.0 +(research)"; record status, Content-Range, Content-Length, and all Access-Control-* response headers verbatim.
 
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)"; record HTTP status and all Access-Control-* response headers verbatim.
+Note: if the executor already ran the prior OPTIONS preflight in parallel, fold its header output into this cycle's evidence rather than re-running it.
