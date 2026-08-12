@@ -517,3 +517,12 @@
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
 - [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
 - [25] cloud.app.box.com/: Embedded-content origin serves an explicit file surface via a range-capable layer; route map beyond /robots.txt unknown (from host-api.box.com.md)
+
+## RANKED 2026-08-12 17:08:10 UTC
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
+- [25] cloud.app.box.com/: Embedded-content origin serves an explicit file surface via a range-capable layer; route map beyond /robots.txt unknown (from host-api.box.com.md)
