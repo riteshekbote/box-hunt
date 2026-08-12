@@ -56,3 +56,4 @@ verify_steps: (1) OPTIONS https://cloud.app.box.com/ with headers "Origin: https
 impact: Reflected Origin + Allow-Credentials lets an attacker page read preview/embed responses cross-origin (file metadata, embed tokens). Medium-High.
 testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization", UA "box-research/1.0 +(research)". Record HTTP status AND all response headers verbatim (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Headers, Access-Control-Max-Age, Vary); if only status is capturable, log that explicitly so the hypothesis can be re-scoped rather than re-running the same probe.
+## 2026-08-12 10:38:44 UTC account.box.com (ling3)
