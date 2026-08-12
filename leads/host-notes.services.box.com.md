@@ -72,3 +72,4 @@ impact: If ACAO mirrors attacker origin (with or without credentials), cross-ori
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ with headers Origin: https://evil.example.com, Range: bytes=0-1023 — log ALL response headers (especially Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Server, Content-Type, Content-Range) plus status code.
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: OPTIONS-based preflight observation is dead in this pipeline (2 cycles, zero logged OPTIONS); switching the CORS evidence channel to GET-with-Origin, which the executor logs reliably.
+## 2026-08-12 21:57:48 UTC notes.services.box.com (bigpickle)
