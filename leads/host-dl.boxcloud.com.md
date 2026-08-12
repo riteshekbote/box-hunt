@@ -38,3 +38,4 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range; UA box-research/1.0; record status line + Access-Control-* and Vary headers. (plain root GET is exhausted; this is a distinct, read-only preflight)
 ## 2026-08-12 10:39:00 UTC dl.boxcloud.com (ling3)
 ## 2026-08-12 11:27:24 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 12:07:35 UTC dl.boxcloud.com (ling3)
