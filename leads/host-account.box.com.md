@@ -45,3 +45,14 @@ testability: PASSIVE
 ## 2026-08-12 05:51:42 UTC account.box.com (ling3)
 ## 2026-08-12 06:59:48 UTC account.box.com (ling3)
 ## 2026-08-12 08:19:26 UTC account.box.com (ling3)
+## 2026-08-12 09:34:36 UTC account.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: 14th consecutive unauthenticated 200/206 (2026-08-12 09:20:43), no 401/302, Range honored — confirmed anonymous CDN-backed embed origin. The ranged GET + Origin probe ran again but executor output still collapses to `206 (len ?)`, so Access-Control-* / Content-Range / Vary evidence was NOT captured; CORS verdict must switch to a status-visible discriminator.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflect/deny discrimination)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 45
+reasoning: Stable 200/206 across all cycles with no auth redirect means the origin answers anonymously and honors Range. Header capture has failed repeatedly through the executor, so the next evidence step must be readable from status alone: an OPTIONS preflight with an attacker Origin returns either 200 (CORS layer present, header dump needed for ACAO), or 403/405 (hardened). Confidence held at 45 because reflection is still unproven.
+verify_steps: (1) OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization,x-requested-with", UA "box-research/1.0 +(research)"; record status and every Access-Control-* and Vary header verbatim. (2) If ACAO reflects attacker.invalid: GET / with same Origin, record ACAO + Access-Control-Allow-Credentials presence.
+impact: Reflected Origin + Allow-Credentials lets an attacker page read preview/embed responses cross-origin (file metadata, embed tokens). Medium-High.
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization", UA "box-research/1.0 +(research)". Record HTTP status AND all response headers verbatim (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Headers, Access-Control-Max-Age, Vary); if only status is capturable, log that explicitly so the hypothesis can be re-scoped rather than re-running the same probe.
