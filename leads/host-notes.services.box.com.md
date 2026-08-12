@@ -74,3 +74,4 @@ testability: PASSIVE
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: OPTIONS-based preflight observation is dead in this pipeline (2 cycles, zero logged OPTIONS); switching the CORS evidence channel to GET-with-Origin, which the executor logs reliably.
 ## 2026-08-12 21:57:48 UTC notes.services.box.com (bigpickle)
 ## 2026-08-12 22:35:58 UTC notes.services.box.com (ling3)
+## 2026-08-12 23:19:46 UTC notes.services.box.com (ling3)
