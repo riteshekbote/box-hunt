@@ -65,3 +65,4 @@ verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil
 impact: Cross-origin read of preview-origin responses from an attacker page; medium-high depending on surface exposed.
 testability: PASSIVE
 [NEXT] PROBE: send `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`; report status code + every `Access-Control-*` and `Vary` response header verbatim (do not follow redirects; on first 4xx/429/403 log and stop probing this host). This preflight has not been executed yet — the executor's last cycle only ran the standard GET set.
+## 2026-08-12 21:07:07 UTC upload.box.com (ling3)
