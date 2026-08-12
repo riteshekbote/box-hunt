@@ -42,3 +42,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: stable unauthenticated 200/206 keeps CORS hypothesis viable; only header data is missing.
 [NEXT] PROBE: GET https://cloud.app.box.com/ with headers "Range: bytes=0-1", "Origin: https://attacker.invalid", UA "box-research/1.0 +(research)"; record status, Content-Range, Content-Length, and all Access-Control-* response headers verbatim.
 ## 2026-08-12 04:25:31 UTC account.box.com (ling3)
+## 2026-08-12 05:51:42 UTC account.box.com (ling3)
