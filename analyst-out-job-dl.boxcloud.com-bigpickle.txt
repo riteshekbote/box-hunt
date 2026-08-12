@@ -1,38 +1,20 @@
-## 2026-08-08 23:00:16 UTC dl.boxcloud.com (ling3)
-## 2026-08-09 08:49:33 UTC dl.boxcloud.com (ling3)
-## 2026-08-09 09:24:24 UTC dl.boxcloud.com (ling3)
-## 2026-08-09 17:55:41 UTC dl.boxcloud.com (ling3)
-## 2026-08-09 18:25:58 UTC dl.boxcloud.com (ling3)
-## 2026-08-10 20:23:21 UTC dl.boxcloud.com (ling3)
-## 2026-08-10 21:07:14 UTC dl.boxcloud.com (ling3)
-## 2026-08-10 23:40:37 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 02:21:48 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 16:40:46 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 17:24:51 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 17:31:43 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 17:38:06 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 18:30:24 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 19:35:41 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 20:20:39 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 21:08:06 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 22:00:00 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 22:45:07 UTC dl.boxcloud.com (ling3)
-## 2026-08-11 23:24:01 UTC dl.boxcloud.com (ling3)
-## 2026-08-12 00:04:13 UTC dl.boxcloud.com (ling3)
-## 2026-08-12 02:36:45 UTC dl.boxcloud.com (ling3)
-## 2026-08-12 04:25:23 UTC dl.boxcloud.com (ling3)
-## 2026-08-12 05:51:42 UTC dl.boxcloud.com (ling3)
-## 2026-08-12 06:59:49 UTC dl.boxcloud.com (ling3)
-## 2026-08-12 08:19:26 UTC dl.boxcloud.com (ling3)
-## 2026-08-12 09:34:46 UTC dl.boxcloud.com (bigpickle)
+[0m
+> build · big-pickle
+[0m
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root GET / has returned 206 (partial content) across 12+ cycles while several return 200 — the origin/edge honors Range and serves cacheable partial responses, so header-capture via ranged/preflight requests is a viable vector; plain root GET is now exhausted.
+
 [NEW] cloud.app.box.com/: repeated 206 on root confirms Range-handling edge layer; CORS preflight behavior still unobserved — moving root probe (exhausted) to method/header-level probes.
+
 [HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization)
 class: MISCONFIG
 asset: cloud.app.box.com/
 confidence: 45
 reasoning: Root repeatedly returns 206, proving an edge layer processes Range on arbitrary GET and returns cacheable partial responses with headers; preview origins commonly pair a reflected or wide Allow-Origin with a permissive Allow-Headers list. No preflight result has been observed yet, so reflection is unproven but directly testable.
+evidence_needed: OPTIONS preflight with attacker Origin returning Access-Control-Allow-Origin reflecting it (or a broad wildcard with credentials) and Access-Control-Allow-Headers listing authorization/bearer; or a non-preflight GET with Origin reflecting ACAO on the 206.
 verify_steps:
+- OPTIONS https://cloud.app.box.com/ — headers: Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization, accept, range — log status + Access-Control-Allow-Origin / Allow-Headers / Allow-Methods / Vary.
+- GET https://cloud.app.box.com/ — header: Origin: https://evil.example — log Access-Control-Allow-Origin on the 206.
 impact: If ACAO reflects attacker origin with credentials (or ACAH exposes Authorization), an attacker page can read the victim's authenticated preview responses/tokens from the shared origin -> cross-origin token/session leakage, high.
 testability: PASSIVE
+
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range; UA box-research/1.0; record status line + Access-Control-* and Vary headers. (plain root GET is exhausted; this is a distinct, read-only preflight)

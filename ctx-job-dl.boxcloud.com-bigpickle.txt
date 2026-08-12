@@ -1,0 +1,152 @@
+=== SCOPE + RULES ===
+# BOX BUG BOUNTY — SCOPE (read-only research)
+
+## Program: Box (HackerOne) — all listed domains CRITICAL + Eligible unless marked
+
+## ELIGIBLE HOSTS (probe allowed, read-only GET/HEAD/OPTIONS only)
+  upload.box.com           file upload pipeline; malware bypass, parsing, validation  [phase: PLATFORM]
+  notes.services.box.com   Box Notes backend; real-time collaboration, content sync   [phase: PLATFORM]
+  m.box.com                mobile web app; separate rendering/session logic            [phase: WEB]
+  dl.boxcloud.com          file download CDN; signed URLs, file access, token leakage  [phase: CDN]
+  cloud.app.box.com        embedded content views; distinct frontend origin            [phase: PLATFORM]
+  app.box.com              primary web app (files, sharing, AI, admin, notes, forms)
+  api.box.com              core API (files, folders, users, collabs, search, metadata, Shield, AI, events)
+  account.box.com          auth plane: login, OAuth, SSO, tokens, sessions
+
+## OUT OF TOOL REACH (not probed by this pipeline)
+  Box Drive (desktop), iOS App, Android App
+
+## ABSOLUTE FORBIDDEN – NEVER REQUEST, NEVER RESOLVE, NEVER MENTION (honeypot/partner)
+  signrequest.com      production; /administrator endpoint is a HONEYPOT - visiting bans the IP from the site
+  sr-staging-1.com     partner staging; NOT OURS, ineligible
+  *.signrequest.* , *.box.com content outside the 8 hosts above
+
+## HARD RULES (violation = ban + report invalidation)
+  1. READ-ONLY ONLY: GET / HEAD / OPTIONS. NEVER send POST/PUT/PATCH/DELETE bodies to any box host.
+  2. NO account creation, NO uploads, NO file writes, NO shared-link creation, NO OAuth credential submission, NO token exchange.
+  3. Public developer docs (developer.box.com, support.box.com pages) may be READ for research (GET only).
+  4. Politeness: max 1 request / 2s per host, max 60 requests per cycle, User-Agent: box-research/1.0 +(research)
+  5. First 4xx/429/403 from a host -> stop probing that host for the cycle and log it.
+  6. Everything ties back to one of the 8 hosts above; never follow redirects to a third-party origin.
+  7. Phases: RECON -> SURFACE -> HYPOTHESIS -> POC; advance one step per cycle (state kept per host).
+  8. Hypotheses must include: class, asset, confidence 0-100, reasoning (facts only), evidence_needed,
+     verify_steps (exact read-only HTTP), impact, testability (PASSIVE|AUTH_HELPED|HUMAN_ONLY).
+  9. AUTH_HELPED / HUMAN_ONLY items are PARKED in output - never attempted without explicit new rule.=== MY HOST STATE ===
+{
+  "phase": "POC",
+  "status": "IN_PROGRESS"
+}=== MY LAST LEADS (tail) ===
+## 2026-08-08 23:00:16 UTC dl.boxcloud.com (ling3)
+## 2026-08-09 08:49:33 UTC dl.boxcloud.com (ling3)
+## 2026-08-09 09:24:24 UTC dl.boxcloud.com (ling3)
+## 2026-08-09 17:55:41 UTC dl.boxcloud.com (ling3)
+## 2026-08-09 18:25:58 UTC dl.boxcloud.com (ling3)
+## 2026-08-10 20:23:21 UTC dl.boxcloud.com (ling3)
+## 2026-08-10 21:07:14 UTC dl.boxcloud.com (ling3)
+## 2026-08-10 23:40:37 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 02:21:48 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 16:40:46 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 17:24:51 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 17:31:43 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 17:38:06 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 18:30:24 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 19:35:41 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 20:20:39 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 21:08:06 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 22:00:00 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 22:45:07 UTC dl.boxcloud.com (ling3)
+## 2026-08-11 23:24:01 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 00:04:13 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 02:36:45 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 04:25:23 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 05:51:42 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 06:59:49 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 08:19:26 UTC dl.boxcloud.com (ling3)
+=== RANKED HYPOTHESES (tail) ===
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 03:08:03 UTC
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 04:57:04 UTC
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 06:23:45 UTC
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 08:02:08 UTC
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 09:20:43 UTC
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker origin or leaks authorized headers) (from host-notes.services.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+=== ROBOT PROBE RESULTS (tail) ===
+none
+=== NEXT-EXECUTOR RESULTS (tail) ===
+
+## 2026-08-11 17:24:46 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+
+## 2026-08-11 17:34:40 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 18:30:17 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 19:41:36 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+
+## 2026-08-11 20:22:31 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 21:26:15 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 22:22:28 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-11 23:21:13 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-12 00:39:13 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-12 03:08:03 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-12 04:57:04 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+
+## 2026-08-12 06:23:45 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-12 08:02:08 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-12 09:20:43 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+=== LATEST SPEC FILE (tail, if any) ===
+no-spec
