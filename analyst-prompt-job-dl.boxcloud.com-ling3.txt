@@ -76,15 +76,8 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range; UA box-research/1.0; record status line + Access-Control-* and Vary headers. (plain root GET is exhausted; this is a distinct, read-only preflight)
 ## 2026-08-12 10:39:00 UTC dl.boxcloud.com (ling3)
 ## 2026-08-12 11:27:24 UTC dl.boxcloud.com (ling3)
+## 2026-08-12 12:07:35 UTC dl.boxcloud.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-
-## RANKED 2026-08-12 06:23:45 UTC
-- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
 - [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
 
 ## RANKED 2026-08-12 08:02:08 UTC
@@ -117,6 +110,14 @@ testability: PASSIVE
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
 - [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
 - [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 12:28:05 UTC
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
@@ -168,6 +169,12 @@ https://cloud.app.box.com/ -> 200 (len ?)
 
 ## 2026-08-12 11:28:04 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
+
+## 2026-08-12 12:28:05 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
 === LATEST SPEC FILE (tail, if any) ===
 no-spec
 You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
