@@ -85,3 +85,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with UA "box-research/1.0 +(research)" and "Origin: https://attacker.invalid"; record status code and any body size; a 200 (vs catch-all 206 at root) implies a real route exists, 404 implies strict routing, 302/403 implies WAF. Pause 2s; stop probing cloud.app.box.com on first 4xx/429/403. (advances POC: new surface on root-exhausted origin)
 ## 2026-08-12 13:39:24 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 14:41:44 UTC cloud.app.box.com (ling3)
+## 2026-08-12 15:37:19 UTC cloud.app.box.com (ling3)
