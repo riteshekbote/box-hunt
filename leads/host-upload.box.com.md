@@ -45,3 +45,4 @@ testability: PASSIVE
 [PARKED] XSS via crafted filename/title rendered in embedded preview: requires creating/sharing a crafted file and rendering it in a browser — violates read-only rules and needs AUTH. Needs explicit new rule to attempt.
 [PARKED] Embed token/URL leakage in preview query string: needs an authenticated embed flow and captures of live preview URLs — AUTH_HELPED/HUMAN_ONLY, parked.
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers `Origin: https://evil.example` and `Access-Control-Request-Method: GET` and `Access-Control-Request-Headers: authorization`; report status code + all Access-Control-* and Vary response headers (do not follow redirects; on 4xx/429/403 log and stop probing this host for the cycle).
+## 2026-08-12 11:27:47 UTC upload.box.com (ling3)
