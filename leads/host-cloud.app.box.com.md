@@ -68,3 +68,18 @@ testability: PASSIVE
 ## 2026-08-12 09:34:03 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 10:38:44 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 11:27:36 UTC cloud.app.box.com (ling3)
+## 2026-08-12 12:08:22 UTC cloud.app.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: 16 consecutive executor entries (2026-08-11 17:24 → 08-12 11:28) are all canned root GETs `-> 200/206 (len ?)`; my OPTIONS/Origin header probe was never executed and no response headers are ever captured. The root-status surface is EXHAUSTED and header-dependent verification is unobservable by this executor.
+[NEW] cloud.app.box.com/: root returns 200/206 (Range honored) as a catch-all across 16 cycles; status-only capture means CORS hypothesis cannot be advanced here — pivoting to path surface (robots.txt) to differentiate real routes from catch-all SPA.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 30
+reasoning: origin serves content at root without auth redirect and exists for cross-origin embedding, so ACAO/ACAC state is plausible; but the only observed facts are status codes 200/206 — ranked confidence of 45 in ctx is not backed by any header evidence I can verify.
+verify_steps: OPTIONS / with "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-bah-request-id", UA box-research; record status then ACAO/ACAC/ACAM/ACAH/Vary. Pause 2s; stop on first 4xx/403/429.
+impact: arbitrary-origin read of embed responses (file URLs/tokens) -> cross-origin data exposure; severity tied to credentials/allowlist.
+testability: PASSIVE
+[PARKED] CORS header verification: blocked by executor capability — results log status only and my OPTIONS probe was not run; needs a header-capturing probe.
+[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rules 1-2) -> AUTH_HELPED.
+[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with UA "box-research/1.0 +(research)" and "Origin: https://attacker.invalid"; record status code and any body size; a 200 (vs catch-all 206 at root) implies a real route exists, 404 implies strict routing, 302/403 implies WAF. Pause 2s; stop probing cloud.app.box.com on first 4xx/429/403. (advances POC: new surface on root-exhausted origin)

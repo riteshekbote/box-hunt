@@ -1,22 +1,120 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: root responds 200 (2026-08-11 17:24:46) then 206 (17:34:40) on repeat probe — origin serves content without login redirect and honors Range; prior probes logged only status, so header inventory is still unknown.
-
-[HYP] CORS misconfiguration on preview origin
+[0m$ [0mls -la && ls -la *.md 2>/dev/null | head -30
+total 632
+drwxr-xr-x 7 runner runner  4096 Aug 12 12:07 .
+drwxr-xr-x 3 runner runner  4096 Aug 12 12:07 ..
+drwxr-xr-x 7 runner runner  4096 Aug 12 12:07 .git
+drwxr-xr-x 3 runner runner  4096 Aug 12 12:07 .github
+-rw-r--r-- 1 runner runner   811 Aug 12 12:07 README.md
+-rw-r--r-- 1 runner runner  2338 Aug 12 12:07 analyst-out-job-account.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-account.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  2511 Aug 12 12:07 analyst-out-job-api.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-api.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  1203 Aug 12 12:07 analyst-out-job-app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner    32 Aug 12 12:07 analyst-out-job-cloud.app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-cloud.app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  2311 Aug 12 12:07 analyst-out-job-dl.boxcloud.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-dl.boxcloud.com-ling3.txt
+-rw-r--r-- 1 runner runner  2284 Aug 12 12:07 analyst-out-job-m.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-m.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  2045 Aug 12 12:07 analyst-out-job-notes.services.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-notes.services.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  2416 Aug 12 12:07 analyst-out-job-upload.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out-job-upload.box.com-ling3.txt
+-rw-r--r-- 1 runner runner   166 Aug 12 12:07 analyst-out.txt
+-rw-r--r-- 1 runner runner 14260 Aug 12 12:07 analyst-prompt-job-account.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 16631 Aug 12 12:07 analyst-prompt-job-account.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 10692 Aug 12 12:07 analyst-prompt-job-api.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 14437 Aug 12 12:07 analyst-prompt-job-api.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  8853 Aug 12 12:07 analyst-prompt-job-app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 10902 Aug 12 12:07 analyst-prompt-job-app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 15099 Aug 12 12:07 analyst-prompt-job-cloud.app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 14907 Aug 12 12:07 analyst-prompt-job-cloud.app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 10734 Aug 12 12:07 analyst-prompt-job-dl.boxcloud.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 12586 Aug 12 12:07 analyst-prompt-job-dl.boxcloud.com-ling3.txt
+-rw-r--r-- 1 runner runner 12375 Aug 12 12:07 analyst-prompt-job-m.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 12203 Aug 12 12:07 analyst-prompt-job-m.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 12813 Aug 12 12:07 analyst-prompt-job-notes.services.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 14896 Aug 12 12:07 analyst-prompt-job-notes.services.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 11162 Aug 12 12:07 analyst-prompt-job-upload.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 13267 Aug 12 12:07 analyst-prompt-job-upload.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 12520 Aug 12 12:07 ctx-job-account.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 14891 Aug 12 12:07 ctx-job-account.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  8952 Aug 12 12:07 ctx-job-api.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 12697 Aug 12 12:07 ctx-job-api.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  7113 Aug 12 12:07 ctx-job-app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner  9162 Aug 12 12:07 ctx-job-app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 13359 Aug 12 12:07 ctx-job-cloud.app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 13167 Aug 12 12:07 ctx-job-cloud.app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  8994 Aug 12 12:07 ctx-job-dl.boxcloud.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 10846 Aug 12 12:07 ctx-job-dl.boxcloud.com-ling3.txt
+-rw-r--r-- 1 runner runner 10635 Aug 12 12:07 ctx-job-m.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 10463 Aug 12 12:07 ctx-job-m.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 11073 Aug 12 12:07 ctx-job-notes.services.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 13156 Aug 12 12:07 ctx-job-notes.services.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  9422 Aug 12 12:07 ctx-job-upload.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 11527 Aug 12 12:07 ctx-job-upload.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  5861 Aug 12 12:07 ctx.txt
+drwxr-xr-x 2 runner runner  4096 Aug 12 12:07 docs
+-rw-r--r-- 1 runner runner  2138 Aug 12 12:07 lead-job-account.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-account.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  1816 Aug 12 12:07 lead-job-api.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-api.box.com-ling3.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  2010 Aug 12 12:07 lead-job-cloud.app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-cloud.app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  1619 Aug 12 12:07 lead-job-dl.boxcloud.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-dl.boxcloud.com-ling3.txt
+-rw-r--r-- 1 runner runner  1636 Aug 12 12:07 lead-job-m.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-m.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  1836 Aug 12 12:07 lead-job-notes.services.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-notes.services.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  1879 Aug 12 12:07 lead-job-upload.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead-job-upload.box.com-ling3.txt
+-rw-r--r-- 1 runner runner     0 Aug 12 12:07 lead.txt
+drwxr-xr-x 2 runner runner  4096 Aug 12 12:07 leads
+-rw-r--r-- 1 runner runner   160 Aug 12 12:07 probe-results-cloud-app-box-com.md
+-rw-r--r-- 1 runner runner  1296 Aug 12 12:07 probe-results-next.md
+drwxr-xr-x 2 runner runner  4096 Aug 12 12:07 reports
+-rw-r--r-- 1 runner runner  2501 Aug 12 12:07 scope.txt
+-rw-r--r-- 1 runner runner    15 Aug 12 12:07 spec.json
+-rw-r--r-- 1 runner runner    92 Aug 12 12:07 state_account.box.com.json
+-rw-r--r-- 1 runner runner    92 Aug 12 12:07 state_api.box.com.json
+-rw-r--r-- 1 runner runner    47 Aug 12 12:07 state_app.box.com.json
+-rw-r--r-- 1 runner runner    92 Aug 12 12:07 state_cloud.app.box.com.json
+-rw-r--r-- 1 runner runner    47 Aug 12 12:07 state_dl.boxcloud.com.json
+-rw-r--r-- 1 runner runner    92 Aug 12 12:07 state_m.box.com.json
+-rw-r--r-- 1 runner runner    47 Aug 12 12:07 state_notes.services.box.com.json
+-rw-r--r-- 1 runner runner    92 Aug 12 12:07 state_upload.box.com.json
+-rw-r--r-- 1 runner runner  811 Aug 12 12:07 README.md
+-rw-r--r-- 1 runner runner  160 Aug 12 12:07 probe-results-cloud-app-box-com.md
+-rw-r--r-- 1 runner runner 1296 Aug 12 12:07 probe-results-next.md
+[0m
+[0m✱ [0mGlob "**/*.md"[90m 12 matches[0m
+[0m→ [0mRead probe-results-next.md
+[0m→ [0mRead probe-results-cloud-app-box-com.md
+[0m→ [0mRead spec.json
+[0m→ [0mRead scope.txt
+[0m→ [0mRead leads/host-cloud.app.box.com.md
+[0m→ [0mRead state_cloud.app.box.com.json
+[0m→ [0mRead analyst-out-job-cloud.app.box.com-bigpickle.txt
+[0m→ [0mRead reports/hypotheses.md
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: 16 consecutive executor entries (2026-08-11 17:24 → 08-12 11:28) are all canned root GETs `-> 200/206 (len ?)`; my OPTIONS/Origin header probe was never executed and no response headers are ever captured. The root-status surface is EXHAUSTED and header-dependent verification is unobservable by this executor.
+[NEW] cloud.app.box.com/: root returns 200/206 (Range honored) as a catch-all across 16 cycles; status-only capture means CORS hypothesis cannot be advanced here — pivoting to path surface (robots.txt) to differentiate real routes from catch-all SPA.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 25
-reasoning: origin serves content directly at root (200/206, no forced auth redirect) and exists specifically for cross-origin iframe embedding; ACAO/ACAC state is unverified because executor captured status only, not headers.
-evidence_needed: ACAO echoing a non-box Origin (optionally ACAC: true) on GET or on preflight OPTIONS; Vary: Origin absent.
-verify_steps: OPTIONS / with "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-bah-request-id", UA box-research; record status then verbatim ACAO/ACAC/ACAM/ACAH/Vary/Content-Type.
+confidence: 30
+reasoning: origin serves content at root without auth redirect and exists for cross-origin embedding, so ACAO/ACAC state is plausible; but the only observed facts are status codes 200/206 — ranked confidence of 45 in ctx is not backed by any header evidence I can verify.
+evidence_needed: verbatim ACAO/ACAC/ACAM/ACAH + Vary on an OPTIONS/GET with attacker Origin; current executor captures status only.
+verify_steps: OPTIONS / with "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-bah-request-id", UA box-research; record status then ACAO/ACAC/ACAM/ACAH/Vary. Pause 2s; stop on first 4xx/403/429.
 impact: arbitrary-origin read of embed responses (file URLs/tokens) -> cross-origin data exposure; severity tied to credentials/allowlist.
 testability: PASSIVE
-
-[PARKED] XSS via crafted filename/title rendered in embedded preview: unchanged — needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rule 1-2) -> AUTH_HELPED.
-
-[PARKED] Embed token/URL leakage in preview query string: unchanged — needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
-
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root is reachable and returns 200/206 without a login redirect, so header/status probes are valid on this origin; prior 404/302-to-login assumption cleared.
-
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-bah-request-id"; record status, then verbatim values of Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Vary, Content-Type. Pause 2s; on first 4xx/403/429, stop probing cloud.app.box.com for the cycle.
+[PARKED] CORS header verification: blocked by executor capability — results log status only and my OPTIONS probe was not run; needs a header-capturing probe.
+[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rules 1-2) -> AUTH_HELPED.
+[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with UA "box-research/1.0 +(research)" and "Origin: https://attacker.invalid"; record status code and any body size; a 200 (vs catch-all 206 at root) implies a real route exists, 404 implies strict routing, 302/403 implies WAF. Pause 2s; stop probing cloud.app.box.com on first 4xx/429/403. (advances POC: new surface on root-exhausted origin)
