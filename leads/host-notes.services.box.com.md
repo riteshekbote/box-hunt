@@ -49,3 +49,4 @@ verify_steps: (1) OPTIONS https://cloud.app.box.com/ with headers Origin: https:
 impact: Cross-origin reads of embedded preview content or reflection of authorized headers for credential-bearing requests — HIGH if ACAO mirrors attacker origin with credentials.
 testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.com, Access-Control-Request-Method: GET, Access-Control-Request-Headers: x-requested-with — log full response headers (all Access-Control-*), status code, and whether ACAO echoes the supplied Origin value verbatim.
+## 2026-08-12 10:38:54 UTC notes.services.box.com (ling3)
