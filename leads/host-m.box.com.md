@@ -44,3 +44,15 @@ verify_steps: 1) OPTIONS https://cloud.app.box.com/ with headers "Origin: https:
 impact: If ACAO reflects an attacker Origin with credentials, cross-origin authenticated reads of preview/embed data = exfiltration; high severity.
 testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers: "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization,box-token", User-Agent: "box-research/1.0 +(research)"; record response status and EVERY access-control-* and Vary header verbatim. First 4xx/429/403 -> log and stop host this cycle.
+## 2026-08-12 12:08:23 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: latest bare GET (11:28 UTC) returned 206 again — 200/206 alternates across 16+ cycles with no Origin ever sent; root responses are dynamic (CDN range-slice or origin balancing) and CORS headers remain unobservable until an Origin-bearing probe is executed.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Root alternates 200/206 over 16+ cycles, showing a live frontend origin. All executor probes are bare GETs (no Origin), so ACAO/ACAC/Vary have never been captured — unproven, not refuted. The OPTIONS preflight was the [NEXT] for the last two cycles yet the executor still logged only bare-GET results, so the evidence gap is procedural.
+verify_steps: 1) OPTIONS https://cloud.app.box.com/ with Origin: https://attacker.invalid, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,box-token — record status + all access-control-* + Vary. 2) GET https://cloud.app.box.com/ with Origin: https://attacker.invalid — record Access-Control-* + Vary. 3) GET https://cloud.app.box.com/ with Range: bytes=0-1023 to disambiguate the alternating 206 (honest range support vs dynamic origin).
+impact: If ACAO reflects an attacker origin with credentials, cross-origin authenticated reads of preview/embed content = data exfiltration; high severity.
+testability: PASSIVE
+[PARKED] cloud.app.box.com/ OPTIONS preflight (header capture): requested on the last two cycles, but executor results show only bare-GET status lines each time — either OPTIONS is unsupported or headers are not captured; re-emit only if the executor confirms it can run OPTIONS and log headers.
+[NEXT] PROBE: GET https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Range: bytes=0-1023", User-Agent: "box-research/1.0 +(research)"; record response status + every access-control-* + Vary + Content-Range/Accept-Ranges. First 4xx/429/403 -> log and stop host this cycle.
