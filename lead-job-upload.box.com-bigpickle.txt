@@ -1,0 +1,11 @@
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker origin or leaks authorized headers)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 40
+reasoning: Executor confirms cloud.app.box.com/ returns 200/206 across last 15 cycles (206 @ 2026-08-12 09:20:43), so the origin is live and serves content a cross-origin page could try to read. No OPTIONS/Origin-header probe has been run yet, so ACAO/ACAC/ACAH behavior is entirely unmeasured. This is the next concrete evidence gap.
+verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Read response headers: Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Headers, Vary. 3) If ACAO echoes evil origin (+ACAC true / ACAH leaks auth headers) -> CONFIRMED; if 403/404/redirect-to-login -> PARKED with observed response.
+impact: Cross-origin read of authenticated preview-origin responses from an attacker-controlled page; medium-high depending on what the origin returns.
+testability: PASSIVE
+[PARKED] XSS via crafted filename/title rendered in embedded preview: requires creating/sharing a crafted file and rendering it in a browser — violates read-only rules and needs AUTH. Needs explicit new rule to attempt.
+[PARKED] Embed token/URL leakage in preview query string: needs an authenticated embed flow and captures of live preview URLs — AUTH_HELPED/HUMAN_ONLY, parked.
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers `Origin: https://evil.example` and `Access-Control-Request-Method: GET` and `Access-Control-Request-Headers: authorization`; report status code + all Access-Control-* and Vary response headers (do not follow redirects; on 4xx/429/403 log and stop probing this host for the cycle).
