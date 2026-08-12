@@ -54,3 +54,16 @@ testability: PASSIVE
 ## 2026-08-12 09:34:09 UTC api.box.com (ling3)
 ## 2026-08-12 10:38:45 UTC api.box.com (ling3)
 ## 2026-08-12 11:27:26 UTC api.box.com (ling3)
+## 2026-08-12 12:08:06 UTC api.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS hypothesis cannot advance in this pipeline — 16+ executor cycles captured only status codes (200/206 alternating on GET /), never any Access-Control-* header; ACAO/ACAC header values are the discriminator and no header channel exists, so confidence stays capped at status-only and the test is unverifiable.
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: proof requires recording Access-Control-Allow-* response headers (origin reflection / authorized-header leak); executor output is status-only (200/206) across all cycles with no header capture capability. Revisit only if the pipeline gains header recording; status alone cannot confirm or deny.
+[NEW] cloud.app.box.com/: 16 consecutive probes of / returned only 200/206, zero 404/403 — consistent with an SPA catch-all fallback or catch-all CDN; routing behavior for any path other than / is completely untested, and the alternating 200/206 source (range/cache layer) remains uncharacterized.
+[HYP] Preview origin is an SPA/catch-all fallback with uncharacterized route handling
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 40
+reasoning: 16/16 executor probes of / returned 200 or 206 with no 404/403, consistent with a catch-all fallback; 206 on plain GET hints at a range-capable cache layer whose origin (CDN vs SPA asset server) is unknown. No path outside / has ever been probed, so no routing evidence exists yet.
+verify_steps: 1) GET https://cloud.app.box.com/zzz-does-not-exist-9f3k7 2) GET https://cloud.app.box.com/static/ — 2s apart, UA "box-research/1.0 +(research)", record status and content-type verbatim.
+impact: Fingerprints routing/caching for later IDOR or config-leak probes; catch-all alone is not directly exploitable — low severity unless a probed path exposes tokens/config.
+testability: PASSIVE
+[NEXT] PROBE: two read-only GETs against cloud.app.box.com, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/zzz-does-not-exist-9f3k7 (2) https://cloud.app.box.com/static/ — record status and content-type for each verbatim into probe-results-next.md. Stop host on first 4xx/429/403.
