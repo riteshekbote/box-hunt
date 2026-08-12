@@ -36,3 +36,4 @@ verify_steps:
 impact: If ACAO reflects attacker origin with credentials (or ACAH exposes Authorization), an attacker page can read the victim's authenticated preview responses/tokens from the shared origin -> cross-origin token/session leakage, high.
 testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range; UA box-research/1.0; record status line + Access-Control-* and Vary headers. (plain root GET is exhausted; this is a distinct, read-only preflight)
+## 2026-08-12 10:39:00 UTC dl.boxcloud.com (ling3)
