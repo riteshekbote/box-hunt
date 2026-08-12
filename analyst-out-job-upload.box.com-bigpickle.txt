@@ -1,19 +1,15 @@
 [0m
 > build · big-pickle
 [0m
-Phase: POC. Focus host: cloud.app.box.com (executor confirms root serves 200/206 consistently). Top hypothesis (CORS on preview origin) now needs an actual preflight test — the prior cycles only measured plain GET root, which is a no-op against the CORS question.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root `/`, `/robots.txt`, and `/favicon.ico` all return HTTP 206 (Partial Content) across 5+ consecutive cycles — origin is a range-capable object/file-serving layer, not a normal SPA server; supports the CORS-header probe value of this origin.
 
-[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker origin or leaks authorized headers)
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization)
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 40
-reasoning: Executor confirms cloud.app.box.com/ returns 200/206 across last 15 cycles (206 @ 2026-08-12 09:20:43), so the origin is live and serves content a cross-origin page could try to read. No OPTIONS/Origin-header probe has been run yet, so ACAO/ACAC/ACAH behavior is entirely unmeasured. This is the next concrete evidence gap.
-evidence_needed: OPTIONS response containing Access-Control-Allow-Origin echoing attacker Origin (or a fixed wildcard) combined with Access-Control-Allow-Credentials: true, or Access-Control-Allow-Headers exposing authorization/boxapi.
-verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Read response headers: Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Headers, Vary. 3) If ACAO echoes evil origin (+ACAC true / ACAH leaks auth headers) -> CONFIRMED; if 403/404/redirect-to-login -> PARKED with observed response.
-impact: Cross-origin read of authenticated preview-origin responses from an attacker-controlled page; medium-high depending on what the origin returns.
+confidence: 55
+reasoning: Origin returns 206 for `/`, `/robots.txt`, `/favicon.ico` — a range-capable file layer (likely CDN/object store) that typically carries global CORS headers. The required preflight (OPTIONS + Origin: evil) has NEVER been executed; the last cycle's executor ran only standard GETs, so ACAO/ACAC/ACAH/Vary remain entirely unmeasured.
+evidence_needed: Actual OPTIONS preflight response headers from cloud.app.box.com with attacker Origin.
+verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Record status + all `Access-Control-*` and `Vary` response headers (no redirects). 3) If ACAO echoes evil origin (and/or ACAC true, ACAH lists authorization) -> CONFIRMED; on 4xx/429/403 -> log, stop probing host, PARKED.
+impact: Cross-origin read of preview-origin responses from an attacker page; medium-high depending on surface exposed.
 testability: PASSIVE
-
-[PARKED] XSS via crafted filename/title rendered in embedded preview: requires creating/sharing a crafted file and rendering it in a browser — violates read-only rules and needs AUTH. Needs explicit new rule to attempt.
-[PARKED] Embed token/URL leakage in preview query string: needs an authenticated embed flow and captures of live preview URLs — AUTH_HELPED/HUMAN_ONLY, parked.
-
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers `Origin: https://evil.example` and `Access-Control-Request-Method: GET` and `Access-Control-Request-Headers: authorization`; report status code + all Access-Control-* and Vary response headers (do not follow redirects; on 4xx/429/403 log and stop probing this host for the cycle).
+[NEXT] PROBE: send `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`; report status code + every `Access-Control-*` and `Vary` response header verbatim (do not follow redirects; on first 4xx/429/403 log and stop probing this host). This preflight has not been executed yet — the executor's last cycle only ran the standard GET set.

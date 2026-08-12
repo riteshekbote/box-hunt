@@ -54,3 +54,14 @@ testability: PASSIVE
 ## 2026-08-12 17:31:40 UTC upload.box.com (ling3)
 ## 2026-08-12 18:28:15 UTC upload.box.com (ling3)
 ## 2026-08-12 19:36:38 UTC upload.box.com (ling3)
+## 2026-08-12 20:19:48 UTC upload.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root `/`, `/robots.txt`, and `/favicon.ico` all return HTTP 206 (Partial Content) across 5+ consecutive cycles — origin is a range-capable object/file-serving layer, not a normal SPA server; supports the CORS-header probe value of this origin.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Origin returns 206 for `/`, `/robots.txt`, `/favicon.ico` — a range-capable file layer (likely CDN/object store) that typically carries global CORS headers. The required preflight (OPTIONS + Origin: evil) has NEVER been executed; the last cycle's executor ran only standard GETs, so ACAO/ACAC/ACAH/Vary remain entirely unmeasured.
+verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Record status + all `Access-Control-*` and `Vary` response headers (no redirects). 3) If ACAO echoes evil origin (and/or ACAC true, ACAH lists authorization) -> CONFIRMED; on 4xx/429/403 -> log, stop probing host, PARKED.
+impact: Cross-origin read of preview-origin responses from an attacker page; medium-high depending on surface exposed.
+testability: PASSIVE
+[NEXT] PROBE: send `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`; report status code + every `Access-Control-*` and `Vary` response header verbatim (do not follow redirects; on first 4xx/429/403 log and stop probing this host). This preflight has not been executed yet — the executor's last cycle only ran the standard GET set.
