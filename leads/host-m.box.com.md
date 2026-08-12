@@ -25,3 +25,4 @@ testability: PASSIVE
 [PARKED] XSS via crafted filename/title rendered in embedded preview: requires an authored/preview payload; no file-content surface reachable read-only from this host this cycle — parked pending AUTH_HELPED channel.
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with UA "box-research/1.0 +(research)", headers "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization,box-token"; record status + ALL access-control-* and Vary response headers. If 4xx/429/403 -> log and stop host this cycle.
 ## 2026-08-11 23:23:53 UTC m.box.com (ling3)
+## 2026-08-12 00:04:14 UTC m.box.com (ling3)
