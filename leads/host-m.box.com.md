@@ -58,3 +58,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid", "Range: bytes=0-1023", User-Agent: "box-research/1.0 +(research)"; record response status + every access-control-* + Vary + Content-Range/Accept-Ranges. First 4xx/429/403 -> log and stop host this cycle.
 ## 2026-08-12 13:39:25 UTC m.box.com (ling3)
 ## 2026-08-12 14:41:44 UTC m.box.com (ling3)
+## 2026-08-12 15:37:20 UTC m.box.com (ling3)
