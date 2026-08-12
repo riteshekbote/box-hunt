@@ -83,3 +83,4 @@ testability: PASSIVE
 [PARKED] Embed token/URL leakage in preview query string: embed token creation requires authenticated flows (AUTH_HELPED).
 [NEXT] PROBE: 4 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/index.html (2) https://cloud.app.box.com/manifest.json (3) https://cloud.app.box.com/service-worker.js (4) https://cloud.app.box.com/favicon.ico — record status + content-type for each verbatim into probe-results-next.md. Stop host on first 403/429 (404s are informative, continue).
 ## 2026-08-12 15:37:19 UTC api.box.com (ling3)
+## 2026-08-12 16:31:23 UTC api.box.com (ling3)
