@@ -67,3 +67,4 @@ verify_steps: 1) GET https://cloud.app.box.com/zzz-does-not-exist-9f3k7 2) GET h
 impact: Fingerprints routing/caching for later IDOR or config-leak probes; catch-all alone is not directly exploitable — low severity unless a probed path exposes tokens/config.
 testability: PASSIVE
 [NEXT] PROBE: two read-only GETs against cloud.app.box.com, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/zzz-does-not-exist-9f3k7 (2) https://cloud.app.box.com/static/ — record status and content-type for each verbatim into probe-results-next.md. Stop host on first 4xx/429/403.
+## 2026-08-12 13:39:32 UTC api.box.com (ling3)
