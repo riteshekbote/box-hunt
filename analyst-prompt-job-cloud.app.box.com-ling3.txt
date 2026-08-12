@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-11 18:31:09 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/
 confidence: 20
 reasoning: this origin exists to be iframe-embedded by arbitrary third parties, so it must set embed/CORS headers; a reflecting ACAO paired with ACAC is passively observable. No probe data yet, hence low confidence.
 verify_steps: GET https://cloud.app.box.com/ with headers "Origin: https://attacker.invalid" and UA "box-research/1.0 +(research)"; if 200, repeat as OPTIONS / with "Access-Control-Request-Method: GET". Log status, Location, ACAO/ACAC/CSP/Referrer-Policy.
@@ -97,14 +96,8 @@ testability: PASSIVE
 ## 2026-08-12 00:04:11 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 02:36:43 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 04:25:22 UTC cloud.app.box.com (ling3)
+## 2026-08-12 05:51:50 UTC cloud.app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-## RANKED 2026-08-11 20:22:31 UTC
-- [25] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-api.box.com.md)
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-
-## RANKED 2026-08-11 21:26:15 UTC
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
 - [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
 - [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
 
@@ -133,6 +126,13 @@ testability: PASSIVE
 - [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
 
 ## RANKED 2026-08-12 04:57:04 UTC
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
+- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+
+## RANKED 2026-08-12 06:23:45 UTC
 - [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
@@ -174,6 +174,9 @@ https://cloud.app.box.com/ -> 206 (len ?)
 
 ## 2026-08-12 04:57:04 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
+
+## 2026-08-12 06:23:45 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
 === LATEST SPEC FILE (tail, if any) ===
 no-spec
 You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
