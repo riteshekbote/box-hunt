@@ -35,31 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-11 18:31:09 UTC"
+  "last_advance": "2026-08-12 12:08:25 UTC"
 }=== MY LAST LEADS (tail) ===
-[HYP] XSS via crafted filename/title rendered in embedded preview
-class: XSS
-asset: cloud.app.box.com/preview
-confidence: 25
-reasoning: embed renders user-controlled metadata (name/title/description) inside a distinct-origin iframe; sanitizer gaps in such renderers have produced XSS historically. No confirming evidence in ctx yet.
-verify_steps: read-only GET of an existing shared-file preview URL and inspect rendered DOM for unescaped payload strings; requires a pre-seeded shared link with crafted metadata (write forbidden -> cannot create here).
-impact: script execution in cloud.app.box.com origin in viewer context; token theft / drive actions.
-testability: AUTH_HELPED
-[HYP] Embed token/URL leakage in preview query string
-class: OTHER
-asset: cloud.app.box.com/preview
-confidence: 20
-reasoning: embed auth is commonly passed into the preview origin; if delivered via query param (not fragment) it can leak through Referer/access logs. Unconfirmed; needs an existing shared link.
-verify_steps: read-only GET of an existing public shared-link embed and inspect the resulting cloud.app.box.com URL + any redirect Location for credential-bearing params.
-impact: token theft via referrer/log leakage -> unauthorized file access.
-testability: AUTH_HELPED
-[PARKED] XSS via crafted filename/title: requires creating a shared link with malicious metadata (write op forbidden by rules 1-2) -> AUTH_HELPED.
-[PARKED] Embed token leakage: requires a pre-existing shared/preview link, not available in this cycle -> AUTH_HELPED.
-[NEXT] PROBE: GET https://cloud.app.box.com/ with UA "box-research/1.0 +(research)" and header "Origin: https://attacker.invalid"; record status, redirect Location chain, and response headers (Access-Control-*, CSP, X-Frame-Options, Referrer-Policy). Then pause 2s; stop if first 4xx/429/403. (advances RECON->SURFACE header inventory)
-## 2026-08-08 22:00:20 UTC cloud.app.box.com (ling3)
-## 2026-08-09 11:38:41 UTC cloud.app.box.com (ling3)
-## 2026-08-09 19:10:03 UTC cloud.app.box.com (ling3)
-## 2026-08-10 08:27:27 UTC cloud.app.box.com (ling3)
 ## 2026-08-10 19:44:31 UTC cloud.app.box.com (ling3)
 ## 2026-08-10 21:53:58 UTC cloud.app.box.com (ling3)
 ## 2026-08-10 23:01:13 UTC cloud.app.box.com (ling3)
@@ -97,98 +74,133 @@ testability: PASSIVE
 ## 2026-08-12 09:34:03 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 10:38:44 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 11:27:36 UTC cloud.app.box.com (ling3)
+## 2026-08-12 12:08:22 UTC cloud.app.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: 16 consecutive executor entries (2026-08-11 17:24 → 08-12 11:28) are all canned root GETs `-> 200/206 (len ?)`; my OPTIONS/Origin header probe was never executed and no response headers are ever captured. The root-status surface is EXHAUSTED and header-dependent verification is unobservable by this executor.
+[NEW] cloud.app.box.com/: root returns 200/206 (Range honored) as a catch-all across 16 cycles; status-only capture means CORS hypothesis cannot be advanced here — pivoting to path surface (robots.txt) to differentiate real routes from catch-all SPA.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 30
+reasoning: origin serves content at root without auth redirect and exists for cross-origin embedding, so ACAO/ACAC state is plausible; but the only observed facts are status codes 200/206 — ranked confidence of 45 in ctx is not backed by any header evidence I can verify.
+verify_steps: OPTIONS / with "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: x-bah-request-id", UA box-research; record status then ACAO/ACAC/ACAM/ACAH/Vary. Pause 2s; stop on first 4xx/403/429.
+impact: arbitrary-origin read of embed responses (file URLs/tokens) -> cross-origin data exposure; severity tied to credentials/allowlist.
+testability: PASSIVE
+[PARKED] CORS header verification: blocked by executor capability — results log status only and my OPTIONS probe was not run; needs a header-capturing probe.
+[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rules 1-2) -> AUTH_HELPED.
+[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with UA "box-research/1.0 +(research)" and "Origin: https://attacker.invalid"; record status code and any body size; a 200 (vs catch-all 206 at root) implies a real route exists, 404 implies strict routing, 302/403 implies WAF. Pause 2s; stop probing cloud.app.box.com on first 4xx/429/403. (advances POC: new surface on root-exhausted origin)
+## 2026-08-12 13:39:24 UTC cloud.app.box.com (ling3)
+## 2026-08-12 14:41:44 UTC cloud.app.box.com (ling3)
+## 2026-08-12 15:37:19 UTC cloud.app.box.com (ling3)
+## 2026-08-12 16:31:27 UTC cloud.app.box.com (ling3)
+## 2026-08-12 17:31:47 UTC cloud.app.box.com (ling3)
+## 2026-08-12 18:28:24 UTC cloud.app.box.com (ling3)
+## 2026-08-12 19:36:39 UTC cloud.app.box.com (ling3)
+## 2026-08-12 20:19:33 UTC cloud.app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-
-## RANKED 2026-08-12 06:23:45 UTC
-- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+- [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
+- [25] cloud.app.box.com/: Embedded-content origin serves an explicit file surface via a range-capable layer; route map beyond /robots.txt unknown (from host-api.box.com.md)
 
-## RANKED 2026-08-12 08:02:08 UTC
-- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-
-## RANKED 2026-08-12 09:20:43 UTC
-- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker origin or leaks authorized headers) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
-
-## RANKED 2026-08-12 10:39:45 UTC
+## RANKED 2026-08-12 17:08:10 UTC
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+- [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
+- [25] cloud.app.box.com/: Embedded-content origin serves an explicit file surface via a range-capable layer; route map beyond /robots.txt unknown (from host-api.box.com.md)
 
-## RANKED 2026-08-12 11:28:04 UTC
+## RANKED 2026-08-12 18:03:29 UTC
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
-- [20] cloud.app.box.com/: XSS via crafted filename/title rendered in embedded preview (from host-cloud.app.box.com.md)
-- [20] cloud.app.box.com/: Embed token/URL leakage in preview query string (from host-cloud.app.box.com.md)
+- [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
+- [25] cloud.app.box.com/: Embedded-content origin serves an explicit file surface via a range-capable layer; route map beyond /robots.txt unknown (from host-api.box.com.md)
+
+## RANKED 2026-08-12 19:16:12 UTC
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
+- [25] cloud.app.box.com/: Embedded-content origin serves an explicit file surface via a range-capable layer; route map beyond /robots.txt unknown (from host-api.box.com.md)
+
+## RANKED 2026-08-12 20:20:16 UTC
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+- [25] cloud.app.box.com/: Preview origin is an SPA/catch-all fallback with uncharacterized route handling (from host-api.box.com.md)
+- [25] cloud.app.box.com/: Embedded-content origin serves an explicit file surface via a range-capable layer; route map beyond /robots.txt unknown (from host-api.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
 
-## 2026-08-11 17:24:46 UTC (executor)
+## 2026-08-12 15:10:21 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 
-## 2026-08-11 17:34:40 UTC (executor)
+## 2026-08-12 16:07:42 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 
-## 2026-08-11 18:30:17 UTC (executor)
+## 2026-08-12 17:08:10 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 
-## 2026-08-11 19:41:36 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-
-## 2026-08-11 20:22:31 UTC (executor)
+## 2026-08-12 18:03:29 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 
-## 2026-08-11 21:26:15 UTC (executor)
+## 2026-08-12 19:16:12 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 
-## 2026-08-11 22:22:28 UTC (executor)
+## 2026-08-12 20:20:16 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
-
-## 2026-08-11 23:21:13 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-
-## 2026-08-12 00:39:13 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-
-## 2026-08-12 03:08:03 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-
-## 2026-08-12 04:57:04 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-
-## 2026-08-12 06:23:45 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-
-## 2026-08-12 08:02:08 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-
-## 2026-08-12 09:20:43 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-
-## 2026-08-12 10:39:45 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-
-## 2026-08-12 11:28:04 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 === LATEST SPEC FILE (tail, if any) ===
 no-spec
 You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
