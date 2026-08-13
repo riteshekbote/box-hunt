@@ -106,3 +106,16 @@ testability: PASSIVE
 ## 2026-08-13 15:39:29 UTC m.box.com (ling3)
 ## 2026-08-13 16:31:37 UTC m.box.com (ling3)
 ## 2026-08-13 17:31:30 UTC m.box.com (ling3)
+## 2026-08-13 18:29:35 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: double-encoded paths return 404 while single-encoded resolve to the object — %2Frobots.txt->206, %2e%2e/robots.txt->206, %72obots.txt->206, but %252Frobots.txt->404 and robots%252Etxt->404. The edge performs exactly ONE URL-decode, then a normalized, case-sensitive object lookup; double-encoding exits the normalizer and hits a missing-key 404.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: Aggressive single-decode normalization confirmed — dot-segment, percent-encoded, double-slash, backslash and query-stripped variants all collapse to the same 206 object, while double-encoding or case-change yields a plain 404. Status differential is a reliable object-existence oracle on this origin; the front is a CDN object-lookup edge, not app logic.
+[HYP] Object-table fingerprint of cloud.app.box.com via status differential (only-existing-objects-served; all else 404)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Normalization map is now fully characterized (single-decode, case-sensitive, query-stripping) across 4+ executor cycles; only /, /robots.txt and /favicon.ico are known objects and /static/, /index.html, /manifest.json, /service-worker.js are confirmed 404. The remaining unknown is whether other live edge objects (app entry points) exist — the /s/ /embed/ /api/ sweep requested at 14:45/15:37/16:30 was never returned by the executor, so the surface is unexplored, not refuted.
+verify_steps: bare GETs (no custom headers), UA "box-research/1.0 +(research)"; record status + length; baseline = /zzz-missing-9f3k7 (404).
+impact: maps live objects/entry points on the preview origin for later read-only analysis; informational, low severity.
+testability: PASSIVE
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: unchanged — procedural evidence gap (executor cannot capture access-control-* / Vary headers; header-bearing OPTIONS/GET probes never executed). Confidence frozen at 45. Re-open only if the executor gains header capture; will not re-emit.
+[NEXT] PROBE: bare-GET object-discovery sweep, NEW candidate set (distinct from the thrice-emitted /s/ /embed/ /api/ list): GET /shared/, /shared/9f3k7, /preview/, /dl/, /app/, /files/, /notes/, /login, /oauth/, /s/embed, /s/9f3k7, /p/embed with User-Agent "box-research/1.0 +(research)"; record status + length each; a 200/206 marks a live edge object; first 4xx/429/403 -> log and stop host this cycle.
