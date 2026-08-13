@@ -86,3 +86,16 @@ testability: PASSIVE
 ## 2026-08-13 21:42:11 UTC dl.boxcloud.com (ling3)
 ## 2026-08-13 22:24:15 UTC dl.boxcloud.com (ling3)
 ## 2026-08-13 23:08:42 UTC dl.boxcloud.com (ling3)
+## 2026-08-13 23:55:21 UTC dl.boxcloud.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: the OPTIONS/Origin preflight probes for `/` and `/favicon.ico` produced no observable result across two cycles — the executor channel reports URL + status only and never surfaces Access-Control-* / Vary / request-line details, so CORS reflection can neither be confirmed nor refuted here. Confidence stays 45; parked.
+[NEW] cloud.app.box.com/: single-decode normalization layer confirmed — one level of percent-decoding runs before object-store lookup (`%2e%2e/`, `//`, `%72obots`, `%2Frobots`, `%2Etxt` all → 206) while double-encoded (`%252F`, `%252E`) and trailing-slash-file forms → 404; the boundary of that layer is the new probe target.
+[HYP] Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets
+class: MISCONFIG
+asset: cloud.app.box.com/<nonce>
+confidence: 50
+reasoning: Every robots.txt/favicon variant normalizes to 206 even with traversal and leading-slash tricks, while only double-encoded and slash-suffixed forms 404 — consistent with a normalizing object-store front. No cycle has ever probed an arbitrary missing object, so it is unknown whether "404-for-missing" exists or whether 404 is exclusively a normalization failure.
+verify_steps: GET https://cloud.app.box.com/7xq9ZzK2nX4w with UA box-research/1.0; record status line and Content-Type only.
+impact: Decides whether the Range/206 layer (and any Access-Control-* policy living on it) applies origin-wide or only to pinned objects — if default-handler, the parked CORS exposure surface reopens for the full host; if whitelisted, CORS scope is confined to static assets.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/7xq9ZzK2nX4w (12-char random nonce path) with UA box-research/1.0; record status line — distinguishes object-store-default (206) from app/whitelist routing (404). Distinct from all prior robot-batch and header-based probes.
+[PARKED] CORS misconfiguration on cloud.app.box.com (attacker-Origin preflight/GET): preflight and Origin-reflection probes on `/` and `/favicon.ico` returned no observable data two cycles running — the executor channel emits status+length only and never exposes Access-Control-* / Vary headers, so reflection is unverifiable in this pipeline; requires header-level evidence (HUMAN_ONLY).

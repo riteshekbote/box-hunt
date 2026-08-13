@@ -1,21 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: robots.txt and favicon.ico return 206 consistently while root alternates 200/206 — the edge layer serves Range-partial cache entries for static paths but the root origin flips between full and partial bodies (heterogeneous backend / cache coalescing). This is confirmed by three consecutive executor cycles, not a fluke.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: the OPTIONS/Origin preflight probes for `/` and `/favicon.ico` produced no observable result across two cycles — the executor channel reports URL + status only and never surfaces Access-Control-* / Vary / request-line details, so CORS reflection can neither be confirmed nor refuted here. Confidence stays 45; parked.
 
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Prior cycle's OPTIONS preflight on / (Origin: evil.example) produced NO observable result in probe-results-next — executor only echoed the URL-list robot batch. No preflight evidence exists yet, so no confidence raise on the CORS hypothesis is justified.
+[NEW] cloud.app.box.com/: single-decode normalization layer confirmed — one level of percent-decoding runs before object-store lookup (`%2e%2e/`, `//`, `%72obots`, `%2Frobots`, `%2Etxt` all → 206) while double-encoded (`%252F`, `%252E`) and trailing-slash-file forms → 404; the boundary of that layer is the new probe target.
 
-[HYP] CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization
+[HYP] Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets
 class: MISCONFIG
-asset: cloud.app.box.com/favicon.ico (and /robots.txt, both confirmed 206 Range-servable)
-confidence: 45
-reasoning: Static assets (favicon.ico, robots.txt) are served 206 with Range handling, proving an edge/object layer controls response headers on arbitrary GET; preview origins commonly mount a reflected or wide ACAO on that layer. Root preflight returned no data, but a 206 asset is a distinct, sharper target for both preflight and Origin-header reflection tests.
-evidence_needed: Any Access-Control-Allow-Origin / Access-Control-Allow-Headers / Vary response to an OPTIONS or Origin-tagged GET with attacker Origin.
-verify_steps: OPTIONS https://cloud.app.box.com/favicon.ico with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization; and GET https://cloud.app.box.com/favicon.ico with Origin: https://evil.example and Range: bytes=0-99; capture status line + all Access-Control-* + Vary headers; UA box-research/1.0.
-impact: If ACAO reflects attacker origin (esp. with credentials) or ACAH exposes Authorization, an attacker page can read the victim's authenticated preview responses/tokens from the shared origin — cross-origin token/session leakage, high severity.
+asset: cloud.app.box.com/<nonce>
+confidence: 50
+reasoning: Every robots.txt/favicon variant normalizes to 206 even with traversal and leading-slash tricks, while only double-encoded and slash-suffixed forms 404 — consistent with a normalizing object-store front. No cycle has ever probed an arbitrary missing object, so it is unknown whether "404-for-missing" exists or whether 404 is exclusively a normalization failure.
+evidence_needed: status code of a random 12-char alphanumeric path — 404 means whitelist/app routing, 206 means the object store is the default backend.
+verify_steps: GET https://cloud.app.box.com/7xq9ZzK2nX4w with UA box-research/1.0; record status line and Content-Type only.
+impact: Decides whether the Range/206 layer (and any Access-Control-* policy living on it) applies origin-wide or only to pinned objects — if default-handler, the parked CORS exposure surface reopens for the full host; if whitelisted, CORS scope is confined to static assets.
 testability: PASSIVE
 
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range,x-requested-with; UA box-research/1.0; record status line, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Vary (distinct asset vs prior root preflight, which returned no result).
-[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example and Range: bytes=0-99; UA box-research/1.0; record status line (expect 206), Access-Control-Allow-Origin, Access-Control-Expose-Headers, Vary — tests ACAO reflection on a confirmed 206 Range-served asset.
+[NEXT] PROBE: GET https://cloud.app.box.com/7xq9ZzK2nX4w (12-char random nonce path) with UA box-research/1.0; record status line — distinguishes object-store-default (206) from app/whitelist routing (404). Distinct from all prior robot-batch and header-based probes.
 
-[PARKED] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation): confirms heterogeneity but has no attacker outcome without a header/body differential; parked until a CORS reflection or header leak is proven on a 206 asset.
+[PARKED] CORS misconfiguration on cloud.app.box.com (attacker-Origin preflight/GET): preflight and Origin-reflection probes on `/` and `/favicon.ico` returned no observable data two cycles running — the executor channel emits status+length only and never exposes Access-Control-* / Vary headers, so reflection is unverifiable in this pipeline; requires header-level evidence (HUMAN_ONLY).
