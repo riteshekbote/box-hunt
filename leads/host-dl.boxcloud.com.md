@@ -74,3 +74,4 @@ testability: PASSIVE
 [PARKED] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation): confirms heterogeneity but has no attacker outcome without a header/body differential; parked until a CORS reflection or header leak is proven on a 206 asset.
 ## 2026-08-13 11:30:27 UTC dl.boxcloud.com (ling3)
 ## 2026-08-13 12:11:22 UTC dl.boxcloud.com (ling3)
+## 2026-08-13 13:44:35 UTC dl.boxcloud.com (ling3)
