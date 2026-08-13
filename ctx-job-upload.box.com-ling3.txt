@@ -35,23 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-13 02:34:14 UTC"
+  "last_advance": "2026-08-13 08:42:09 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/
-confidence: 40
-reasoning: Executor confirms cloud.app.box.com/ returns 200/206 across last 15 cycles (206 @ 2026-08-12 09:20:43), so the origin is live and serves content a cross-origin page could try to read. No OPTIONS/Origin-header probe has been run yet, so ACAO/ACAC/ACAH behavior is entirely unmeasured. This is the next concrete evidence gap.
-verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Read response headers: Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Headers, Vary. 3) If ACAO echoes evil origin (+ACAC true / ACAH leaks auth headers) -> CONFIRMED; if 403/404/redirect-to-login -> PARKED with observed response.
-impact: Cross-origin read of authenticated preview-origin responses from an attacker-controlled page; medium-high depending on what the origin returns.
-testability: PASSIVE
-[PARKED] XSS via crafted filename/title rendered in embedded preview: requires creating/sharing a crafted file and rendering it in a browser — violates read-only rules and needs AUTH. Needs explicit new rule to attempt.
-[PARKED] Embed token/URL leakage in preview query string: needs an authenticated embed flow and captures of live preview URLs — AUTH_HELPED/HUMAN_ONLY, parked.
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with headers `Origin: https://evil.example` and `Access-Control-Request-Method: GET` and `Access-Control-Request-Headers: authorization`; report status code + all Access-Control-* and Vary response headers (do not follow redirects; on 4xx/429/403 log and stop probing this host for the cycle).
-## 2026-08-12 11:27:47 UTC upload.box.com (ling3)
-## 2026-08-12 12:07:40 UTC upload.box.com (ling3)
-## 2026-08-12 13:39:32 UTC upload.box.com (ling3)
-## 2026-08-12 14:41:46 UTC upload.box.com (ling3)
-## 2026-08-12 15:37:19 UTC upload.box.com (ling3)
-## 2026-08-12 16:31:22 UTC upload.box.com (ling3)
 ## 2026-08-12 17:31:40 UTC upload.box.com (ling3)
 ## 2026-08-12 18:28:15 UTC upload.box.com (ling3)
 ## 2026-08-12 19:36:38 UTC upload.box.com (ling3)
@@ -97,23 +82,22 @@ impact: Cross-origin read of preview-origin responses (and potential Authorizati
 testability: PASSIVE
 [NEXT] PROBE: `GET https://cloud.app.box.com/` with header `Origin: https://evil.example`, then `HEAD https://cloud.app.box.com/favicon.ico` with the same header (no redirects on either); report status + every Access-Control-* and Vary response header verbatim. Executors have only produced GET results so far, so this swaps the never-executed OPTIONS for an executable Origin-header GET/HEAD — a different directive, not a repeat.
 ## 2026-08-13 05:54:33 UTC upload.box.com (ling3)
+## 2026-08-13 07:08:01 UTC upload.box.com (ling3)
+## 2026-08-13 08:42:09 UTC upload.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root `/` 200/206 flip is now 3-of-7 observed cycles returning 200 (08-12 21:25, 08-13 05:21, 08-13 08:40) vs 206 otherwise — time-varying, not deterministic; a status-observable routing surface, not the header-dependent CORS check.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: the executor result channel reports only status codes (200/206/404) — the last 3 cycles' Origin-header and preflight directives returned zero Access-Control-*/Vary header values, so ACAO/ACAC/ACAH are unmeasurable through this channel; CORS verdict requires a header-capturing channel or browser verification.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: same-path status flip — `/` returned 200 @ 05:21:29 and 08:40:24, 206 @ 00:41:28/03:13:13/07:01:39, while `/robots.txt` and `/favicon.ico` are always 206 and every invented path always 404; a single object layer would not flip 200/206 on the identical path, implying a second app backend behind the origin.
+[HYP] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 45
+reasoning: Root `/` flipped 200↔206 across 7 cycles with no request difference visible in the channel; static real files are consistently 206, invented paths consistently 404. A uniform range-capable object layer cannot return 200 for the same path sometimes, so an app backend is implied. Which backend serves which path must be mapped before any backend-consistent header/behavior differential (CORS, caching, redirects) can be assessed on this origin.
+verify_steps: 1) `GET /` three times back-to-back with NO Range header, record each status — 200/206 mix confirms time-varying dual-backend routing; all-200 suggests earlier 206s were Range-dependent. 2) `GET /robots.txt` and `GET /favicon.ico` with no Range (expect 206 → object layer on static files). 3) Route sweep, record 200/206/302/404 verbatim, no redirects followed: `/embed/1`, `/s/1`, `/notes/`, `/files/1`, `/preview/1`, `/api/`.
+impact: Backend-routing fingerprint of the preview origin; enables targeting backend-specific surfaces (CORS, cache, redirects) for later findings; recon-grade, medium-low alone.
+testability: PASSIVE
+[PARKED] CORS ACAO/ACAC/ACAH reflection on cloud.app.box.com: repeated Origin-header GETs, HEAD, and preflight directives over 8+ cycles returned no Access-Control-*/Vary header data because the executor channel is status-only; not confirmed or refuted, but non-advancing on this channel — re-open only with a header-capturing probe channel or AUTH_HELPED/HUMAN_ONLY browser verification.
+[NEXT] PROBE: run 3 sequential `GET /` (NO Range header, record status per request — expect a 200/206 mix to confirm time-varying dual-backend routing), then route sweep of `GET /robots.txt`, `/favicon.ico`, `/embed/1`, `/s/1`, `/notes/`, `/files/1`, `/preview/1`, `/api/` recording exact status (200/206/302/404) per path, no redirects followed, no Range on any request. ~11 requests total; 404s on invented-style paths are normal object-layer misses and must NOT trigger the 4xx stop (reserved for 403/429/401 application denial).
 === RANKED HYPOTHESES (tail) ===
-
-## RANKED 2026-08-12 23:20:19 UTC
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
-- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
-
-## RANKED 2026-08-13 00:41:29 UTC
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
-- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
-- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
 
 ## RANKED 2026-08-13 03:13:13 UTC
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
@@ -138,33 +122,25 @@ testability: PASSIVE
 - [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
 - [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
 - [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
+
+## RANKED 2026-08-13 08:40:24 UTC
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
+- [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
+
+## RANKED 2026-08-13 09:45:21 UTC
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
+- [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://cloud.app.box.com/manifest.json -> HTTP 404
-https://cloud.app.box.com/service-worker.js -> HTTP 404
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-
-## 2026-08-12 23:20:19 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://cloud.app.box.com/robots.txt -> 206 (len ?)
-https://cloud.app.box.com/` -> HTTP 404
-https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
-https://cloud.app.box.com/static/ -> HTTP 404
-https://cloud.app.box.com/index.html -> HTTP 404
-https://cloud.app.box.com/manifest.json -> HTTP 404
-https://cloud.app.box.com/service-worker.js -> HTTP 404
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-
-## 2026-08-13 00:41:28 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://cloud.app.box.com/robots.txt -> 206 (len ?)
-https://cloud.app.box.com/` -> HTTP 404
-https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
-https://cloud.app.box.com/static/ -> HTTP 404
-https://cloud.app.box.com/index.html -> HTTP 404
-https://cloud.app.box.com/manifest.json -> HTTP 404
-https://cloud.app.box.com/service-worker.js -> HTTP 404
 https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 
 ## 2026-08-13 03:13:13 UTC (executor)
@@ -192,6 +168,30 @@ https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 
 ## 2026-08-13 07:01:39 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/` -> HTTP 404
+https://cloud.app.box.com/favicon.ico` -> HTTP 404
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+
+## 2026-08-13 08:40:24 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/` -> HTTP 404
+https://cloud.app.box.com/favicon.ico` -> HTTP 404
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
+https://cloud.app.box.com/index.html -> HTTP 404
+https://cloud.app.box.com/manifest.json -> HTTP 404
+https://cloud.app.box.com/service-worker.js -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+
+## 2026-08-13 09:45:21 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
 https://cloud.app.box.com/robots.txt -> 206 (len ?)
 https://cloud.app.box.com/` -> HTTP 404
 https://cloud.app.box.com/favicon.ico` -> HTTP 404
