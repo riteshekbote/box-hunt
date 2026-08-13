@@ -95,3 +95,4 @@ verify_steps: 1) `GET https://cloud.app.box.com/` with header `Origin: https://e
 impact: Cross-origin read of preview-origin responses (and potential Authorization exposure) from an attacker-controlled page; medium depending on what the layer returns to unauthenticated readers.
 testability: PASSIVE
 [NEXT] PROBE: `GET https://cloud.app.box.com/` with header `Origin: https://evil.example`, then `HEAD https://cloud.app.box.com/favicon.ico` with the same header (no redirects on either); report status + every Access-Control-* and Vary response header verbatim. Executors have only produced GET results so far, so this swaps the never-executed OPTIONS for an executable Origin-header GET/HEAD — a different directive, not a repeat.
+## 2026-08-13 05:54:33 UTC upload.box.com (ling3)
