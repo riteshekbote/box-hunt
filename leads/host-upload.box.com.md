@@ -84,3 +84,14 @@ testability: PASSIVE
 [PARKED] XSS via crafted filename/title in embedded preview: requires creating/sharing a crafted file + browser render — violates read-only rules, needs AUTH. Stays parked.
 [PARKED] Embed token/URL leakage in preview query string: needs authenticated embed flow + live URL captures — AUTH_HELPED/HUMAN_ONLY. Stays parked.
 [NEXT] PROBE: execute the STILL-UNEXECUTED preflight (4+ cycles pending) — one read-only request:
+## 2026-08-13 04:28:27 UTC upload.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root returned 200 on the 2026-08-12 21:25 cycle then 206 on all 4 subsequent cycles, while every invented path stayed 404 — the layer flips between an app response and a range-capable object response; real paths are range-served objects, so a permissive CORS header set remains plausible.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Origin serves 206 on real paths and 404 on invented paths across 5+ cycles — a range-capable object/CDN layer that commonly carries broad Access-Control-* headers. Every prior [NEXT] asked for an OPTIONS preflight, but executor output across 6 cycles contains only GET/HEAD results; the CORS surface has still never actually been measured. The 200-once-206 root anomaly suggests the layer is fronted by an app component, which may or may not copy Origin into ACAO — unmeasured either way.
+verify_steps: 1) `GET https://cloud.app.box.com/` with header `Origin: https://evil.example` (no redirects). 2) `HEAD https://cloud.app.box.com/favicon.ico` with the same Origin header. 3) Record status + every Access-Control-* and Vary header verbatim. 4) If ACAO echoes the attacker origin (esp. with ACAC true) -> CONFIRMED; if ACAO absent or a fixed allowlist -> PARKED (measured, not vulnerable).
+impact: Cross-origin read of preview-origin responses (and potential Authorization exposure) from an attacker-controlled page; medium depending on what the layer returns to unauthenticated readers.
+testability: PASSIVE
+[NEXT] PROBE: `GET https://cloud.app.box.com/` with header `Origin: https://evil.example`, then `HEAD https://cloud.app.box.com/favicon.ico` with the same header (no redirects on either); report status + every Access-Control-* and Vary response header verbatim. Executors have only produced GET results so far, so this swaps the never-executed OPTIONS for an executable Origin-header GET/HEAD — a different directive, not a repeat.
