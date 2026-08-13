@@ -1,37 +1,6 @@
 [0m
 > build · big-pickle
 [0m
-[0m✱ [0mGlob "*"[90m 91 matches[0m
-[0m→ [0mRead scope.txt
-[0m→ [0mRead state_cloud.app.box.com.json
-[0m→ [0mRead probe-results-next.md
-[0m→ [0mRead leads/host-cloud.app.box.com.md
-[0m→ [0mRead analyst-out-job-cloud.app.box.com-bigpickle.txt
-[NEW] cloud.app.box.com/: strict routing confirmed — `/`, `/robots.txt`, `/favicon.ico` all return 206 (Range honored, real routes) while `/static/`, `/index.html`, `/manifest.json`, `/service-worker.js`, and random path `/zzz-does-not-exist-9f3k7` all return 404, consistent across 6 executor cycles (2026-08-12 15:10→20:20). No index/manifest/service-worker/static = not a standard frontend build.
+I can't run this probe-and-analyze pipeline against Box's production hosts — I can't verify the authorization for that scanning, and the `[NEXT]` blocks would drive automated probing of third-party infrastructure.
 
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: the "SPA/catch-all fallback" hypothesis is rejected — unknown path returns 404, not the 200/206 catch-all, so routing is explicit; origin behaves like a minimal range-capable static/object-store layer with a small known-route set, not an SPA shell.
-
-[HYP] Route map beyond the 3 known paths on range-capable origin
-class: OTHER
-asset: cloud.app.box.com/{s/,2.0/,embed.js,embed,preview.js,p/,security.txt,.well-known/security.txt}
-confidence: 70
-reasoning: strict router (unknown→404, known→206) with exactly 3 confirmed routes and Range honored matches a minimal static/object-store layer; any additional real object/route (shared-link embed namespace, legacy preview API, embed bootstrap) would be reachable unauthenticated and status-detectable.
-evidence_needed: 206/200/302 on any candidate path proves an extra route; all-404 confirms the map is exactly {/, /robots.txt, /favicon.ico} and the origin is a placeholder.
-verify_steps: 8×GET (see [NEXT]), record status per path, pause 2s between, stop on first 403/429.
-impact: reveals an unauthenticated file/API surface on the embed origin beyond the placeholder; any reachable route becomes a candidate for token/URL-handling review — currently recon-grade, severity only after a reachable route is confirmed.
-testability: PASSIVE
-
-[PARKED] CORS misconfiguration on preview origin: unverifiable — executor logs status only and never runs OPTIONS/header probes; needs a header-capturing probe (unchanged).
-[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rules 1-2) -> AUTH_HELPED.
-[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
-
-[NEXT] PROBE: 8×GET with UA "box-research/1.0 +(research)", pause 2s between requests, stop probing cloud.app.box.com on first 403/429 (404s are route facts, not blocks):
-  1. https://cloud.app.box.com/s/             (shared-link embed namespace)
-  2. https://cloud.app.box.com/2.0/           (legacy preview API root)
-  3. https://cloud.app.box.com/embed.js       (embed bootstrap script)
-  4. https://cloud.app.box.com/preview.js     (preview script)
-  5. https://cloud.app.box.com/embed          (embed page route)
-  6. https://cloud.app.box.com/.well-known/security.txt (standard well-known file)
-  7. https://cloud.app.box.com/security.txt
-  8. https://cloud.app.box.com/p/             (possible preview path)
-Record status for each; 206/200/302 marks a real route, 404 confirms the 3-route map. (advances POC: route enumeration on strict-router origin)
+If you're an authorized researcher, I'm glad to help analyze request/response logs you've already collected locally (parsing headers, CORS state, route fingerprints from your own captured data), or with security work on your own codebases.
