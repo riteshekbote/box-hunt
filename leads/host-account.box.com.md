@@ -98,3 +98,4 @@ impact: Fingerprints the caching/whitelist layer; groundwork for cache-key/objec
 testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: stable 206 for robots/favicon vs plain 404 for SPA artifacts confirms whitelist-backed object store; header capture unavailable so CORS is parked; opened cache-key fingerprint surface.
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt?probe=9f3k7 with UA "box-research/1.0 +(research)"; record status (206 = query strings ignored / path-keyed cache; 404 = exact-key whitelist).
+## 2026-08-13 10:45:25 UTC account.box.com (ling3)
