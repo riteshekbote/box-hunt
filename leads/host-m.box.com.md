@@ -90,3 +90,16 @@ testability: PASSIVE
 ## 2026-08-13 11:30:29 UTC m.box.com (ling3)
 ## 2026-08-13 12:11:20 UTC m.box.com (ling3)
 ## 2026-08-13 13:44:35 UTC m.box.com (ling3)
+## 2026-08-13 14:45:12 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: normalization sweep (14:41 UTC) characterizes the front layer as a CDN object-lookup edge: dot-segment (`/robots.txt/../robots.txt`), percent-encoded (`/%72obots.txt`, `/robots%2Etxt`), and double-slash (`//robots.txt`) variants all resolve to the same 206 object, while `/robots.txt/` and `/ROBOTS.TXT` return 404 — normalization is aggressive, lookup is case-sensitive, and query strings are ignored (`?probe=9f3k7` -> 206).
+[HYP] Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 40
+reasoning: Normalization/case tests prove a normalized-but-case-sensitive object lookup (all encodings -> 206, uppercase -> 404), confirming existing objects are distinguishable from missing paths by status alone. The route sweep (/s/, /embed/, /api/, /p/) requested at 05:55 was never executed across four subsequent executor runs (11:08, 11:56, 13:39, 14:41) — the surface remains unexplored, not refuted.
+verify_steps: bare GETs (no custom headers) with UA "box-research/1.0 +(research)"; baseline = /zzz-does-not-exist-9f3k7 (404).
+impact: maps live preview/embed entry points for read-only analysis; informational, low severity.
+testability: PASSIVE
+[LEARN] REJECTED OTHER @ cloud.app.box.com/: Dual-backend routing flip (200/206 alternation) — 200/206 now better explained by a single CDN edge range-slice layer than heterogeneous app backends: alternation is stable across 17+ cycles on every existing object while all missing paths uniformly 404, and aggressive path normalization confirms a shared object-store front.
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: unchanged — procedural evidence gap (executor cannot capture access-control-* / Vary headers; header-bearing probes never executed). Confidence frozen at 50. Re-open only if the executor gains header capture; will not re-emit.
+[NEXT] PROBE: bare-GET status-differential route sweep on cloud.app.box.com (executor-native, no custom headers, supersedes the unexecuted 05:55 sweep): GET /s/, /s/zzz-missing-9f3k7, /embed/, /embed/preview, /p/, /p/zzz-missing-9f3k7, /api/, /download/ with User-Agent "box-research/1.0 +(research)"; record status + length for each; a 206/200 (or 404-variant distinct from the /zzz-does-not-exist-9f3k7 baseline) marks a live route. First 403/429 -> log and stop host this cycle.
