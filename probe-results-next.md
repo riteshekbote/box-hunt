@@ -406,3 +406,19 @@ https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
 https://cloud.app.box.com/robots.txt -> 206 (len ?)
+
+## 2026-08-13 23:22:04 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
+https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
