@@ -1,15 +1,23 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root `/`, `/robots.txt`, and `/favicon.ico` all return HTTP 206 (Partial Content) across 5+ consecutive cycles — origin is a range-capable object/file-serving layer, not a normal SPA server; supports the CORS-header probe value of this origin.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: / , /robots.txt , /favicon.ico all return 206 across 4+ consecutive cycles while every invented path (zzz-does-not-exist-9f3k7, static/, index.html, manifest.json, service-worker.js) is a plain 404 — origin is a range-capable object/file layer with no SPA catch-all fallback.
+
+[NEW] cloud.app.box.com/: backtick-in-path probe returned plain HTTP 404 with no echo/reflection — excludes trivial path-reflection on this layer.
 
 [HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization)
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 55
-reasoning: Origin returns 206 for `/`, `/robots.txt`, `/favicon.ico` — a range-capable file layer (likely CDN/object store) that typically carries global CORS headers. The required preflight (OPTIONS + Origin: evil) has NEVER been executed; the last cycle's executor ran only standard GETs, so ACAO/ACAC/ACAH/Vary remain entirely unmeasured.
-evidence_needed: Actual OPTIONS preflight response headers from cloud.app.box.com with attacker Origin.
-verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Record status + all `Access-Control-*` and `Vary` response headers (no redirects). 3) If ACAO echoes evil origin (and/or ACAC true, ACAH lists authorization) -> CONFIRMED; on 4xx/429/403 -> log, stop probing host, PARKED.
-impact: Cross-origin read of preview-origin responses from an attacker page; medium-high depending on surface exposed.
+confidence: 50
+reasoning: Origin is a range-capable object-store layer (206 on all real files, 404 on all invented paths, over 4+ cycles). Such layers commonly carry broad/global Access-Control-* headers. ACAO/ACAC/ACAH/Vary have NEVER been measured — every prior cycle the executor ran only the standard GET set; the OPTIONS preflight from the last 4 [NEXT] directives was never executed, so the CORS surface remains a genuine evidence gap.
+evidence_needed: Observed Access-Control-* + Vary response headers on a preflight or an Origin-bearing GET to /.
+verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Record status + every `Access-Control-*` and `Vary` header verbatim (no redirects). 3) ACAO echoing the attacker origin (with ACAC true and/or ACAH listing authorization) -> CONFIRMED; on 4xx/429/403 -> log and stop probing this host.
+impact: Cross-origin read of preview-origin responses (and potential Authorization exposure) from an attacker-controlled page; medium-high depending on surface.
 testability: PASSIVE
-[NEXT] PROBE: send `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`; report status code + every `Access-Control-*` and `Vary` response header verbatim (do not follow redirects; on first 4xx/429/403 log and stop probing this host). This preflight has not been executed yet — the executor's last cycle only ran the standard GET set.
+
+[PARKED] XSS via crafted filename/title in embedded preview: requires creating/sharing a crafted file + browser render — violates read-only rules, needs AUTH. Stays parked.
+[PARKED] Embed token/URL leakage in preview query string: needs authenticated embed flow + live URL captures — AUTH_HELPED/HUMAN_ONLY. Stays parked.
+
+[NEXT] PROBE: execute the STILL-UNEXECUTED preflight (4+ cycles pending) — one read-only request:
+`curl -sS -o /dev/null -D - -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: authorization" -A "box-research/1.0 (research)" --max-redirs 0`
+Report status + every `Access-Control-*` and `Vary` response header verbatim. FALLBACK (only if OPTIONS is not executable by the robot): run the standard GET to `/` adding `-H "Origin: https://evil.example"` and report ACAO/ACAC/ACAH/Vary on the 206. On first 4xx/429/403, log and stop probing this host for the cycle.

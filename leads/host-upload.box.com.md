@@ -70,3 +70,17 @@ testability: PASSIVE
 ## 2026-08-12 22:35:57 UTC upload.box.com (ling3)
 ## 2026-08-12 23:19:44 UTC upload.box.com (ling3)
 ## 2026-08-13 00:01:47 UTC upload.box.com (ling3)
+## 2026-08-13 02:34:14 UTC upload.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: / , /robots.txt , /favicon.ico all return 206 across 4+ consecutive cycles while every invented path (zzz-does-not-exist-9f3k7, static/, index.html, manifest.json, service-worker.js) is a plain 404 — origin is a range-capable object/file layer with no SPA catch-all fallback.
+[NEW] cloud.app.box.com/: backtick-in-path probe returned plain HTTP 404 with no echo/reflection — excludes trivial path-reflection on this layer.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Origin is a range-capable object-store layer (206 on all real files, 404 on all invented paths, over 4+ cycles). Such layers commonly carry broad/global Access-Control-* headers. ACAO/ACAC/ACAH/Vary have NEVER been measured — every prior cycle the executor ran only the standard GET set; the OPTIONS preflight from the last 4 [NEXT] directives was never executed, so the CORS surface remains a genuine evidence gap.
+verify_steps: 1) `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.example`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: authorization`. 2) Record status + every `Access-Control-*` and `Vary` header verbatim (no redirects). 3) ACAO echoing the attacker origin (with ACAC true and/or ACAH listing authorization) -> CONFIRMED; on 4xx/429/403 -> log and stop probing this host.
+impact: Cross-origin read of preview-origin responses (and potential Authorization exposure) from an attacker-controlled page; medium-high depending on surface.
+testability: PASSIVE
+[PARKED] XSS via crafted filename/title in embedded preview: requires creating/sharing a crafted file + browser render — violates read-only rules, needs AUTH. Stays parked.
+[PARKED] Embed token/URL leakage in preview query string: needs authenticated embed flow + live URL captures — AUTH_HELPED/HUMAN_ONLY. Stays parked.
+[NEXT] PROBE: execute the STILL-UNEXECUTED preflight (4+ cycles pending) — one read-only request:
