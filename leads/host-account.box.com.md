@@ -206,3 +206,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt%3Fprobe with UA "box-research/1.0 +(research)"; record status only — 206 = query-split/strip runs after decode (encoded `?` becomes the delimiter, key strips to `robots.txt`); 404 = query split occurs on the raw `?` before decode (key stays literal `robots.txt%3Fprobe`). This closes the last ordering axis; if it returns 206 the anonymous surface of this origin is exhaustively characterized and only AUTH_HELPED scope or header-verbatim capture (CORS line, still parked) remains.
 [PARKED] CORS misconfiguration on cloud.app.box.com (ACAO/ACAH reflection on 206 assets): executor output drops OPTIONS/header lines, so Access-Control-* reflection can neither be proven nor denied; parked until header-verbatim capture is available — not re-probed this cycle.
 ## 2026-08-13 19:34:38 UTC account.box.com (ling3)
+## 2026-08-13 20:07:26 UTC account.box.com (ling3)
