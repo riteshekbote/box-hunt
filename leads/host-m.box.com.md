@@ -121,3 +121,4 @@ testability: PASSIVE
 [NEXT] PROBE: bare-GET object-discovery sweep, NEW candidate set (distinct from the thrice-emitted /s/ /embed/ /api/ list): GET /shared/, /shared/9f3k7, /preview/, /dl/, /app/, /files/, /notes/, /login, /oauth/, /s/embed, /s/9f3k7, /p/embed with User-Agent "box-research/1.0 +(research)"; record status + length each; a 200/206 marks a live edge object; first 4xx/429/403 -> log and stop host this cycle.
 ## 2026-08-13 19:35:10 UTC m.box.com (ling3)
 ## 2026-08-13 20:07:26 UTC m.box.com (ling3)
+## 2026-08-13 20:58:47 UTC m.box.com (ling3)
