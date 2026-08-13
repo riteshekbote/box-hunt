@@ -73,3 +73,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example and Range: bytes=0-99; UA box-research/1.0; record status line (expect 206), Access-Control-Allow-Origin, Access-Control-Expose-Headers, Vary — tests ACAO reflection on a confirmed 206 Range-served asset.
 [PARKED] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation): confirms heterogeneity but has no attacker outcome without a header/body differential; parked until a CORS reflection or header leak is proven on a 206 asset.
 ## 2026-08-13 11:30:27 UTC dl.boxcloud.com (ling3)
+## 2026-08-13 12:11:22 UTC dl.boxcloud.com (ling3)
