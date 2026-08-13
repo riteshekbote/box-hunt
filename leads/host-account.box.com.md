@@ -77,3 +77,24 @@ testability: PASSIVE
 ## 2026-08-13 05:54:31 UTC account.box.com (ling3)
 ## 2026-08-13 07:07:59 UTC account.box.com (ling3)
 ## 2026-08-13 08:40:52 UTC account.box.com (ling3)
+## 2026-08-13 09:46:37 UTC account.box.com (bigpickle)
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 30
+reasoning: 15+ cycles of 200/206 anonymous responses with no auth redirect. Executor output collapses every response to status only ("206 (len ?)"), so Access-Control-*, Content-Range, and Vary can never be observed. OPTIONS preflight results also never surface in next-executor output. Reflection is therefore neither provable nor refutable at current tool fidelity.
+verify_steps: (1) OPTIONS https://cloud.app.box.com/ with "Origin: https://attacker.invalid", "Access-Control-Request-Method: GET", "Access-Control-Request-Headers: authorization", UA "box-research/1.0 +(research)"; dump all headers. (2) If ACAO reflected, GET / with same Origin and dump ACAO + Allow-Credentials.
+impact: Cross-origin read of preview/embed responses (metadata, embed tokens). Medium-High.
+testability: PASSIVE
+[PARKED] CORS misconfiguration (cloud.app.box.com): executor records status codes only and drops OPTIONS/header output, so ACAO reflection can never be demonstrated or denied this cycle. Needs header-verbatim capture; re-opened when available, not re-probed.
+[NEW] cloud.app.box.com/: content-availability fingerprint — root, robots.txt, favicon.ico consistently return 200/206 (Range honored), while index.html, manifest.json, service-worker.js, /static/ and random slugs all return plain 404. Root alternates 200/206 (03:13→206, 05:21→200, 07:01→206, 08:40→200, 09:45→200) but the file paths are stable 206. This is a whitelist/cache-keyed object-store origin, not a standard SPA host (no index.html service).
+[HYP] Query-string cache-key / whitelist fingerprint of the object-store origin
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 35
+reasoning: robots.txt is a stable 206 object (Range honored) while every non-whitelisted path is a plain 404 — consistent with an exact-path whitelist or a cache-keyed store. Appending a query string discriminates cache-key behavior: 206 means query strings are ignored (path-keyed), 404 means the key includes the query string (exact-key whitelist). Trailing slash then tests path normalization of the whitelist.
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt?probe=9f3k7 with UA "box-research/1.0 +(research)"; record status. (2) GET https://cloud.app.box.com/robots.txt/ with same UA; record status.
+impact: Fingerprints the caching/whitelist layer; groundwork for cache-key/object-confusion hypotheses. Low-Medium.
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: stable 206 for robots/favicon vs plain 404 for SPA artifacts confirms whitelist-backed object store; header capture unavailable so CORS is parked; opened cache-key fingerprint surface.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt?probe=9f3k7 with UA "box-research/1.0 +(research)"; record status (206 = query strings ignored / path-keyed cache; 404 = exact-key whitelist).
