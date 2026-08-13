@@ -577,3 +577,11 @@
 - [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
 - [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
+
+## RANKED 2026-08-13 00:41:29 UTC
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on preview origin (preflight leaks allow-headers/origin) (from host-m.box.com.md)
+- [35] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (cross-origin GET/preflight exposes access-control-* + Authorization) (from host-m.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (header capture via ranged GET) (from host-account.box.com.md)
+- [30] cloud.app.box.com/: CORS misconfiguration on preview origin (from host-account.box.com.md)
