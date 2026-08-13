@@ -35,22 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-13 13:45:40 UTC"
+  "last_advance": "2026-08-13 16:32:40 UTC"
 }=== MY LAST LEADS (tail) ===
-[HYP] Case/path-normalization fingerprint of the object-store whitelist
-class: MISCONFIG
-asset: cloud.app.box.com/robots.txt/
-confidence: 50
-reasoning: robots.txt and robots.txt?probe=9f3k7 both return 206 (query ignored, path-keyed). Trailing slash (robots.txt/) discriminates whether the key collapses slashes; ROBOTS.TXT discriminates case-sensitivity of the path match. Statuses 206/404 vs 404/404 are directly readable at current tool fidelity.
-verify_steps: (1) GET https://cloud.app.box.com/robots.txt/ with UA "box-research/1.0 +(research)"; record status. (2) GET https://cloud.app.box.com/ROBOTS.TXT with same UA; record status.
-impact: Precise normalization map of the whitelisted origin; groundwork for path-confusion/cache-key hypotheses. Low.
-testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/ and GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record both statuses — 206/206 = slashes collapsed + case-insensitive; 206/404 = slash-collapse only; 404/404 = exact-match key (case-sensitive, slash-sensitive).
-## 2026-08-13 13:45:40 UTC account.box.com (bigpickle)
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: robots.txt and favicon.ico return 206 consistently while root alternates 200/206 — the edge layer serves Range-partial cache entries for static paths but the root origin flips between full and partial bodies (heterogeneous backend / cache coalescing). This is confirmed by three consecutive executor cycles, not a fluke.
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Prior cycle's OPTIONS preflight on / (Origin: evil.example) produced NO observable result in probe-results-next — executor only echoed the URL-list robot batch. No preflight evidence exists yet, so no confidence raise on the CORS hypothesis is justified.
-[HYP] CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization
-class: MISCONFIG
 asset: cloud.app.box.com/favicon.ico (and /robots.txt, both confirmed 206 Range-servable)
 confidence: 45
 reasoning: Static assets (favicon.ico, robots.txt) are served 206 with Range handling, proving an edge/object layer controls response headers on arbitrary GET; preview origins commonly mount a reflected or wide ACAO on that layer. Root preflight returned no data, but a 206 asset is a distinct, sharper target for both preflight and Origin-header reflection tests.
@@ -97,6 +83,20 @@ testability: PASSIVE
 [PARKED] CORS misconfiguration on cloud.app.box.com (preflight/ACAO reflection): executor records status codes only and drops OPTIONS/header output, so Access-Control-* reflection can neither be proven nor denied on root or 206 assets; parked until header-verbatim capture is available, not re-probed.
 ## 2026-08-13 14:44:42 UTC account.box.com (ling3)
 ## 2026-08-13 15:39:22 UTC account.box.com (ling3)
+## 2026-08-13 16:32:39 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com/: Whitelist matcher is a NORMALIZER, not an exact raw-path match — `%72obots.txt`, `robots%2Etxt`, `robots.txt/../robots.txt`, `//robots.txt` all returned 206 in the 16:30:20 cycle while `ROBOTS.TXT` and `robots.txt/` stayed 404. Only letter-case and trailing-slash remain sensitive after decode/collapse/query-strip.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: 16:30:20 results overturn the prior "exact raw-path key" model — the matcher percent-decodes, collapses dot-segments and leading double-slashes, and strips query strings before the case- and slash-sensitive compare. Root also flipped 200 this cycle (was 206), third independent confirmation of the heterogeneous-origin alternation (parked, no header differential observable).
+[HYP] Decode-first vs split-first normalization order on the whitelist matcher
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 55
+reasoning: Four distinct encoded/collapsed variants resolve to the whitelisted object (206), proving a normalizer precedes the case/slash-sensitive key compare. Whether %-decoding runs before path-splitting (decode-first) or after (split-first) is untested and is the axis that decides if an encoded separator can escape a path segment past the gateway. `/robots.txt` (raw leading slash) is known-206, so a 206 on `/%2Frobots.txt` implies decode-first with post-decode leading-slash collapse; a 404 implies split-first with the encoded slash trapped inside the segment.
+verify_steps: (1) GET https://cloud.app.box.com/%2Frobots.txt with UA "box-research/1.0 +(research)"; record status only — 206 = decode-first, 404 = split-first. (2) GET https://cloud.app.box.com/%252Frobots.txt with same UA; record status — 206 = edge double-decodes, 404 = single-decode.
+impact: Determines whether an attacker can smuggle a raw separator (slash/dot) past the normalizer into the object-store key — the exact primitive behind path/key-confusion on this embed origin. Informational now, but it is the last axis that decides whether any confusion POC is constructible here at all. Low.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/%2Frobots.txt with UA "box-research/1.0 +(research)"; record status — 206 = decode-first (encoded leading slash decodes then collapses to whitelist key); 404 = split-first.
+[NEXT] PROBE: GET https://cloud.app.box.com/%252Frobots.txt with UA "box-research/1.0 +(research)"; record status — 206 = double-decode at edge; 404 = single-decode (key becomes literal `%2Frobots.txt`).
+[PARKED] Surface exhaustion on cloud.app.box.com: anonymous surface is only `/`, `/robots.txt`, `/favicon.ico` — all fully mapped. CORS line remains parked (executor drops OPTIONS/header output, ACAO can neither be proven nor denied). Decode-order is the last constructible probe; once resolved, this origin is exhaustively characterized for the anonymous scope and further progress requires AUTH_HELPED (out of current rules) or a new surface.
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
