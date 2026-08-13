@@ -113,3 +113,4 @@ testability: PASSIVE
 [NEXT] PROBE: run 3 sequential `GET /` (NO Range header, record status per request — expect a 200/206 mix to confirm time-varying dual-backend routing), then route sweep of `GET /robots.txt`, `/favicon.ico`, `/embed/1`, `/s/1`, `/notes/`, `/files/1`, `/preview/1`, `/api/` recording exact status (200/206/302/404) per path, no redirects followed, no Range on any request. ~11 requests total; 404s on invented-style paths are normal object-layer misses and must NOT trigger the 4xx stop (reserved for 403/429/401 application denial).
 ## 2026-08-13 09:45:47 UTC upload.box.com (ling3)
 ## 2026-08-13 10:45:23 UTC upload.box.com (ling3)
+## 2026-08-13 11:30:30 UTC upload.box.com (ling3)
