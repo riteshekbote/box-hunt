@@ -168,3 +168,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/robots%2Etxt with UA "box-research/1.0 +(research)"; record status (206 = encoded dot decodes to whitelisted key).
 [NEXT] PROBE: GET https://cloud.app.box.com//robots.txt with UA "box-research/1.0 +(research)"; record status (206 = leading double-slash normalized; 404 = strict path).
 [PARKED] CORS misconfiguration on cloud.app.box.com (preflight/ACAO reflection): executor records status codes only and drops OPTIONS/header output, so Access-Control-* reflection can neither be proven nor denied on root or 206 assets; parked until header-verbatim capture is available, not re-probed.
+## 2026-08-13 14:44:42 UTC account.box.com (ling3)
