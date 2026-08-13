@@ -170,3 +170,17 @@ testability: PASSIVE
 [PARKED] CORS misconfiguration on cloud.app.box.com (preflight/ACAO reflection): executor records status codes only and drops OPTIONS/header output, so Access-Control-* reflection can neither be proven nor denied on root or 206 assets; parked until header-verbatim capture is available, not re-probed.
 ## 2026-08-13 14:44:42 UTC account.box.com (ling3)
 ## 2026-08-13 15:39:22 UTC account.box.com (ling3)
+## 2026-08-13 16:32:39 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com/: Whitelist matcher is a NORMALIZER, not an exact raw-path match — `%72obots.txt`, `robots%2Etxt`, `robots.txt/../robots.txt`, `//robots.txt` all returned 206 in the 16:30:20 cycle while `ROBOTS.TXT` and `robots.txt/` stayed 404. Only letter-case and trailing-slash remain sensitive after decode/collapse/query-strip.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: 16:30:20 results overturn the prior "exact raw-path key" model — the matcher percent-decodes, collapses dot-segments and leading double-slashes, and strips query strings before the case- and slash-sensitive compare. Root also flipped 200 this cycle (was 206), third independent confirmation of the heterogeneous-origin alternation (parked, no header differential observable).
+[HYP] Decode-first vs split-first normalization order on the whitelist matcher
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 55
+reasoning: Four distinct encoded/collapsed variants resolve to the whitelisted object (206), proving a normalizer precedes the case/slash-sensitive key compare. Whether %-decoding runs before path-splitting (decode-first) or after (split-first) is untested and is the axis that decides if an encoded separator can escape a path segment past the gateway. `/robots.txt` (raw leading slash) is known-206, so a 206 on `/%2Frobots.txt` implies decode-first with post-decode leading-slash collapse; a 404 implies split-first with the encoded slash trapped inside the segment.
+verify_steps: (1) GET https://cloud.app.box.com/%2Frobots.txt with UA "box-research/1.0 +(research)"; record status only — 206 = decode-first, 404 = split-first. (2) GET https://cloud.app.box.com/%252Frobots.txt with same UA; record status — 206 = edge double-decodes, 404 = single-decode.
+impact: Determines whether an attacker can smuggle a raw separator (slash/dot) past the normalizer into the object-store key — the exact primitive behind path/key-confusion on this embed origin. Informational now, but it is the last axis that decides whether any confusion POC is constructible here at all. Low.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/%2Frobots.txt with UA "box-research/1.0 +(research)"; record status — 206 = decode-first (encoded leading slash decodes then collapses to whitelist key); 404 = split-first.
+[NEXT] PROBE: GET https://cloud.app.box.com/%252Frobots.txt with UA "box-research/1.0 +(research)"; record status — 206 = double-decode at edge; 404 = single-decode (key becomes literal `%2Frobots.txt`).
+[PARKED] Surface exhaustion on cloud.app.box.com: anonymous surface is only `/`, `/robots.txt`, `/favicon.ico` — all fully mapped. CORS line remains parked (executor drops OPTIONS/header output, ACAO can neither be proven nor denied). Decode-order is the last constructible probe; once resolved, this origin is exhaustively characterized for the anonymous scope and further progress requires AUTH_HELPED (out of current rules) or a new surface.
