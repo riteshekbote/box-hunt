@@ -119,3 +119,4 @@ impact: maps live objects/entry points on the preview origin for later read-only
 testability: PASSIVE
 [PARKED] CORS misconfiguration on cloud.app.box.com preview origin: unchanged — procedural evidence gap (executor cannot capture access-control-* / Vary headers; header-bearing OPTIONS/GET probes never executed). Confidence frozen at 45. Re-open only if the executor gains header capture; will not re-emit.
 [NEXT] PROBE: bare-GET object-discovery sweep, NEW candidate set (distinct from the thrice-emitted /s/ /embed/ /api/ list): GET /shared/, /shared/9f3k7, /preview/, /dl/, /app/, /files/, /notes/, /login, /oauth/, /s/embed, /s/9f3k7, /p/embed with User-Agent "box-research/1.0 +(research)"; record status + length each; a 200/206 marks a live edge object; first 4xx/429/403 -> log and stop host this cycle.
+## 2026-08-13 19:35:10 UTC m.box.com (ling3)
