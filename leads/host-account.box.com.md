@@ -119,3 +119,52 @@ verify_steps: (1) GET https://cloud.app.box.com/robots.txt/ with UA "box-researc
 impact: Precise normalization map of the whitelisted origin; groundwork for path-confusion/cache-key hypotheses. Low.
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/ and GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record both statuses — 206/206 = slashes collapsed + case-insensitive; 206/404 = slash-collapse only; 404/404 = exact-match key (case-sensitive, slash-sensitive).
+## 2026-08-13 13:45:40 UTC account.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: robots.txt and favicon.ico return 206 consistently while root alternates 200/206 — the edge layer serves Range-partial cache entries for static paths but the root origin flips between full and partial bodies (heterogeneous backend / cache coalescing). This is confirmed by three consecutive executor cycles, not a fluke.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Prior cycle's OPTIONS preflight on / (Origin: evil.example) produced NO observable result in probe-results-next — executor only echoed the URL-list robot batch. No preflight evidence exists yet, so no confidence raise on the CORS hypothesis is justified.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization
+class: MISCONFIG
+asset: cloud.app.box.com/favicon.ico (and /robots.txt, both confirmed 206 Range-servable)
+confidence: 45
+reasoning: Static assets (favicon.ico, robots.txt) are served 206 with Range handling, proving an edge/object layer controls response headers on arbitrary GET; preview origins commonly mount a reflected or wide ACAO on that layer. Root preflight returned no data, but a 206 asset is a distinct, sharper target for both preflight and Origin-header reflection tests.
+verify_steps: OPTIONS https://cloud.app.box.com/favicon.ico with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization; and GET https://cloud.app.box.com/favicon.ico with Origin: https://evil.example and Range: bytes=0-99; capture status line + all Access-Control-* + Vary headers; UA box-research/1.0.
+impact: If ACAO reflects attacker origin (esp. with credentials) or ACAH exposes Authorization, an attacker page can read the victim's authenticated preview responses/tokens from the shared origin — cross-origin token/session leakage, high severity.
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range,x-requested-with; UA box-research/1.0; record status line, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Vary (distinct asset vs prior root preflight, which returned no result).
+[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example and Range: bytes=0-99; UA box-research/1.0; record status line (expect 206), Access-Control-Allow-Origin, Access-Control-Expose-Headers, Vary — tests ACAO reflection on a confirmed 206 Range-served asset.
+[PARKED] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation): confirms heterogeneity but has no attacker outcome without a header/body differential; parked until a CORS reflection or header leak is proven on a 206 asset.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: robots.txt and favicon.ico return 206 consistently while root alternates 200/206 — the edge layer serves Range-partial cache entries for static paths but the root origin flips between full and partial bodies (heterogeneous backend / cache coalescing). This is confirmed by three consecutive executor cycles, not a fluke.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Prior cycle's OPTIONS preflight on / (Origin: evil.example) produced NO observable result in probe-results-next — executor only echoed the URL-list robot batch. No preflight evidence exists yet, so no confidence raise on the CORS hypothesis is justified.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization
+class: MISCONFIG
+asset: cloud.app.box.com/favicon.ico (and /robots.txt, both confirmed 206 Range-servable)
+confidence: 45
+reasoning: Static assets (favicon.ico, robots.txt) are served 206 with Range handling, proving an edge/object layer controls response headers on arbitrary GET; preview origins commonly mount a reflected or wide ACAO on that layer. Root preflight returned no data, but a 206 asset is a distinct, sharper target for both preflight and Origin-header reflection tests.
+verify_steps: OPTIONS https://cloud.app.box.com/favicon.ico with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization; and GET https://cloud.app.box.com/favicon.ico with Origin: https://evil.example and Range: bytes=0-99; capture status line + all Access-Control-* + Vary headers; UA box-research/1.0.
+impact: If ACAO reflects attacker origin (esp. with credentials) or ACAH exposes Authorization, an attacker page can read the victim's authenticated preview responses/tokens from the shared origin — cross-origin token/session leakage, high severity.
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range,x-requested-with; UA box-research/1.0; record status line, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Vary (distinct asset vs prior root preflight, which returned no result).
+[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example and Range: bytes=0-99; UA box-research/1.0; record status line (expect 206), Access-Control-Allow-Origin, Access-Control-Expose-Headers, Vary — tests ACAO reflection on a confirmed 206 Range-served asset.
+[PARKED] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation): confirms heterogeneity but has no attacker outcome without a header/body differential; parked until a CORS reflection or header leak is proven on a 206 asset.
+[NEW] cloud.app.box.com/: Exact-match path whitelist fully characterized — query strings stripped (206), trailing slash and case both return plain 404. Remaining untested axes: percent-encoding (%72, %2e) and dot-segment/double-slash normalization.
+[CONFIRMED] Case/path-normalization fingerprint of the object-store whitelist
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt/
+confidence: 75
+reasoning: Three consecutive cycles show robots.txt and robots.txt?probe=9f3k7 both 206 (query stripped from key) while robots.txt/ and ROBOTS.TXT both plain 404 in the 13:39:54 cycle — the predicted "exact-match key" branch (case-sensitive, slash-sensitive, query-insensitive). Statuses are read directly at current tool fidelity; no ambiguity.
+impact: Complete behavioral map of the whitelist layer on the anonymous preview origin; informational, prerequisite for any cache-key/path-confusion hypothesis on this origin. Low.
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt: trailing-slash and uppercase both 404, query stripped to 206 — whitelist is an exact raw-path match; opened percent-encoding/dot-segment normalization surface as the last untested axis.
+[HYP] Percent-encoding / dot-segment normalization divergence on the whitelist key
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 40
+reasoning: Whitelist is exact-match (case, slash) but query-insensitive. If the matching layer percent-decodes (%72obots.txt, robots%2Etxt) or collapses dot-segments (robots.txt/../robots.txt) before keying, a distinct URL can resolve to a whitelisted object — the classic cache-key divergence primitive. All four probes are pure status reads on the stable 206 object, fully observable at current fidelity.
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt/../robots.txt (2) GET https://cloud.app.box.com/%72obots.txt (3) GET https://cloud.app.box.com/robots%2Etxt (4) GET https://cloud.app.box.com//robots.txt — all with UA "box-research/1.0 +(research)"; record status only. 206 = normalizer before key; 404 = strict raw key.
+impact: A normalization divergence (cache keys raw, origin resolves normalized) enables cache-key/object-confusion research on an origin serving embed/preview objects; informational-to-low now, prerequisite for higher-impact hypotheses. Low.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/../robots.txt with UA "box-research/1.0 +(research)"; record status (206 = dot-segments collapsed before keying; 404 = raw-path key).
+[NEXT] PROBE: GET https://cloud.app.box.com/%72obots.txt with UA "box-research/1.0 +(research)"; record status (206 = percent-decoded before match).
+[NEXT] PROBE: GET https://cloud.app.box.com/robots%2Etxt with UA "box-research/1.0 +(research)"; record status (206 = encoded dot decodes to whitelisted key).
+[NEXT] PROBE: GET https://cloud.app.box.com//robots.txt with UA "box-research/1.0 +(research)"; record status (206 = leading double-slash normalized; 404 = strict path).
+[PARKED] CORS misconfiguration on cloud.app.box.com (preflight/ACAO reflection): executor records status codes only and drops OPTIONS/header output, so Access-Control-* reflection can neither be proven nor denied on root or 206 assets; parked until header-verbatim capture is available, not re-probed.
