@@ -278,3 +278,19 @@ https://cloud.app.box.com/favicon.ico` -> HTTP 404
 https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
 https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
 https://cloud.app.box.com/static/ -> HTTP 404
+
+## 2026-08-13 15:37:19 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/` -> HTTP 404
+https://cloud.app.box.com/favicon.ico` -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/zzz-does-not-exist-9f3k7 -> HTTP 404
+https://cloud.app.box.com/static/ -> HTTP 404
