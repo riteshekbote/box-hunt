@@ -124,3 +124,16 @@ testability: PASSIVE
 ## 2026-08-13 20:58:47 UTC m.box.com (ling3)
 ## 2026-08-13 21:42:06 UTC m.box.com (ling3)
 ## 2026-08-13 22:24:14 UTC m.box.com (ling3)
+## 2026-08-13 23:09:23 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: executor cycles 20:17/21:26/22:22 re-ran the byte-identical robots.txt normalization set (14 lines, results unchanged) instead of the 18:29 object-discovery sweep — normalization map now reconfirmed 8+ consecutive cycles, but the /shared/ /preview/ /dl/ /app/ /files/ /notes/ /login /oauth/ /s/embed /s/9f3k7 /p/embed sweep remains unexecuted (unrefuted).
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: three more executor runs (20:17, 21:26, 22:22) returned identical single-decode, case-sensitive, query-stripping object-lookup results — the CDN object-store edge model is stable, so status differential remains the only reliable signal this pipeline can record on this origin.
+[HYP] Object-table fingerprint of cloud.app.box.com via status differential (200/206 existing objects only; all missing paths plain 404)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: normalization/status map reconfirmed byte-identical across 8+ executor cycles; known objects are only /, /robots.txt, /favicon.ico (200/206), while /static/, /index.html, /manifest.json, /service-worker.js and all encoded/missing variants return 404. The unknown is whether other live edge objects (app entry points) exist; discovery sweeps have not been executed, so surface is unexplored, not refuted.
+verify_steps: bare GETs (no custom headers), UA "box-research/1.0 +(research)"; baseline = /zzz-missing-9f3k7 (404); a 200/206 marks a live edge object; first 403/429 -> log and stop host this cycle.
+impact: maps live objects/entry points on the preview origin for later read-only analysis; informational, low severity.
+testability: PASSIVE
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: unchanged — procedural evidence gap; executor cannot capture access-control-* / Vary / Content-Range headers and header-bearing probes are never executed. Confidence frozen at 45; will not re-emit.
+[NEXT] PROBE: bare-GET object-discovery sweep, NEW candidate set (distinct from the 18:29 list, .well-known + top-level slugs): GET /.well-known/apple-app-site-association, /.well-known/security.txt, /.well-known/openid-configuration, /.well-known/, /security.txt, /sitemap.xml, /robots.txt?probe=w4r13 (sanity 206), /zzz-missing-9f3k7 (baseline 404) with User-Agent "box-research/1.0 +(research)"; record status + length each; a 200/206 marks a live edge object; first 4xx/429/403 -> log and stop host this cycle.
