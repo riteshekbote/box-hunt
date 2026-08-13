@@ -85,3 +85,4 @@ testability: PASSIVE
 [NEXT] PROBE: bare-GET route sweep on cloud.app.box.com (executor-native, no custom headers): GET /s/, /s/zzz-does-not-exist-9f3k7, /embed/, /embed/preview, /api/, /download/, /static/preview/ with User-Agent "box-research/1.0 +(research)"; record status + length for each; 206/200 or a 404-variant distinct from the baseline slug marks a live route. First 403/429 -> log and stop host this cycle.
 ## 2026-08-13 07:07:56 UTC m.box.com (ling3)
 ## 2026-08-13 08:40:52 UTC m.box.com (ling3)
+## 2026-08-13 09:45:47 UTC m.box.com (ling3)
