@@ -105,3 +105,4 @@ testability: PASSIVE
 [NEXT] PROBE: bare-GET status-differential route sweep on cloud.app.box.com (executor-native, no custom headers, supersedes the unexecuted 05:55 sweep): GET /s/, /s/zzz-missing-9f3k7, /embed/, /embed/preview, /p/, /p/zzz-missing-9f3k7, /api/, /download/ with User-Agent "box-research/1.0 +(research)"; record status + length for each; a 206/200 (or 404-variant distinct from the /zzz-does-not-exist-9f3k7 baseline) marks a live route. First 403/429 -> log and stop host this cycle.
 ## 2026-08-13 15:39:29 UTC m.box.com (ling3)
 ## 2026-08-13 16:31:37 UTC m.box.com (ling3)
+## 2026-08-13 17:31:30 UTC m.box.com (ling3)
