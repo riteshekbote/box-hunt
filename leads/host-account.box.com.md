@@ -100,3 +100,22 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt?probe=9f3k7 with UA "box-research/1.0 +(research)"; record status (206 = query strings ignored / path-keyed cache; 404 = exact-key whitelist).
 ## 2026-08-13 10:45:25 UTC account.box.com (ling3)
 ## 2026-08-13 11:30:34 UTC account.box.com (ling3)
+## 2026-08-13 12:11:49 UTC account.box.com (bigpickle)
+[CONFIRMED] Query-string ignored on object-store origin (path-keyed cache)
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 70
+reasoning: robots.txt -> 206 and robots.txt?probe=9f3k7 -> 206 in consecutive executor cycles (11:08, 11:56); identical status proves the query string is stripped from the cache-key. favicon.ico is likewise a stable 206 object. Path-keyed object-store confirmed.
+impact: Exact-path whitelist map of the anonymous preview origin; informational, enables cache-key/path-normalization confusion research. Low.
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: query-string probe returned 206 identical to bare path — query strings ignored, object store is path-keyed, not query-aware.
+[NEW] cloud.app.box.com/: cache-key normalization surface open — trailing-slash and case-sensitivity are the next discriminators; both are pure status reads on a stable 206 object.
+[HYP] Case/path-normalization fingerprint of the object-store whitelist
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt/
+confidence: 50
+reasoning: robots.txt and robots.txt?probe=9f3k7 both return 206 (query ignored, path-keyed). Trailing slash (robots.txt/) discriminates whether the key collapses slashes; ROBOTS.TXT discriminates case-sensitivity of the path match. Statuses 206/404 vs 404/404 are directly readable at current tool fidelity.
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt/ with UA "box-research/1.0 +(research)"; record status. (2) GET https://cloud.app.box.com/ROBOTS.TXT with same UA; record status.
+impact: Precise normalization map of the whitelisted origin; groundwork for path-confusion/cache-key hypotheses. Low.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/ and GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record both statuses — 206/206 = slashes collapsed + case-insensitive; 206/404 = slash-collapse only; 404/404 = exact-match key (case-sensitive, slash-sensitive).
