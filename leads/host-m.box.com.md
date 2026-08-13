@@ -71,3 +71,15 @@ testability: PASSIVE
 ## 2026-08-13 00:01:48 UTC m.box.com (ling3)
 ## 2026-08-13 02:33:37 UTC m.box.com (ling3)
 ## 2026-08-13 04:27:41 UTC m.box.com (ling3)
+## 2026-08-13 05:55:28 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root flipped back to 200 at 05:21 UTC while robots.txt and favicon.ico stayed 206 — the 200/206 alternation now spans 17+ cycles and occurs ONLY on existing resources (/, /robots.txt, /favicon.ico), while every missing path (/static/, /index.html, /manifest.json, /service-worker.js, backtick, random slug) returns plain 404; pattern is consistent with a CDN range-slice layer on existing objects, not origin-app logic.
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin (preflight/Origin reflects ACAO/Authorization): evidence gap is procedural, not negative — the header-bearing [NEXT] (OPTIONS preflight at 22:00/23:23; GET+Origin+Range at 12:08) was never executed across four subsequent executor runs (22:22, 23:20, 00:41, 03:13, 05:21); executor logs only bare-GET status lines, so access-control-* / Vary / Content-Range remain unobservable. Confidence frozen at 50. Re-open only if the executor gains header capture; will not re-emit (no-op).
+[HYP] Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 30
+reasoning: status differential is the only signal the executor can record; existing objects return 206/200, missing paths return plain 404 — a usable route oracle. Candidate preview/embed endpoints (/s/, /embed/, /api/) have never been probed; header-based signals are unavailable, so status-only route mapping is the feasible next surface.
+verify_steps: bare GETs (no custom headers) for /s/, /s/zzz-does-not-exist-9f3k7, /embed/, /embed/preview, /api/, /download/, /static/preview/ with UA "box-research/1.0 +(research)"; record status + length; baseline = /zzz-does-not-exist-9f3k7 404.
+impact: maps live app entry points for later read-only analysis; informational, low severity.
+testability: PASSIVE
+[NEXT] PROBE: bare-GET route sweep on cloud.app.box.com (executor-native, no custom headers): GET /s/, /s/zzz-does-not-exist-9f3k7, /embed/, /embed/preview, /api/, /download/, /static/preview/ with User-Agent "box-research/1.0 +(research)"; record status + length for each; 206/200 or a 404-variant distinct from the baseline slug marks a live route. First 403/429 -> log and stop host this cycle.
