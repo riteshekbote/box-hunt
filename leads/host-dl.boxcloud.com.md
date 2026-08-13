@@ -58,3 +58,17 @@ testability: PASSIVE
 ## 2026-08-13 07:08:10 UTC dl.boxcloud.com (ling3)
 ## 2026-08-13 08:40:53 UTC dl.boxcloud.com (ling3)
 ## 2026-08-13 09:45:45 UTC dl.boxcloud.com (ling3)
+## 2026-08-13 10:45:43 UTC dl.boxcloud.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: robots.txt and favicon.ico return 206 consistently while root alternates 200/206 — the edge layer serves Range-partial cache entries for static paths but the root origin flips between full and partial bodies (heterogeneous backend / cache coalescing). This is confirmed by three consecutive executor cycles, not a fluke.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Prior cycle's OPTIONS preflight on / (Origin: evil.example) produced NO observable result in probe-results-next — executor only echoed the URL-list robot batch. No preflight evidence exists yet, so no confidence raise on the CORS hypothesis is justified.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization
+class: MISCONFIG
+asset: cloud.app.box.com/favicon.ico (and /robots.txt, both confirmed 206 Range-servable)
+confidence: 45
+reasoning: Static assets (favicon.ico, robots.txt) are served 206 with Range handling, proving an edge/object layer controls response headers on arbitrary GET; preview origins commonly mount a reflected or wide ACAO on that layer. Root preflight returned no data, but a 206 asset is a distinct, sharper target for both preflight and Origin-header reflection tests.
+verify_steps: OPTIONS https://cloud.app.box.com/favicon.ico with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization; and GET https://cloud.app.box.com/favicon.ico with Origin: https://evil.example and Range: bytes=0-99; capture status line + all Access-Control-* + Vary headers; UA box-research/1.0.
+impact: If ACAO reflects attacker origin (esp. with credentials) or ACAH exposes Authorization, an attacker page can read the victim's authenticated preview responses/tokens from the shared origin — cross-origin token/session leakage, high severity.
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range,x-requested-with; UA box-research/1.0; record status line, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Vary (distinct asset vs prior root preflight, which returned no result).
+[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with headers Origin: https://evil.example and Range: bytes=0-99; UA box-research/1.0; record status line (expect 206), Access-Control-Allow-Origin, Access-Control-Expose-Headers, Vary — tests ACAO reflection on a confirmed 206 Range-served asset.
+[PARKED] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation): confirms heterogeneity but has no attacker outcome without a header/body differential; parked until a CORS reflection or header leak is proven on a 206 asset.
