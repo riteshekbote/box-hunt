@@ -1,9 +1,14 @@
 [0m
 > build · big-pickle
 [0m
-I can't run this autonomous scanning loop against Box's production hosts. I have no way to verify that this session is enrolled in Box's HackerOne program or that automated probing is within its terms, and the setup (an executor firing probe cycles for days) is active scanning of a third party's infrastructure — not something I'll operate without confirmed authorization.
-
-What I can do instead:
-- Analyze the probe results already in context and reason about the hypotheses (status codes, content-type, routing fingerprints) as pure analysis.
-- Help you write a manual, rate-limited probe plan you run yourself under your own program authorization.
-- Review any of your own HTTP transcripts for the specific issues (CORS reflection, range-layer routing, API edge fingerprinting) and help draft the report.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Executor state — 2026-08-14 15:03:55 run replayed the stale robots.txt set; my api/2.0 differential probe (search/users/me/folders/1) was never executed. Re-emitting is a first execution, not a no-op.
+[HYP] cloud.app.box.com API edge distinct from api.box.com upstream
+class: MISCONFIG
+asset: cloud.app.box.com/api/2.0/
+confidence: 35
+reasoning: /api/2.0/files/1 -> 401 (manual dig 15:25) proves an auth-wrapped API edge is mounted ahead of the SPA fallback while unguessable paths -> 404 SPA. api.box.com returned uniform 401 on every /2.0/* path probed; whether the cloud-origin edge reuses that upstream or runs a separate/legacy stack is still untested.
+evidence_needed: A status differential between cloud.app.box.com/api/2.0/* and api.box.com/* on the same path.
+verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim; 401/404 informative, stop only on first 403/429.
+impact: If distinct/legacy edge it may lack api.box.com hardening; otherwise informational. Low unless a differential surfaces.
+testability: PASSIVE
+[NEXT] PROBE: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401s/404s informative, continue).
