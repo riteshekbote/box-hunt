@@ -124,3 +124,17 @@ testability: PASSIVE
 ## 2026-08-14 10:15:33 UTC api.box.com (ling3)
 ## 2026-08-14 11:10:14 UTC api.box.com (ling3)
 ## 2026-08-14 11:53:57 UTC api.box.com (ling3)
+## 2026-08-14 12:34:05 UTC api.box.com (bigpickle)
+[NEW] cloud.app.box.com/api/2.0/: mounted API edge ahead of the SPA fallback — /api/2.0/files/1 -> 401 while random paths -> 404 SPA (23KB), so auth-wrapped routes exist on the frontend origin beyond the pinned-asset layer.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: whitelist-routed file surface confirmed — only pinned assets (robots.txt 206, favicon.ico 206) pass the 206/Range layer; all guessable/random paths resolve to the 404 SPA (manual dig 2026-08-14 15:25). Object-store default-handler hypothesis REJECTED.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: "dual-backend routing flip" (200 vs 206 on root) is a load-balanced backend alternation, not a route-revealing state change; no impact.
+[HYP] cloud.app.box.com API edge is a distinct implementation from api.box.com (status-differential fingerprint)
+class: MISCONFIG
+asset: cloud.app.box.com/api/2.0/
+confidence: 25
+reasoning: Manual dig 2026-08-14 15:25: /api/2.0/files/1 -> 401 (not 404), proving an API edge is mounted on the frontend origin ahead of the SPA fallback. api.box.com returned uniform 401 on every probed /2.0/* path; whether the cloud-origin edge reuses that same upstream or runs a separate/older stack is untested.
+verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim; stop host on first 403/429 (401/404 informative, continue).
+impact: If the cloud-origin edge is a distinct/legacy implementation it may lack api.box.com hardening; otherwise same-upstream, informational only. Low unless a differential surfaces.
+testability: PASSIVE
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin (all 3 hypotheses): executor is status-only with no header channel, so Access-Control-* reflection can be neither confirmed nor denied; closed pending header capture. Re-open only if the pipeline records response headers.
+[NEXT] PROBE: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401s/404s informative, continue).
