@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 06:40:24 UTC"
 }=== MY LAST LEADS (tail) ===
-[NEXT] PROBE: GET https://cloud.app.box.com/%2e%2e/robots.txt with UA "box-research/1.0 +(research)"; record status only — 206 = decode runs before dot-segment collapse (encoded `..` then collapses); 404 = strict split before decode.
 ## 2026-08-13 18:29:39 UTC account.box.com (bigpickle)
 [NEW] cloud.app.box.com/: Decode-order axis resolved by the 17:36:09 batch — `%2Frobots.txt`→206 (decode-first: encoded slash becomes a real leading slash then collapses), `%2e%2e/robots.txt`→206 (decode before dot-segment collapse), `%252Frobots.txt`→404 and `robots%252Etxt`→404 (single-decode only, no edge double-decode). The matcher is fully specified except decode-vs-query-split ordering, queued as the final axis.
 [CONFIRMED] Decode-first, single-decode normalization order on the whitelist matcher
@@ -97,17 +96,8 @@ testability: PASSIVE
 ## 2026-08-14 16:27:17 UTC account.box.com (ling3)
 ## 2026-08-14 17:27:12 UTC account.box.com (ling3)
 ## 2026-08-14 18:14:55 UTC account.box.com (ling3)
+## 2026-08-14 19:15:00 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-- [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
-
-## RANKED 2026-08-14 16:02:15 UTC
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
@@ -138,25 +128,19 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether a random unguessable path hits the 206/Range layer (from host-notes.services.box.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
+
+## RANKED 2026-08-14 19:53:29 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether any non-pinned path hits the 206/Range layer (from host-notes.services.box.com.md)
+- [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether a random unguessable path hits the 206/Range layer (from host-notes.services.box.com.md)
+- [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/ -> HTTP 404
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
-https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
-https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
-https://cloud.app.box.com/robots%252Etxt -> HTTP 404
-https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
-
-## 2026-08-14 17:06:10 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
 https://cloud.app.box.com/favicon.ico -> 206 (len ?)
@@ -187,6 +171,22 @@ https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
 
 ## 2026-08-14 19:09:23 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
+https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
+
+## 2026-08-14 19:53:29 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
