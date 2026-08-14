@@ -253,3 +253,25 @@ testability: PASSIVE
 ## 2026-08-14 18:14:55 UTC account.box.com (ling3)
 ## 2026-08-14 19:15:00 UTC account.box.com (ling3)
 ## 2026-08-14 19:57:03 UTC account.box.com (ling3)
+## 2026-08-14 20:25:55 UTC account.box.com (bigpickle)
+[CONFIRMED] Query-split runs on the raw `?` before any percent-decode — matcher model is now fully specified
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 90
+reasoning: `robots.txt%3Fprobe` → 404 in the 19:53:29 batch: had the split run after decode, `%3F` would become a delimiter and the key would strip to `robots.txt` → 206. 404 proves the encoded `?` never becomes a delimiter (key stays literal `robots.txt%3Fprobe`, unmatched). Paired with `robots.txt?probe=9f3k7` → 206 (raw split works), `%2F`/`%2e%2e` → 206 (decode-before-collapse), `%252F`/`robots%252Etxt` → 404 (single-decode), the complete order is: raw-`?`-split → single percent-decode → dot-segment collapse → leading-slash collapse → 3-key whitelist match.
+impact: An encoded `?` cannot diverge the edge-cache key from the normalized key; no encoding-based cache-confusion/key-collision POC is constructible on the anonymous surface. Informational; low.
+testability: PASSIVE
+verify_steps: Already executed at 19:53:29 UTC; no re-probe needed.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Matcher is exhaustively characterized — 5-stage normalization with raw-query-split first and single-decode confirmed; every ordering axis now resolved by status evidence (`robots.txt%3Fprobe`→404 closed the final axis). The anonymous surface (root + `/robots.txt` + `/favicon.ico` + full normalization model) is complete; remaining items (CORS reflection, 200/206 backend flip) require header-verbatim capture or AUTH_HELPED scope, both outside current rules.
+[PARKED] CORS reflection on cloud.app.box.com 206 assets (ACAO/ACAH): executor output drops OPTIONS/header lines, so Access-Control-* reflection can neither be proven nor denied at status-only fidelity. Parked until header-verbatim capture is an executor capability; not re-probed.
+[PARKED] Dual-backend 200/206 root flip: alternation confirmed 5+ cycles at status fidelity but no header/body differential is observable at status-only fidelity. Parked (executor capability).
+[HYP] Route-table boundary: whitelist is exactly 3 keys vs. wider pinned-asset set
+class: MISCONFIG
+asset: cloud.app.box.com/index.html
+confidence: 55
+reasoning: Random-path 404s (5 cycles) prove no origin-wide default handler, but the route-table fingerprint of "exactly 3 whitelisted keys" rests only on random unguessable paths — common static asset names (`/index.html`, `/app.js`, `/manifest.json`) have never been probed. A 206 on a common name would expose a 4th+ pinned key the random-path fingerprint missed; all-404 would close the route table for good.
+verify_steps: (1) GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only. (2) GET https://cloud.app.box.com/app.js with same UA; record status only.
+impact: If any common path returns 206, the pinned-asset whitelist is broader than fingerprinted (route table incomplete); if all 404, no additional anonymous surface exists on this origin. Informational; low.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — 206 = whitelist wider than the 3 known keys (new pinned asset, route table incomplete); 404 = confirms 3-key whitelist.
+[NEXT] PROBE: GET https://cloud.app.box.com/app.js with UA "box-research/1.0 +(research)"; record status only — 206 = second non-fingerprinted pinned asset; 404 = consistent with exactly-3-key route table.
