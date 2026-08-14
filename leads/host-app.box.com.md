@@ -143,3 +143,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/api/2.0/search?query=zz with UA box-research/1.0 — record status, WWW-Authenticate, Content-Type, first 200 chars of body (auth-gate differential vs api.box.com uniform 401).
 [NEXT] PROBE: GET https://app.box.com/oauth2/authorize with UA box-research/1.0 — record status, Location, Content-Type, body prefix (login-form vs 302 vs edge-404 decides auth-plane placement on app origin).
 [NEXT] PROBE: OPTIONS https://app.box.com/ with Origin: https://attacker.example + Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (root-edge preflight surface, distinct from last cycle's api/2.0 preflight).
+## 2026-08-14 20:25:16 UTC app.box.com (ling3)
