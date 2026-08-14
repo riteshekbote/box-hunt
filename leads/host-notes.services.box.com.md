@@ -112,3 +112,16 @@ testability: PASSIVE
 ## 2026-08-14 14:45:49 UTC notes.services.box.com (ling3)
 ## 2026-08-14 15:34:58 UTC notes.services.box.com (ling3)
 ## 2026-08-14 16:27:17 UTC notes.services.box.com (ling3)
+## 2026-08-14 17:28:17 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com/robots.txt: 3rd cycle confirms the 206 layer's normalizer fingerprint — single-encoded (%72,%2E,%2F), double-slash, %2e%2e and real query strings all normalize to robots.txt -> 206; double-encoded (%252F,%252E) and path-embedded %3F -> 404. Root flip continues: 206 (15:03) -> 200 (16:02) -> 206 (17:06).
+[CONFIRMED] cloud.app.box.com/: dual-backend routing flip — root alternates 206/200/206 across three independent cycles while the robots.txt suite is byte-stable; >=2 backends with different Range behavior sit behind one DNS name. Security impact of the heterogeneity still open (see HYP + NEXT).
+[HYP] Object-store default handler vs whitelist-routed: whether a random unguessable path hits the 206/Range layer
+class: MISCONFIG
+asset: cloud.app.box.com/<random-unguessable>
+confidence: 45
+reasoning: pinned assets (robots.txt, favicon.ico) return 206 across all 12 normalization variants, and double-encoding breaks normalization to 404. Whether a never-pinned random path also returns 206 (object-store default handler fronting the whole origin) or 404 (whitelist-routed, pinned assets only) is untested and decides how much of the origin sits behind the range-capable edge.
+verify_steps: (1) GET https://cloud.app.box.com/9kz3w7pq2 with Range: bytes=0-1023. (2) GET https://cloud.app.box.com/ with Range: bytes=999999999999- (416 => real range parser; 206 => Range ignored, 206 is default serving).
+impact: whole-origin object-store fronting + reflected ACAO on this origin => cross-origin read of tokenized preview content; MEDIUM-HIGH if ACAO ever observable, else informational edge fingerprint.
+testability: PASSIVE
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS/ACAO header capture is unactionable in this pipeline — executor logs status only (never headers) and OPTIONS has never been logged (2 cycles). CORS evidence now proceeds only via status-observable discriminators (416 vs 206, random-path 206).
+[NEXT] PROBE: (1) GET https://cloud.app.box.com/9kz3w7pq2 Range: bytes=0-1023 — 206 => whole-origin default handler, 404 => whitelist-routed; (2) GET https://cloud.app.box.com/ Range: bytes=999999999999- — 416 => real range parser, 206 => default-206 serving. UA box-research/1.0, 2s spacing, no redirects followed.
