@@ -178,3 +178,4 @@ testability: PASSIVE
 [NEXT] PROBE: 8xGET alternating `https://cloud.app.box.com/` and `https://cloud.app.box.com/robots.txt` (4 each), 2s apart, UA "box-research/1.0 +(research)"; record status per request; stop only on 403/429.
 [NEXT] PROBE: 2xGET `https://cloud.app.box.com/api/2.0/zzz-no-route-9f3k7` then `https://cloud.app.box.com/api/2.0/folders/0`, 2s apart, UA "box-research/1.0 +(research)"; record status; treat 401 as route facts, stop only on 403/429.
 ## 2026-08-14 16:27:17 UTC cloud.app.box.com (ling3)
+## 2026-08-14 17:27:12 UTC cloud.app.box.com (ling3)
