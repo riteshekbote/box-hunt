@@ -1,0 +1,11 @@
+[LEARN] REJECTED MISCONFIG @ upload.box.com/api/2.0/files/content: OPTIONS preflight (Origin: https://evil.example, ACRM: POST, ACRH: authorization,content-type) returned HTTP 404 — the upload gateway does not route this path to any responder. Combined with the status-only channel (Access-Control-* headers unobservable), the upload CORS hypothesis is not confirmable here. Closed.
+[HYP] upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting
+class: MISCONFIG
+asset: upload.box.com/
+confidence: 30
+reasoning: The API content path 404s all methods, yet the origin is a distinct GCP gateway (via 1.1 google) purpose-built for cross-origin uploads. Its non-API surface (root, /upload, health paths) has never been measured on the status-only channel; a 200/404 pattern on GET/HEAD would fingerprint routing without any write.
+verify_steps: 1) OPTIONS / with Origin https://evil.example + ACRM GET. 2) GET / then HEAD /. 3) GET /upload. 4) GET /api/2.0/files/content/ (trailing slash). 5) GET /healthz, /version. 6) OPTIONS /api/2.0/files/content/ with Origin + ACRM POST + ACRH authorization. 7) GET /files, /f/. Record status per request, no redirects followed.
+impact: Surface map of the upload gateway for targeting backend-specific handlers in later findings; recon-grade alone.
+testability: PASSIVE
+[PARKED] CORS on upload.box.com API edge: OPTIONS on /api/2.0/files/content -> 404, and the status-only channel cannot observe Access-Control-* headers; re-open only with a header-capturing probe channel.
+[NEXT] PROBE: upload.box.com route fingerprint, status-only, 1 req/2s — 1) OPTIONS / (Origin https://evil.example, ACRM GET); 2) GET /; 3) HEAD /; 4) GET /upload; 5) GET /api/2.0/files/content/; 6) GET /healthz; 7) GET /version; 8) OPTIONS /api/2.0/files/content/ (Origin, ACRM POST, ACRH authorization); 9) GET /files; 10) GET /f/. Record status per request; 404/405 = normal edge routing (no 4xx stop), stop only on 401/403/429.
