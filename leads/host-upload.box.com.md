@@ -150,3 +150,4 @@ impact: Reflected ACAO on the upload origin would let an attacker page issue cro
 testability: PASSIVE
 [PARKED] Re-open CORS on cloud.app.box.com / dl.boxcloud.com: disproven 2026-08-14 14:45 (no Access-Control-* on any vector); only re-open with a header-capturing channel.
 [NEXT] PROBE: OPTIONS https://upload.box.com/api/2.0/files/content with headers Origin: https://evil.example, Access-Control-Request-Method: POST, Access-Control-Request-Headers: authorization,content-type — record status and every Access-Control-* + Vary header verbatim (read-only preflight, no body). Then OPTIONS https://upload.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET, same header capture. Then GET https://upload.box.com/ recording status only (GCS-bucket-vs-app fingerprint). Stop probing upload.box.com on 401/403/429.
+## 2026-08-14 11:09:09 UTC upload.box.com (ling3)
