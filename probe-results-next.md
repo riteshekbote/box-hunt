@@ -534,3 +534,12 @@ account.box.com/login redirect_url sanitizer map (hidden field value):
 - blocked -> "/": all off-host hosts incl. prefix-subdomain (app.box.com.evil.com), userinfo (@), encoded dots, newline/null, trailing dot, port tricks, javascript:
 - kept but on-host only: app.box.com/..%2f..%2fevil.com, app.box.com/../evil.com (path traversal stays on-host, no off-host escape)
 RESULT: no open redirect; server-side host allowlist works (post-login). Minor: http:// scheme downgrade allowed for allowlisted hosts; on-host encoded-traversal preserved (no impact).
+
+## 2026-08-14 15:25 UTC (manual, opencode) — host gate map + hypothesis closures
+api.box.com: uniform 401 Bearer edge (realm="Service", invalid_request/invalid_token w/ standard descriptions) on root, /2.0/, files, folders, users/me, items, search, oauth2/token (any grant) — no differentials, no schema leaks.
+upload.box.com: POST /api/2.0/files/content JSON -> 415 (content-type gate); multipart + Bearer garbage -> 401 invalid_token (proper). 415-vs-401 = format-before-auth ordering on same edge, NO bypass. via: 1.1 google (GCP edge, informational).
+account.box.com/login?redirect_url=: hidden-field sanitizer map (26 variants) — host allowlist (app/notes.services/cloud.app.box.com), all off-host bypasses blocked (prefix-subdomain, userinfo, encoded dots, newline, trailing dot, port, double-encode, javascript:); on-host encoded-traversal preserved (no off-host escape). http:// allowed for allowlisted hosts (minor downgrade). NO open redirect.
+cloud.app.box.com: Range layer fronts ONLY pinned assets (favicon.ico 206); random paths -> 404 SPA (23KB), /api/2.0/files/1 -> 401 (API edge mounted on cloud origin), root 302, /login 301. Object-store default-handler hypothesis CLOSED (whitelist-routed confirmed).
+dl.boxcloud.com: /api/2.0/files/1/content -> 401 (download edge mounted); folders/shared/static/static/1-content -> 404. 
+notes.services.box.com: root 302, /api/2.0/notes 404 (different edge). m.box.com/login 301 -> app.
+CLOSED this dig: CORS hypotheses (3), object-store default handler, open-redirect (redirect_url). Remaining informational: 200/206 root alternation (load-balanced backend flip, no impact), http:// downgrade allowance, on-host traversal preserved.
