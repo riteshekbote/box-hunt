@@ -159,3 +159,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/api/2.0/shared_items with UA box-research/1.0 — record status, WWW-Authenticate, Content-Type, body prefix.
 [NEXT] PROBE: HEAD https://app.box.com/ with UA box-research/1.0 — record status, Server, Content-Type, Set-Cookie presence (HEAD surface differs from prior queued GET root probe).
 [NEXT] PROBE: GET https://app.box.com/account/login with UA box-research/1.0 — record status, Location, Content-Type, body prefix (auth-plane path placement on app origin; distinct from /oauth2/authorize queued earlier).
+## 2026-08-14 21:39:19 UTC app.box.com (ling3)
