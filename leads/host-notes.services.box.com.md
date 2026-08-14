@@ -126,3 +126,15 @@ testability: PASSIVE
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS/ACAO header capture is unactionable in this pipeline — executor logs status only (never headers) and OPTIONS has never been logged (2 cycles). CORS evidence now proceeds only via status-observable discriminators (416 vs 206, random-path 206).
 [NEXT] PROBE: (1) GET https://cloud.app.box.com/9kz3w7pq2 Range: bytes=0-1023 — 206 => whole-origin default handler, 404 => whitelist-routed; (2) GET https://cloud.app.box.com/ Range: bytes=999999999999- — 416 => real range parser, 206 => default-206 serving. UA box-research/1.0, 2s spacing, no redirects followed.
 ## 2026-08-14 18:15:01 UTC notes.services.box.com (ling3)
+## 2026-08-14 19:15:47 UTC notes.services.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root flip is weighted routing, not strict alternation — 206,200,206,200,200 across 5 cycles with robots.txt pinned at 206 throughout; the 206/Range layer is byte-stable for pinned assets while root drifts to a 200-dominant backend. Header-bearing probes (Range: bytes=999999999999-, Origin) never surface in executor logs; only plain GET status is actionable.
+[NEW] cloud.app.box.com: root 200 at 19:09 (2nd consecutive); robots.txt suite still 206-stable — the 206 object-store layer holds pinned assets regardless of backend weighting.
+[HYP] Object-store default handler vs whitelist-routed: whether any non-pinned path hits the 206/Range layer
+class: MISCONFIG
+asset: cloud.app.box.com/<random-unguessable>
+confidence: 45
+reasoning: 12 normalization variants of robots.txt and favicon.ico are byte-stable 206 while root drifts 200; double-encoded and %3F-embedded paths are 404. Whether a never-pinned random key also serves 206 (whole-origin object-store default handler) or 404 (whitelist-routed) is the open discriminator — prior header-based probe of this never logged.
+verify_steps: (1) GET https://cloud.app.box.com/7xv4m9qk2 no headers, UA box-research/1.0. (2) GET https://cloud.app.box.com/.well-known/security.txt — real-world non-pinned path. (3) GET https://cloud.app.box.com/7xv4m9qk2/?probe=1 — query-normalized random key.
+impact: whole-origin object-store fronting behind one DNS name => if CORS ever misconfigured, cross-origin read of tokenized preview content; otherwise MEDIUM-LOW informational edge fingerprint (origin-wide normalizer).
+testability: PASSIVE
+[NEXT] PROBE: (1) GET https://cloud.app.box.com/7xv4m9qk2 (plain, no headers) — 206 => whole-origin default handler, 404 => whitelist-routed. (2) GET https://cloud.app.box.com/.well-known/security.txt — non-pinned real path test. (3) GET https://cloud.app.box.com/7xv4m9qk2/?probe=1 — query-normalization on a random key. UA box-research/1.0, 2s spacing, no redirect follow.
