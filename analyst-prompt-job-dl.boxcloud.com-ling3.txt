@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 11:54:46 UTC"
 }=== MY LAST LEADS (tail) ===
-[HYP] CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization
 class: MISCONFIG
 asset: cloud.app.box.com/favicon.ico (and /robots.txt, both confirmed 206 Range-servable)
 confidence: 45
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://dl.boxcloud.com/api/2.0/files/1/content with headers Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range; UA box-research/1.0; record status line + ALL Access-Control-* + Vary + WWW-Authenticate headers — first preflight to actually hit the download edge (prior root OPTIONS 404'd at a different handler; cloud.app.box.com CORS tests already closed).
 [NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/1/content with headers Origin: https://evil.example and Range: bytes=0-99; UA box-research/1.0; record status line (expect 401), WWW-Authenticate realm, any Access-Control-* / Vary — characterizes the Bearer gate and checks for pre-auth Range/header leakage on the content handler.
 [PARKED] Authenticated download behavior on dl.boxcloud.com (Range/206 streaming, signed-URL validation, file-version tokens): all sit behind the 401 Bearer gate; requires a token → AUTH_HELPED, not probeable in this read-only pipeline without a new rule.
+## 2026-08-14 12:33:01 UTC dl.boxcloud.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
