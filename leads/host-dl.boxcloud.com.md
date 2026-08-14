@@ -100,3 +100,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/7xq9ZzK2nX4w (12-char random nonce path) with UA box-research/1.0; record status line — distinguishes object-store-default (206) from app/whitelist routing (404). Distinct from all prior robot-batch and header-based probes.
 [PARKED] CORS misconfiguration on cloud.app.box.com (attacker-Origin preflight/GET): preflight and Origin-reflection probes on `/` and `/favicon.ico` returned no observable data two cycles running — the executor channel emits status+length only and never exposes Access-Control-* / Vary headers, so reflection is unverifiable in this pipeline; requires header-level evidence (HUMAN_ONLY).
 ## 2026-08-14 00:54:49 UTC dl.boxcloud.com (ling3)
+## 2026-08-14 03:19:02 UTC dl.boxcloud.com (ling3)
