@@ -241,3 +241,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Once the `%3F` axis resolves, the anonymous surface (root + 3 whitelisted keys + full normalization model) is exhaustively characterized — remaining items (CORS, backend flip) require header-verbatim capture (executor capability) or AUTH_HELPED scope, both outside current rules.
 ## 2026-08-14 08:00:33 UTC account.box.com (ling3)
 ## 2026-08-14 09:11:00 UTC account.box.com (ling3)
+## 2026-08-14 10:15:33 UTC account.box.com (ling3)
