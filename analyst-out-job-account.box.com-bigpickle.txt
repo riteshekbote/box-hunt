@@ -1,20 +1,35 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: Decode-order axis resolved by the 17:36:09 batch — `%2Frobots.txt`→206 (decode-first: encoded slash becomes a real leading slash then collapses), `%2e%2e/robots.txt`→206 (decode before dot-segment collapse), `%252Frobots.txt`→404 and `robots%252Etxt`→404 (single-decode only, no edge double-decode). The matcher is fully specified except decode-vs-query-split ordering, queued as the final axis.
+[CONFIRMED] Whitelist-pinned static layer, not an origin-wide object-store default handler
+class: MISCONFIG
+asset: cloud.app.box.com/<random-path>
+confidence: 80
+reasoning: Random unguessable path `7xq9ZzK2nX4w` → 404 in every executed batch (16:30:20 through 06:23:51, 5 independent cycles); only `/`, `/robots.txt`, `/favicon.ico` and their normalized variants return the 206/Range object. The 206 layer fronts pinned static assets only.
+impact: No anonymous default-handler path reaches the object store; path-confusion POC is not constructible on this origin. This also resolves the [35] route-table fingerprint (route table == the 3 whitelisted keys, everything else 404). Informational; low.
+testability: PASSIVE
+verify_steps: Already executed — `GET /7xq9ZzK2nX4w` → 404 five times; no re-probe.
 
-[CONFIRMED] Decode-first, single-decode normalization order on the whitelist matcher
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Random-path 404 across 5 cycles rejects the origin-wide default-handler model; the 206/Range layer is whitelist-pinned to 3 static keys, and the route table is fully fingerprinted by the 206/404 differential.
+
+[NEW] cloud.app.box.com/: Root `/` returned 200 again at 04:59:58 and 06:23:51 (206 at 16:30/17:36) — 200/206 alternation now observed 5+ times; heterogeneous-origin flip confirmed at status fidelity, still parked (no header differential observable).
+
+[HYP] Decode-vs-query-split ordering on the whitelist matcher — final unresolved axis
 class: MISCONFIG
 asset: cloud.app.box.com/robots.txt
-confidence: 85
-reasoning: Four fresh statuses from the 17:36:09 cycle: `%2Frobots.txt` → 206 means the encoded slash decoded to a real separator (leading-slash collapse then matched `robots.txt`); `%2e%2e/robots.txt` → 206 means encoded `..` became a dot-segment that collapsed; `%252Frobots.txt` and `robots%252Etxt` → 404 prove no double-decode at the edge. Decode-first, decode-before-collapse, single-decode.
-evidence_needed: None further — decode-first proven, split-first and double-decode both rejected.
-verify_steps: Already executed and confirmed via the 17:36:09 executor batch; no re-probe needed.
-impact: An attacker cannot smuggle a raw separator or literal key past the normalizer — `%2F`, `%2e`, `%2e%2e` all decode and collapse to the 3 whitelisted keys (`/`, `robots.txt`, `favicon.ico`) or 404. Path/key-confusion POC is not constructible on this origin's anonymous surface. The decode-vs-query-split order is the sole remaining ambiguity and decides whether an encoded `?` can diverge the edge cache key from the normalized key. Informational; low.
+confidence: 60
+reasoning: Raw `robots.txt?probe=9f3k7` → 206 proves a query-strip exists; `%2Frobots.txt`/`%2e%2e/robots.txt` → 206 proves decode-first. Whether the query split runs on the raw `?` before decode or on the decoded bytes after is untested — the `robots.txt%3Fprobe` probe emitted at 18:29 has not appeared in any of the 3 subsequent executor batches (03:11/04:59/06:23 are identical standard batches, %3F absent).
+evidence_needed: A status on `robots.txt%3Fprobe` (and a control on `favicon.ico%3Fprobe`).
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt%3Fprobe with UA "box-research/1.0 +(research)"; record status only. (2) GET https://cloud.app.box.com/favicon.ico%3Fprobe with same UA; record status only.
+impact: Decides whether an encoded `?` can diverge the edge-cache key from the normalized key after decode — the last constructible ordering primitive on this origin. Informational; low.
 testability: PASSIVE
 
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: decode-first + single-decode + decode-before-collapse is confirmed; "split-first" and "double-decode" alternatives rejected by the 17:36:09 statuses (`%2Frobots.txt`→206, `%252Frobots.txt`→404, `robots%252Etxt`→404, `%2e%2e/robots.txt`→206). Matcher model is now complete except query-split ordering.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt%3Fprobe with UA "box-research/1.0 +(research)"; record status only — 206 = query split runs after decode (encoded `?` becomes the delimiter, key strips to `robots.txt`); 404 = split on raw `?` before decode (key stays literal `robots.txt%3Fprobe`). Never executed in any batch to date.
 
-[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt%3Fprobe with UA "box-research/1.0 +(research)"; record status only — 206 = query-split/strip runs after decode (encoded `?` becomes the delimiter, key strips to `robots.txt`); 404 = query split occurs on the raw `?` before decode (key stays literal `robots.txt%3Fprobe`). This closes the last ordering axis; if it returns 206 the anonymous surface of this origin is exhaustively characterized and only AUTH_HELPED scope or header-verbatim capture (CORS line, still parked) remains.
+[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico%3Fprobe with UA "box-research/1.0 +(research)"; record status only — 206 = cross-validates decode-before-split on the second whitelisted key; 404 = consistent with raw-split-first.
 
-[PARKED] CORS misconfiguration on cloud.app.box.com (ACAO/ACAH reflection on 206 assets): executor output drops OPTIONS/header lines, so Access-Control-* reflection can neither be proven nor denied; parked until header-verbatim capture is available — not re-probed this cycle.
+[PARKED] CORS misconfiguration on cloud.app.box.com (ACAO/ACAH reflection on 206 assets): executor output drops OPTIONS/header lines, so Access-Control-* can neither be proven nor denied; unchanged this cycle.
+
+[PARKED] Dual-backend 200/206 root flip: alternation confirmed at status level across 5+ cycles but no header/body differential is observable at status-only fidelity; remains parked.
+
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Once the `%3F` axis resolves, the anonymous surface (root + 3 whitelisted keys + full normalization model) is exhaustively characterized — remaining items (CORS, backend flip) require header-verbatim capture (executor capability) or AUTH_HELPED scope, both outside current rules.
