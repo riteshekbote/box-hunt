@@ -138,3 +138,4 @@ impact: If the cloud-origin edge is a distinct/legacy implementation it may lack
 testability: PASSIVE
 [PARKED] CORS misconfiguration on cloud.app.box.com preview origin (all 3 hypotheses): executor is status-only with no header channel, so Access-Control-* reflection can be neither confirmed nor denied; closed pending header capture. Re-open only if the pipeline records response headers.
 [NEXT] PROBE: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401s/404s informative, continue).
+## 2026-08-14 13:57:01 UTC api.box.com (ling3)
