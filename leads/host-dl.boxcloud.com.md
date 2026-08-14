@@ -146,3 +146,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ twice in immediate succession with UA box-research/1.0; record both status lines — tests whether the 200/206 split is deterministic per-request (e.g., consistent hashing on path/backend) or load-balanced round-robin; directly characterizes the flip seen at 21:00 vs 19:53/20:40.
 ## 2026-08-14 21:39:20 UTC dl.boxcloud.com (ling3)
 ## 2026-08-14 21:55:51 UTC dl.boxcloud.com (ling3)
+## 2026-08-14 22:13:30 UTC dl.boxcloud.com (ling3)
