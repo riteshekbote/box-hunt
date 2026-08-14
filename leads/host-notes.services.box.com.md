@@ -125,3 +125,4 @@ impact: whole-origin object-store fronting + reflected ACAO on this origin => cr
 testability: PASSIVE
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS/ACAO header capture is unactionable in this pipeline — executor logs status only (never headers) and OPTIONS has never been logged (2 cycles). CORS evidence now proceeds only via status-observable discriminators (416 vs 206, random-path 206).
 [NEXT] PROBE: (1) GET https://cloud.app.box.com/9kz3w7pq2 Range: bytes=0-1023 — 206 => whole-origin default handler, 404 => whitelist-routed; (2) GET https://cloud.app.box.com/ Range: bytes=999999999999- — 416 => real range parser, 206 => default-206 serving. UA box-research/1.0, 2s spacing, no redirects followed.
+## 2026-08-14 18:15:01 UTC notes.services.box.com (ling3)
