@@ -543,3 +543,19 @@ cloud.app.box.com: Range layer fronts ONLY pinned assets (favicon.ico 206); rand
 dl.boxcloud.com: /api/2.0/files/1/content -> 401 (download edge mounted); folders/shared/static/static/1-content -> 404. 
 notes.services.box.com: root 302, /api/2.0/notes 404 (different edge). m.box.com/login 301 -> app.
 CLOSED this dig: CORS hypotheses (3), object-store default handler, open-redirect (redirect_url). Remaining informational: 200/206 root alternation (load-balanced backend flip, no impact), http:// downgrade allowance, on-host traversal preserved.
+
+## 2026-08-14 10:36:53 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
+https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404

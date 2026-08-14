@@ -787,3 +787,12 @@
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
 - [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
+
+## RANKED 2026-08-14 10:36:53 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
