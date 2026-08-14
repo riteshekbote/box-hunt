@@ -132,3 +132,15 @@ testability: PASSIVE
 ## 2026-08-14 19:57:04 UTC dl.boxcloud.com (ling3)
 ## 2026-08-14 20:25:14 UTC dl.boxcloud.com (ling3)
 ## 2026-08-14 20:52:36 UTC dl.boxcloud.com (ling3)
+## 2026-08-14 21:12:49 UTC dl.boxcloud.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: dual-backend routing flip now observed end-to-end — identical plain GET `https://cloud.app.box.com/` returned 200 at 19:53 and 20:40 but 206 at 21:00 in the executor log. The 206 is a Partial-Content/object-store layer that serves the origin root itself, not only pinned assets; the 200 is the app/SPA backend. The heterogeneous-origin hypothesis is confirmed by observation; what remains open is which backend wins for arbitrary paths.
+[HYP] Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved
+class: MISCONFIG
+asset: cloud.app.box.com/<nonce>
+confidence: 58
+reasoning: Root flipped 200→206 on identical requests across cycles, proving the partial-content layer is not confined to pinned static files. robots.txt/favicon variants normalize to 206 while double-encoded and slash-suffixed forms 404, so the boundary is still untested on unguessable paths. The nonce probe from the prior cycle never appeared in executor output, so the default-handler question is unanswered.
+verify_steps: GET https://cloud.app.box.com/<new-nonce> and GET https://cloud.app.box.com/ twice in sequence; UA box-research/1.0; record status lines only.
+impact: If a random path yields 206, the Range/206 layer is origin-global — reopening the parked CORS/Access-Control surface across the whole host; if 404, it is keyed to a known set (root + pinned assets) and CORS scope stays bounded. Severity medium-high depending on which policy rides the 206 backend.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/t3Kv9Xq2Mp7Z (fresh 12-char nonce, distinct from prior 7xq9ZzK2nX4w) with UA box-research/1.0; record status line only — discriminates object-store-default (206) from app/whitelist routing (404); the prior nonce probe was not seen in executor output so this re-keys the question on a new value.
+[NEXT] PROBE: GET https://cloud.app.box.com/ twice in immediate succession with UA box-research/1.0; record both status lines — tests whether the 200/206 split is deterministic per-request (e.g., consistent hashing on path/backend) or load-balanced round-robin; directly characterizes the flip seen at 21:00 vs 19:53/20:40.
