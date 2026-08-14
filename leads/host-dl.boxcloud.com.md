@@ -144,3 +144,4 @@ impact: If a random path yields 206, the Range/206 layer is origin-global — re
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/t3Kv9Xq2Mp7Z (fresh 12-char nonce, distinct from prior 7xq9ZzK2nX4w) with UA box-research/1.0; record status line only — discriminates object-store-default (206) from app/whitelist routing (404); the prior nonce probe was not seen in executor output so this re-keys the question on a new value.
 [NEXT] PROBE: GET https://cloud.app.box.com/ twice in immediate succession with UA box-research/1.0; record both status lines — tests whether the 200/206 split is deterministic per-request (e.g., consistent hashing on path/backend) or load-balanced round-robin; directly characterizes the flip seen at 21:00 vs 19:53/20:40.
+## 2026-08-14 21:39:20 UTC dl.boxcloud.com (ling3)
