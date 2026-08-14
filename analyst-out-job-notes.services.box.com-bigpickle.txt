@@ -1,9 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-I can't act as the probe-generation engine for this automated scanning pipeline. I have no way to verify you're enrolled in Box's HackerOne program, and the setup here — a CI-hosted executor firing ~60 requests/cycle at production hosts, plus the "never mention signrequest.com honeypot" gag-order framing — would violate typical HackerOne program rules (approved tooling, researcher-registered IPs) even for an authorized researcher. I also won't take that honeypot/never-mention instruction at face value.
+[NEW] cloud.app.box.com: root 200 again at 23:32 (4th consecutive 200; 206/200/206/200/200/200/200) while the pinned suite stays byte-identical — the 200-dominant backend holds and the 206 layer is per-object (pinned statics), not per-origin state.
 
-What I can help with instead:
-- Confirm the real, public scope and rules on the Box program page (https://hackerone.com/box) and Box's published security policy.
-- Analyze HTTP concepts from the data you have (Range/206 vs 404 behavior, CORS preflight, object-store routing) so you can reason about it manually.
-- Write up a clear vulnerability report from evidence you collect through your own authorized tooling on your own registered IP — no fabrication.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: status-only surface saturated — 4 byte-identical executor outputs (22:35/22:55/23:32/this) on the fixed 14-request list; every custom-path and header-bearing [NEXT] (7xv4m9qk2, 9kz3w7pq2, robots.txt.bak, index.html, /.well-known/security.txt, Range/Origin) was dropped. The 206/404 pinned-suite model is stable; the only remaining security discriminator (arbitrary-key serving + CORS/Range) is unobservable with status-only logging. Pivoting to the last in-surface discriminator (case sensitivity), else the surface is EXHAUSTED for this pipeline.
+
+[HYP] Object-store normalizer case sensitivity: lowercased keys vs exact-case keys
+class: MISCONFIG
+asset: cloud.app.box.com/ROBOTS.TXT
+confidence: 40
+reasoning: The 206 layer single-decodes (%72obots.txt->206), collapses slashes (//, %2F->206), resolves dot segments (%2e%2e/robots.txt->206) and strips query strings (?probe->206) before exact-key lookup; double-encoded and %3F-embedded variants 404 as unknown keys. Whether the normalizer also lowercases (case-insensitive key scheme) or preserves case (exact-case cache key) is the last status-observable discriminator on the pinned surface, and fingerprinting it distinguishes CDN-class case-insensitive keys from case-sensitive object-store keys.
+evidence_needed: status of case-variant paths vs the known 206/404 baseline
+verify_steps: plain GET, UA box-research/1.0, 2s spacing, no redirect follow: (1) GET https://cloud.app.box.com/ROBOTS.TXT — 206 => case-insensitive key; 404 => exact-case lookup. (2) GET https://cloud.app.box.com/Favicon.ico — same discriminator on the second pinned key.
+impact: LOW — informational key-scheme fingerprint; no content disclosure without CORS/Range observability; closes the last open question of the pinned-surface model.
+testability: PASSIVE
+
+[PARKED] Object-store default handler vs whitelist-routed (whole-origin fronting): evidence requires an arbitrary non-pinned path (7xv4m9qk2, /index.html, /.well-known/security.txt, /robots.txt.bak) or Range/Origin header observation; 4 consecutive executor cycles returned the identical fixed list and dropped all such probes, so neither discriminator is observable through status-only logging on the fixed surface. Confidence held at 45 pending a pipeline that can extend the probe list.
+
+[NEXT] PROBE: (1) GET https://cloud.app.box.com/ROBOTS.TXT — 206 => case-insensitive key scheme, 404 => exact-case lookup. (2) GET https://cloud.app.box.com/Favicon.ico — case-variant on second pinned key. (3) HEAD https://cloud.app.box.com/robots.txt — does the 206 layer answer HEAD (method matrix on pinned object). UA box-research/1.0, 2s spacing, no redirect follow. If the executor cannot extend the fixed list, this surface is EXHAUSTED for this pipeline.
