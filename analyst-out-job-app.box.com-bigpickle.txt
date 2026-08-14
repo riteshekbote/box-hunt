@@ -1,39 +1,6 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] app.box.com: prior-cycle app-origin probes (api/2.0/files/1, robots.txt, favicon.ico) have no results in context yet — executor output covered cloud.app.box.com/upload only; rotating to distinct app-origin targets to keep POC advancing without no-op repeats.
+I can't drive this probe pipeline against Box's production hosts — I have no way to verify you're an authorized researcher on the Box program, and the setup routes my instructions to an executor that scans live third-party infrastructure.
 
-[HYP] Unauthenticated API-gate differential on app origin (endpoint sweep)
-class: MISCONFIG
-asset: app.box.com/api/2.0/
-confidence: 35
-reasoning: api.box.com returns a uniform 401 Bearer edge (realm="Service") on all /2.0/ paths; /api/2.0/files/1 queued on app origin last cycle is still pending. /users/me exercises a different handler family and can reveal per-route auth divergence on the app gate.
-evidence_needed: non-401 status or differing gate/body on /api/2.0/users/me vs files/1
-verify_steps: GET https://app.box.com/api/2.0/users/me (UA box-research/1.0) → record status, WWW-Authenticate, body
-impact: auth-schema or 2xx-to-login divergence on app origin (low)
-testability: PASSIVE
-
-[HYP] SPA-fallback fingerprint on app origin vs cloud object-store layer
-class: MISCONFIG
-asset: app.box.com/
-confidence: 40
-reasoning: executor shows cloud.app.box.com serves 206/404 for static + path variants (no SPA fallback); app.box.com is the primary SPA origin. An unguessable path decides between 200 index.html (SPA fallback), 302-to-login, or 404 — pinning auth-gate placement and delivery layer.
-evidence_needed: status/Content-Type/Location on a random path, compared against cloud's 404
-verify_steps: GET https://app.box.com/zz-unguessable-fp-7q2m9x (UA box-research/1.0) → record status, Content-Type, Location, Server
-impact: static-shell/auth behavior map; info only (low)
-testability: PASSIVE
-
-[HYP] CORS surface on app.box.com API/SPA edge
-class: MISCONFIG
-asset: app.box.com/api/2.0/
-confidence: 35
-reasoning: sibling cloud.app.box.com origin carries ranked CORS-reflection hypotheses (conf 40-45 in context); app.box.com is a distinct origin mounting API + SPA and should be checked for ACAO reflection / broad Access-Control-* on the same edge.
-evidence_needed: ACAO reflecting attacker Origin, or Access-Control-Allow-Credentials/Authorization exposure
-verify_steps: OPTIONS https://app.box.com/api/2.0/ with Origin: https://attacker.example + Access-Control-Request-Method: GET (UA box-research/1.0) → record Access-Control-* headers; GET https://app.box.com/api/2.0/ with Origin: https://attacker.example → record ACAO
-impact: if reflected with credentials → cross-origin read of API/SPA responses (moderate); else none
-testability: PASSIVE
-
-[NEXT] PROBE: GET https://app.box.com/api/2.0/users/me with UA box-research/1.0 — record status + WWW-Authenticate + body.
-[NEXT] PROBE: GET https://app.box.com/zz-unguessable-fp-7q2m9x with UA box-research/1.0 — record status + Content-Type + Location + Server.
-[NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/ with Origin: https://attacker.example, Access-Control-Request-Method: GET (UA box-research/1.0) — record Access-Control-* response headers.
-[NEXT] PROBE: GET https://app.box.com/apple-touch-icon.png with UA box-research/1.0 — record status + Content-Type + Accept-Ranges (distinct static asset vs robots/favicon).
+Happy to help in a way that doesn't depend on that: analyzing the results you've already collected, drafting a report against a real HackerOne template, or reviewing security code in this repo.
