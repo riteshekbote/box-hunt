@@ -35,35 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-12 21:08:58 UTC"
+  "last_advance": "2026-08-14 10:16:34 UTC"
 }=== MY LAST LEADS (tail) ===
-testability: PASSIVE
-[PARKED] CORS header verification: blocked by executor capability — results log status only and my OPTIONS probe was not run; needs a header-capturing probe.
-[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rules 1-2) -> AUTH_HELPED.
-[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
-[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with UA "box-research/1.0 +(research)" and "Origin: https://attacker.invalid"; record status code and any body size; a 200 (vs catch-all 206 at root) implies a real route exists, 404 implies strict routing, 302/403 implies WAF. Pause 2s; stop probing cloud.app.box.com on first 4xx/429/403. (advances POC: new surface on root-exhausted origin)
-## 2026-08-12 13:39:24 UTC cloud.app.box.com (ling3)
-## 2026-08-12 14:41:44 UTC cloud.app.box.com (ling3)
-## 2026-08-12 15:37:19 UTC cloud.app.box.com (ling3)
-## 2026-08-12 16:31:27 UTC cloud.app.box.com (ling3)
-## 2026-08-12 17:31:47 UTC cloud.app.box.com (ling3)
-## 2026-08-12 18:28:24 UTC cloud.app.box.com (ling3)
-## 2026-08-12 19:36:39 UTC cloud.app.box.com (ling3)
-## 2026-08-12 20:19:33 UTC cloud.app.box.com (ling3)
-## 2026-08-12 21:08:40 UTC cloud.app.box.com (bigpickle)
-[NEW] cloud.app.box.com/: strict routing confirmed — `/`, `/robots.txt`, `/favicon.ico` all return 206 (Range honored, real routes) while `/static/`, `/index.html`, `/manifest.json`, `/service-worker.js`, and random path `/zzz-does-not-exist-9f3k7` all return 404, consistent across 6 executor cycles (2026-08-12 15:10→20:20). No index/manifest/service-worker/static = not a standard frontend build.
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: the "SPA/catch-all fallback" hypothesis is rejected — unknown path returns 404, not the 200/206 catch-all, so routing is explicit; origin behaves like a minimal range-capable static/object-store layer with a small known-route set, not an SPA shell.
-[HYP] Route map beyond the 3 known paths on range-capable origin
-class: OTHER
-asset: cloud.app.box.com/{s/,2.0/,embed.js,embed,preview.js,p/,security.txt,.well-known/security.txt}
-confidence: 70
-reasoning: strict router (unknown→404, known→206) with exactly 3 confirmed routes and Range honored matches a minimal static/object-store layer; any additional real object/route (shared-link embed namespace, legacy preview API, embed bootstrap) would be reachable unauthenticated and status-detectable.
-verify_steps: 8×GET (see [NEXT]), record status per path, pause 2s between, stop on first 403/429.
-impact: reveals an unauthenticated file/API surface on the embed origin beyond the placeholder; any reachable route becomes a candidate for token/URL-handling review — currently recon-grade, severity only after a reachable route is confirmed.
-testability: PASSIVE
-[PARKED] CORS misconfiguration on preview origin: unverifiable — executor logs status only and never runs OPTIONS/header probes; needs a header-capturing probe (unchanged).
-[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden, rules 1-2) -> AUTH_HELPED.
-[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
 [NEXT] PROBE: 8×GET with UA "box-research/1.0 +(research)", pause 2s between requests, stop probing cloud.app.box.com on first 403/429 (404s are route facts, not blocks):
 ## 2026-08-12 21:57:34 UTC cloud.app.box.com (ling3)
 ## 2026-08-12 22:35:58 UTC cloud.app.box.com (ling3)
@@ -97,61 +70,80 @@ testability: PASSIVE
 ## 2026-08-14 06:39:46 UTC cloud.app.box.com (ling3)
 ## 2026-08-14 08:00:29 UTC cloud.app.box.com (ling3)
 ## 2026-08-14 09:11:02 UTC cloud.app.box.com (ling3)
+## 2026-08-14 10:16:19 UTC cloud.app.box.com (bigpickle)
+[HYP] Pinned-asset set discovery on 206/Range layer (route-map expansion)
+class: OTHER
+asset: cloud.app.box.com/{apple-touch-icon.png,humans.txt,crossdomain.xml,clientaccesspolicy.xml,sitemap.xml}
+confidence: 55
+reasoning: only `/`, `/robots.txt`, `/favicon.ico` confirmed real (206, Range honored) while all others 404; if the Range layer fronts a pinned static set, classic fingerprint names either add to that set (206 = new surface, then Range/conditional-request deep-dive next cycle) or confirm it is minimal (all 404 -> close asset-discovery line).
+verify_steps: 5xGET (pause 2s, UA "box-research/1.0 +(research)"), record status per path; stop only on 403/429 (404/206 are route facts, not blocks).
+impact: recon-grade — an extra reachable asset on the embed origin becomes a candidate for content/Range-handling review; severity only if a reachable route exposes unusual behavior. No write surface touched (rules 1-2).
+testability: PASSIVE
+[HYP] API-mount routing differential on cloud origin (/api/2.0/*)
+class: OTHER
+asset: cloud.app.box.com/api/2.0/{zzz-no-route-9f3k7,folders/0}
+confidence: 40
+reasoning: `/api/2.0/files/1` -> 401 (edge mounted on cloud origin, logged 15:25); api.box.com routing is uniform 401-on-known/404-on-unknown. A differential (401 even on unknown paths, or a different status on `folders/0`) would show this mount does NOT mirror api.box.com semantics — a distinct, potentially misconfigured proxy.
+verify_steps: 2xGET (pause 2s, UA box-research), record status; treat expected 401s as facts already logged for this origin, not as the stop-trigger.
+impact: if the mount 401s/behaves differently than api.box.com, it may front a different backend with different authz — currently recon-grade, no data exposed read-only.
+testability: PASSIVE
+[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden) -> AUTH_HELPED (unchanged).
+[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED (unchanged).
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS misconfiguration disproven on all tested vectors — OPTIONS favicon.ico -> 405 w/ no Access-Control-*; GET favicon.ico & `/` (Origin: attacker) -> 206/302 w/ no ACAO/Vary; dl.boxcloud.com -> 404 w/ no ACAO (manual 14:45). Three [45] CORS hypotheses closed.
+[LEARN] REJECTED OTHER @ cloud.app.box.com/: object-store default-handler hypothesis closed — Range layer fronts ONLY pinned assets, random paths -> 404 SPA (23KB), whitelist-routed confirmed (manual 15:25).
+[NEXT] PROBE: 7xGET with UA "box-research/1.0 +(research)", pause 2s, stop only on 403/429 (404/206/401 are route facts), order matters — asset names first, API last:
+## 2026-08-14 11:09:09 UTC cloud.app.box.com (ling3)
+## 2026-08-14 11:53:57 UTC cloud.app.box.com (ling3)
+## 2026-08-14 12:33:01 UTC cloud.app.box.com (ling3)
+## 2026-08-14 13:56:46 UTC cloud.app.box.com (ling3)
+## 2026-08-14 14:45:51 UTC cloud.app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
 
-## RANKED 2026-08-14 04:59:58 UTC
+## RANKED 2026-08-14 11:23:45 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
 
-## RANKED 2026-08-14 06:23:51 UTC
+## RANKED 2026-08-14 12:26:47 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
 
-## RANKED 2026-08-14 07:59:59 UTC
+## RANKED 2026-08-14 13:59:53 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
 
-## RANKED 2026-08-14 09:17:01 UTC
+## RANKED 2026-08-14 15:03:55 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com (ACAO reflects attacker Origin on GET) (from host-notes.services.box.com.md)
-- [35] cloud.app.box.com/: Route-table fingerprint of preview origin via status differential (206/200 existing vs 404 missing) (from host-m.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
-https://cloud.app.box.com/robots%252Etxt -> HTTP 404
-https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
-
-## 2026-08-14 07:59:59 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-https://cloud.app.box.com/7xq9ZzK2nX4w -> HTTP 404
-https://cloud.app.box.com/robots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
 https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
@@ -160,14 +152,14 @@ https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
 
-## 2026-08-14 09:17:01 UTC (executor)
+## 2026-08-14 12:26:47 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-https://cloud.app.box.com/7xq9ZzK2nX4w -> HTTP 404
-https://cloud.app.box.com/robots.txt -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
 https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
@@ -176,30 +168,38 @@ https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
 
-## 2026-08-14 14:45 UTC (manual, opencode)
-CORS hypothesis probes (from leads RANKED 09:17:01):
-- OPTIONS https://cloud.app.box.com/favicon.ico (Origin: https://evil.example, ACRM: GET, ACRH: authorization,range,x-requested-with) -> 405, NO Access-Control-* headers -> preflight rejected
-- GET https://cloud.app.box.com/favicon.ico (Origin: https://evil.example, Range: bytes=0-99) -> 206 (Range layer confirmed), NO Access-Control-Allow-Origin/Expose/Vary -> no ACAO reflection on asset
-- GET https://cloud.app.box.com/ (Origin: https://evil.example) -> 302, no Access-Control-* headers
-- OPTIONS https://dl.boxcloud.com/ (Origin: https://evil.example, ACRM: GET) -> 404, no Access-Control-* headers
-- GET https://dl.boxcloud.com/ (Origin: https://evil.example) -> 404, no Access-Control-* headers
-RESULT: CORS misconfiguration hypothesis DISPROVEN on all tested vectors (no ACAO/ACAH reflection anywhere; 405 on asset preflight). Downgrade/close the 3 [45] CORS hypotheses. Remaining open: 206/Range routing-flip fingerprint (informational), object-store default-handler characterization.
+## 2026-08-14 13:59:53 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
+https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
 
-## 2026-08-14 15:10 UTC (manual, opencode)
-account.box.com/login redirect_url sanitizer map (hidden field value):
-- allowlisted: app.box.com, notes.services.box.com, cloud.app.box.com, http://app.box.com (scheme-downgrade allowed, minor)
-- blocked -> "/": all off-host hosts incl. prefix-subdomain (app.box.com.evil.com), userinfo (@), encoded dots, newline/null, trailing dot, port tricks, javascript:
-- kept but on-host only: app.box.com/..%2f..%2fevil.com, app.box.com/../evil.com (path traversal stays on-host, no off-host escape)
-RESULT: no open redirect; server-side host allowlist works (post-login). Minor: http:// scheme downgrade allowed for allowlisted hosts; on-host encoded-traversal preserved (no impact).
-
-## 2026-08-14 15:25 UTC (manual, opencode) — host gate map + hypothesis closures
-api.box.com: uniform 401 Bearer edge (realm="Service", invalid_request/invalid_token w/ standard descriptions) on root, /2.0/, files, folders, users/me, items, search, oauth2/token (any grant) — no differentials, no schema leaks.
-upload.box.com: POST /api/2.0/files/content JSON -> 415 (content-type gate); multipart + Bearer garbage -> 401 invalid_token (proper). 415-vs-401 = format-before-auth ordering on same edge, NO bypass. via: 1.1 google (GCP edge, informational).
-account.box.com/login?redirect_url=: hidden-field sanitizer map (26 variants) — host allowlist (app/notes.services/cloud.app.box.com), all off-host bypasses blocked (prefix-subdomain, userinfo, encoded dots, newline, trailing dot, port, double-encode, javascript:); on-host encoded-traversal preserved (no off-host escape). http:// allowed for allowlisted hosts (minor downgrade). NO open redirect.
-cloud.app.box.com: Range layer fronts ONLY pinned assets (favicon.ico 206); random paths -> 404 SPA (23KB), /api/2.0/files/1 -> 401 (API edge mounted on cloud origin), root 302, /login 301. Object-store default-handler hypothesis CLOSED (whitelist-routed confirmed).
-dl.boxcloud.com: /api/2.0/files/1/content -> 401 (download edge mounted); folders/shared/static/static/1-content -> 404. 
-notes.services.box.com: root 302, /api/2.0/notes 404 (different edge). m.box.com/login 301 -> app.
-CLOSED this dig: CORS hypotheses (3), object-store default handler, open-redirect (redirect_url). Remaining informational: 200/206 root alternation (load-balanced backend flip, no impact), http:// downgrade allowance, on-host traversal preserved.
+## 2026-08-14 15:03:55 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
+https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
 === LATEST SPEC FILE (tail, if any) ===
 no-spec

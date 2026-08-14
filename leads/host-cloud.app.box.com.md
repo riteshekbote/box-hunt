@@ -165,3 +165,15 @@ testability: PASSIVE
 ## 2026-08-14 12:33:01 UTC cloud.app.box.com (ling3)
 ## 2026-08-14 13:56:46 UTC cloud.app.box.com (ling3)
 ## 2026-08-14 14:45:51 UTC cloud.app.box.com (ling3)
+## 2026-08-14 15:35:55 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com/: normalization differential on the pinned-asset whitelist — `robots.txt/../robots.txt`, `%72obots.txt`, `robots%2Etxt`, `//robots.txt`, `%2Frobots.txt`, `%2e%2e/robots.txt` all resolve to the pinned asset (206) while `robots.txt/`, `robots%252Etxt`, `%252Frobots.txt`, `robots.txt%3Fprobe` -> 404; whitelist match happens after single-decode + dot-segment normalization, with no `%3F`/double-decode handling.
+[HYP] Dual-backend routing flip on cloud.app.box.com root — SPA handler vs Range edge
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 45
+reasoning: executor runs at 12:26:47 and 13:59:53 returned `/` -> 200, but 15:03:55 returned `/` -> 206, while `/robots.txt` and `/favicon.ico` returned stable 206 across the same runs; two handlers for `/` (Range-honoring edge vs 200 SPA) rather than a single stable origin.
+verify_steps: 8xGET alternating `https://cloud.app.box.com/` (x4) and `https://cloud.app.box.com/robots.txt` (x4), 2s apart, UA "box-research/1.0 +(research)", record status per request; stop only on 403/429 (200/206 are the flip facts, not blocks).
+impact: recon-grade; a heterogeneous origin implies a routing boundary whose two sides may enforce different auth/pinning; nothing exposed read-only. severity only if a later reachable route diverges in authz.
+testability: PASSIVE
+[NEXT] PROBE: 8xGET alternating `https://cloud.app.box.com/` and `https://cloud.app.box.com/robots.txt` (4 each), 2s apart, UA "box-research/1.0 +(research)"; record status per request; stop only on 403/429.
+[NEXT] PROBE: 2xGET `https://cloud.app.box.com/api/2.0/zzz-no-route-9f3k7` then `https://cloud.app.box.com/api/2.0/folders/0`, 2s apart, UA "box-research/1.0 +(research)"; record status; treat 401 as route facts, stop only on 403/429.

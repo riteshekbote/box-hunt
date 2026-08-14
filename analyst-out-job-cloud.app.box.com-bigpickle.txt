@@ -1,38 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[HYP] Pinned-asset set discovery on 206/Range layer (route-map expansion)
+[NEW] cloud.app.box.com/: normalization differential on the pinned-asset whitelist — `robots.txt/../robots.txt`, `%72obots.txt`, `robots%2Etxt`, `//robots.txt`, `%2Frobots.txt`, `%2e%2e/robots.txt` all resolve to the pinned asset (206) while `robots.txt/`, `robots%252Etxt`, `%252Frobots.txt`, `robots.txt%3Fprobe` -> 404; whitelist match happens after single-decode + dot-segment normalization, with no `%3F`/double-decode handling.
+
+[HYP] Dual-backend routing flip on cloud.app.box.com root — SPA handler vs Range edge
 class: OTHER
-asset: cloud.app.box.com/{apple-touch-icon.png,humans.txt,crossdomain.xml,clientaccesspolicy.xml,sitemap.xml}
-confidence: 55
-reasoning: only `/`, `/robots.txt`, `/favicon.ico` confirmed real (206, Range honored) while all others 404; if the Range layer fronts a pinned static set, classic fingerprint names either add to that set (206 = new surface, then Range/conditional-request deep-dive next cycle) or confirm it is minimal (all 404 -> close asset-discovery line).
-evidence_needed: any 206 (vs 404) on the five candidate names above.
-verify_steps: 5xGET (pause 2s, UA "box-research/1.0 +(research)"), record status per path; stop only on 403/429 (404/206 are route facts, not blocks).
-impact: recon-grade — an extra reachable asset on the embed origin becomes a candidate for content/Range-handling review; severity only if a reachable route exposes unusual behavior. No write surface touched (rules 1-2).
+asset: cloud.app.box.com/
+confidence: 45
+reasoning: executor runs at 12:26:47 and 13:59:53 returned `/` -> 200, but 15:03:55 returned `/` -> 206, while `/robots.txt` and `/favicon.ico` returned stable 206 across the same runs; two handlers for `/` (Range-honoring edge vs 200 SPA) rather than a single stable origin.
+evidence_needed: same-cycle alternation 200<->206 on `/` with `/robots.txt` pinned at 206 throughout.
+verify_steps: 8xGET alternating `https://cloud.app.box.com/` (x4) and `https://cloud.app.box.com/robots.txt` (x4), 2s apart, UA "box-research/1.0 +(research)", record status per request; stop only on 403/429 (200/206 are the flip facts, not blocks).
+impact: recon-grade; a heterogeneous origin implies a routing boundary whose two sides may enforce different auth/pinning; nothing exposed read-only. severity only if a later reachable route diverges in authz.
 testability: PASSIVE
 
-[HYP] API-mount routing differential on cloud origin (/api/2.0/*)
-class: OTHER
-asset: cloud.app.box.com/api/2.0/{zzz-no-route-9f3k7,folders/0}
-confidence: 40
-reasoning: `/api/2.0/files/1` -> 401 (edge mounted on cloud origin, logged 15:25); api.box.com routing is uniform 401-on-known/404-on-unknown. A differential (401 even on unknown paths, or a different status on `folders/0`) would show this mount does NOT mirror api.box.com semantics — a distinct, potentially misconfigured proxy.
-evidence_needed: statuses of an unguessable path vs a known resource on the mount.
-verify_steps: 2xGET (pause 2s, UA box-research), record status; treat expected 401s as facts already logged for this origin, not as the stop-trigger.
-impact: if the mount 401s/behaves differently than api.box.com, it may front a different backend with different authz — currently recon-grade, no data exposed read-only.
-testability: PASSIVE
+[NEXT] PROBE: 8xGET alternating `https://cloud.app.box.com/` and `https://cloud.app.box.com/robots.txt` (4 each), 2s apart, UA "box-research/1.0 +(research)"; record status per request; stop only on 403/429.
 
-[PARKED] XSS via crafted filename/title: needs pre-existing shared link with attacker-controlled metadata (write ops forbidden) -> AUTH_HELPED (unchanged).
-[PARKED] Embed token/URL leakage in preview query string: needs existing public shared-link embed to trace redirect chain -> AUTH_HELPED (unchanged).
-
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS misconfiguration disproven on all tested vectors — OPTIONS favicon.ico -> 405 w/ no Access-Control-*; GET favicon.ico & `/` (Origin: attacker) -> 206/302 w/ no ACAO/Vary; dl.boxcloud.com -> 404 w/ no ACAO (manual 14:45). Three [45] CORS hypotheses closed.
-[LEARN] REJECTED OTHER @ cloud.app.box.com/: object-store default-handler hypothesis closed — Range layer fronts ONLY pinned assets, random paths -> 404 SPA (23KB), whitelist-routed confirmed (manual 15:25).
-
-[NEXT] PROBE: 7xGET with UA "box-research/1.0 +(research)", pause 2s, stop only on 403/429 (404/206/401 are route facts), order matters — asset names first, API last:
-1. https://cloud.app.box.com/apple-touch-icon.png
-2. https://cloud.app.box.com/humans.txt
-3. https://cloud.app.box.com/crossdomain.xml
-4. https://cloud.app.box.com/clientaccesspolicy.xml
-5. https://cloud.app.box.com/sitemap.xml
-6. https://cloud.app.box.com/api/2.0/zzz-no-route-9f3k7
-7. https://cloud.app.box.com/api/2.0/folders/0
-(advances POC: new surface on root-exhausted origin — pinned-set fingerprint + API-mount routing characterization)
+[NEXT] PROBE: 2xGET `https://cloud.app.box.com/api/2.0/zzz-no-route-9f3k7` then `https://cloud.app.box.com/api/2.0/folders/0`, 2s apart, UA "box-research/1.0 +(research)"; record status; treat 401 as route facts, stop only on 403/429.
