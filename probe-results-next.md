@@ -527,3 +527,10 @@ CORS hypothesis probes (from leads RANKED 09:17:01):
 - OPTIONS https://dl.boxcloud.com/ (Origin: https://evil.example, ACRM: GET) -> 404, no Access-Control-* headers
 - GET https://dl.boxcloud.com/ (Origin: https://evil.example) -> 404, no Access-Control-* headers
 RESULT: CORS misconfiguration hypothesis DISPROVEN on all tested vectors (no ACAO/ACAH reflection anywhere; 405 on asset preflight). Downgrade/close the 3 [45] CORS hypotheses. Remaining open: 206/Range routing-flip fingerprint (informational), object-store default-handler characterization.
+
+## 2026-08-14 15:10 UTC (manual, opencode)
+account.box.com/login redirect_url sanitizer map (hidden field value):
+- allowlisted: app.box.com, notes.services.box.com, cloud.app.box.com, http://app.box.com (scheme-downgrade allowed, minor)
+- blocked -> "/": all off-host hosts incl. prefix-subdomain (app.box.com.evil.com), userinfo (@), encoded dots, newline/null, trailing dot, port tricks, javascript:
+- kept but on-host only: app.box.com/..%2f..%2fevil.com, app.box.com/../evil.com (path traversal stays on-host, no off-host escape)
+RESULT: no open redirect; server-side host allowlist works (post-login). Minor: http:// scheme downgrade allowed for allowlisted hosts; on-host encoded-traversal preserved (no impact).
