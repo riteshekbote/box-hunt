@@ -37,18 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 17:28:17 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-13 14:44:41 UTC notes.services.box.com (ling3)
-## 2026-08-13 15:39:22 UTC notes.services.box.com (ling3)
-## 2026-08-13 16:31:42 UTC notes.services.box.com (ling3)
-## 2026-08-13 17:31:19 UTC notes.services.box.com (ling3)
-## 2026-08-13 18:28:54 UTC notes.services.box.com (ling3)
-## 2026-08-13 19:34:38 UTC notes.services.box.com (ling3)
-## 2026-08-13 20:07:26 UTC notes.services.box.com (ling3)
-## 2026-08-13 20:58:34 UTC notes.services.box.com (ling3)
-## 2026-08-13 21:42:07 UTC notes.services.box.com (ling3)
-## 2026-08-13 22:24:14 UTC notes.services.box.com (ling3)
-## 2026-08-13 23:08:42 UTC notes.services.box.com (ling3)
-## 2026-08-13 23:54:32 UTC notes.services.box.com (ling3)
 ## 2026-08-14 00:54:50 UTC notes.services.box.com (ling3)
 ## 2026-08-14 03:19:00 UTC notes.services.box.com (ling3)
 ## 2026-08-14 05:09:38 UTC notes.services.box.com (ling3)
@@ -97,6 +85,18 @@ testability: PASSIVE
 ## 2026-08-14 21:55:51 UTC notes.services.box.com (ling3)
 ## 2026-08-14 22:13:32 UTC notes.services.box.com (ling3)
 ## 2026-08-14 22:40:33 UTC notes.services.box.com (ling3)
+## 2026-08-14 22:58:26 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com: root 200 for 3rd consecutive cycle (206/200/206/200/200/200) — weighted drift to 200-dominant backend holds; robots.txt 14-path suite byte-identical across 3 consecutive executor runs (21:54/22:35/22:55), including trailing-slash `robots.txt/` => 404 while all decode/segment variants => 206 and query-strip `?probe` => 206.
+[HYP] Object-store exact-key lookup w/ aggressive normalizer: suffix-decorated pinned key discriminates prefix-match vs exact-key whitelist
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt.bak
+confidence: 50
+reasoning: 14-path suite shows byte-stable 206 for all single-decode/segment-normalized robots.txt variants but `robots.txt/` -> 404 (trailing slash becomes a distinct non-existent key, no dir-index fallback) and `robots%3Fprobe` -> 404 — signature of exact-key lookup after aggressive normalize, not a document-root webserver. Whether the default handler serves ANY key (whole-origin fronting) or only pinned keys (whitelist) remains untested; random-key NEXT probes (7xv4m9qk2, proposed 2 cycles) never executed.
+verify_steps: plain GET, UA box-research/1.0, 2s spacing, no redirect follow: (1) /robots.txt.bak — 206 => greedy prefix key match / whole-origin default; 404 => exact-key whitelist. (2) /.well-known/security.txt — real non-pinned path; 206 => whole-origin default handler. (3) /index.html — document-root key; 206/200 => default handler, 404 => whitelist.
+impact: decides if the 206/Range object-store layer fronts the entire origin (any unguessable preview path range-served) vs pinned statics only; Range+reflected-ACAO on full origin would enable cross-origin read of tokenized preview content (MEDIUM-HIGH), else informational edge fingerprint (LOW).
+testability: PASSIVE
+[LEARN] REJECTED (operational) @ cloud.app.box.com: arbitrary random-key probe (7xv4m9qk2) is being dropped by the executor — output is a byte-identical fixed list (root, upload /api/2.0/files/content, 14-path robots.txt suite) 3 cycles running; custom-path and header-bearing NEXT probes do not surface. Pivot to discriminators that reuse the executed path surface.
+[NEXT] PROBE: (1) GET https://cloud.app.box.com/robots.txt.bak — 206 => prefix-key object-store match / whole-origin default; 404 => exact-key whitelist. (2) GET https://cloud.app.box.com/.well-known/security.txt — never-pinned real path; 206 => default handler serves any key. (3) GET https://cloud.app.box.com/index.html — document-root key; 206/200 => default handler, 404 => whitelist. UA box-research/1.0, 2s spacing, no redirect follow.
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether any non-pinned path hits the 206/Range layer (from host-notes.services.box.com.md)

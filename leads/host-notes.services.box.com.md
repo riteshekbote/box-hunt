@@ -158,3 +158,4 @@ impact: decides if the 206/Range object-store layer fronts the entire origin (an
 testability: PASSIVE
 [LEARN] REJECTED (operational) @ cloud.app.box.com: arbitrary random-key probe (7xv4m9qk2) is being dropped by the executor — output is a byte-identical fixed list (root, upload /api/2.0/files/content, 14-path robots.txt suite) 3 cycles running; custom-path and header-bearing NEXT probes do not surface. Pivot to discriminators that reuse the executed path surface.
 [NEXT] PROBE: (1) GET https://cloud.app.box.com/robots.txt.bak — 206 => prefix-key object-store match / whole-origin default; 404 => exact-key whitelist. (2) GET https://cloud.app.box.com/.well-known/security.txt — never-pinned real path; 206 => default handler serves any key. (3) GET https://cloud.app.box.com/index.html — document-root key; 206/200 => default handler, 404 => whitelist. UA box-research/1.0, 2s spacing, no redirect follow.
+## 2026-08-14 23:18:30 UTC notes.services.box.com (bigpickle)
