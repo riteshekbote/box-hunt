@@ -178,3 +178,4 @@ impact: Surface map of the upload gateway for targeting backend-specific handler
 testability: PASSIVE
 [PARKED] CORS on upload.box.com API edge: OPTIONS on /api/2.0/files/content -> 404, and the status-only channel cannot observe Access-Control-* headers; re-open only with a header-capturing probe channel.
 [NEXT] PROBE: upload.box.com route fingerprint, status-only, 1 req/2s — 1) OPTIONS / (Origin https://evil.example, ACRM GET); 2) GET /; 3) HEAD /; 4) GET /upload; 5) GET /api/2.0/files/content/; 6) GET /healthz; 7) GET /version; 8) OPTIONS /api/2.0/files/content/ (Origin, ACRM POST, ACRH authorization); 9) GET /files; 10) GET /f/. Record status per request; 404/405 = normal edge routing (no 4xx stop), stop only on 401/403/429.
+## 2026-08-14 22:40:35 UTC upload.box.com (ling3)
