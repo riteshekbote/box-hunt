@@ -1,22 +1,26 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: root `/` 200/206 flip is now 3-of-7 observed cycles returning 200 (08-12 21:25, 08-13 05:21, 08-13 08:40) vs 206 otherwise — time-varying, not deterministic; a status-observable routing surface, not the header-dependent CORS check.
+[NEW] upload.box.com: manual 2026-08-14 probes closed CORS on cloud.app.box.com + dl.boxcloud.com (405 preflight / no Access-Control-* anywhere), closed redirect_url sanitizer on account.box.com (host allowlist, no open redirect), and confirmed upload.box.com is a GCP gateway (via 1.1 google) whose own CORS/OPTIONS surface has never been measured — new surface on my host.
 
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: the executor result channel reports only status codes (200/206/404) — the last 3 cycles' Origin-header and preflight directives returned zero Access-Control-*/Vary header values, so ACAO/ACAC/ACAH are unmeasurable through this channel; CORS verdict requires a header-capturing channel or browser verification.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: 14:45 manual — OPTIONS favicon.ico -> 405 no Access-Control-*, GET favicon.ico+Origin -> 206 no ACAO/Vary, GET /+Origin -> 302 no AC headers; no CORS reflection on any vector. Closed.
 
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: same-path status flip — `/` returned 200 @ 05:21:29 and 08:40:24, 206 @ 00:41:28/03:13:13/07:01:39, while `/robots.txt` and `/favicon.ico` are always 206 and every invented path always 404; a single object layer would not flip 200/206 on the identical path, implying a second app backend behind the origin.
+[LEARN] REJECTED MISCONFIG @ dl.boxcloud.com/: 14:45 manual — OPTIONS / and GET / with Origin -> 404, no Access-Control-*. Closed.
 
-[HYP] Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin
+[LEARN] REJECTED OTHER @ account.box.com/login: 15:10 sanitizer map (26 variants) — server-side host allowlist blocks all off-host escapes; only minor http:// downgrade for allowlisted hosts + on-host encoded traversal preserved (no off-host escape). No open redirect. Closed.
+
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: object-store default-handler — 15:25 sweep: Range layer fronts only pinned assets (favicon.ico 206), random paths -> 404 SPA, /api/2.0/files/1 -> 401 API edge; whitelist-routed confirmed. 200/206 root alternation demoted to informational load-balancer flip (no impact).
+
+[HYP] CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight)
 class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 45
-reasoning: Root `/` flipped 200↔206 across 7 cycles with no request difference visible in the channel; static real files are consistently 206, invented paths consistently 404. A uniform range-capable object layer cannot return 200 for the same path sometimes, so an app backend is implied. Which backend serves which path must be mapped before any backend-consistent header/behavior differential (CORS, caching, redirects) can be assessed on this origin.
-evidence_needed: Same-request status sequence over consecutive cycles; backend split by path class (app-handled vs object-handled).
-verify_steps: 1) `GET /` three times back-to-back with NO Range header, record each status — 200/206 mix confirms time-varying dual-backend routing; all-200 suggests earlier 206s were Range-dependent. 2) `GET /robots.txt` and `GET /favicon.ico` with no Range (expect 206 → object layer on static files). 3) Route sweep, record 200/206/302/404 verbatim, no redirects followed: `/embed/1`, `/s/1`, `/notes/`, `/files/1`, `/preview/1`, `/api/`.
-impact: Backend-routing fingerprint of the preview origin; enables targeting backend-specific surfaces (CORS, cache, redirects) for later findings; recon-grade, medium-low alone.
+asset: upload.box.com/api/2.0/files/content
+confidence: 35
+reasoning: upload.box.com is a distinct GCP-hosted gateway (via 1.1 google) whose purpose is cross-origin uploads from app.box.com; its CORS headers have never been measured — prior cycles only probed cloud.app.box.com and dl.boxcloud.com, both now disproven. A gateway OPTIONS preflight typically bypasses the auth gate that 401s POSTs, so it is the read-only way to observe the policy.
+evidence_needed: Access-Control-Allow-Origin echoing attacker Origin, or Access-Control-Allow-Headers listing authorization/content-type, or Access-Control-Allow-Credentials: true on the OPTIONS preflight response.
+verify_steps: 1) OPTIONS https://upload.box.com/api/2.0/files/content with Origin: https://evil.example, Access-Control-Request-Method: POST, Access-Control-Request-Headers: authorization,content-type (no body). 2) OPTIONS https://upload.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET. 3) Record status + every Access-Control-* and Vary header verbatim. ACAO echoing evil.example (esp. with ACAC true) -> CONFIRMED; absent/fixed allowlist -> PARKED.
+impact: Reflected ACAO on the upload origin would let an attacker page issue cross-origin requests against the upload pipeline on a victim's session — write-side abuse under full auth (AUTH_HELPED); under read-only constraint this is a config finding, low-medium severity.
 testability: PASSIVE
 
-[PARKED] CORS ACAO/ACAC/ACAH reflection on cloud.app.box.com: repeated Origin-header GETs, HEAD, and preflight directives over 8+ cycles returned no Access-Control-*/Vary header data because the executor channel is status-only; not confirmed or refuted, but non-advancing on this channel — re-open only with a header-capturing probe channel or AUTH_HELPED/HUMAN_ONLY browser verification.
+[PARKED] Re-open CORS on cloud.app.box.com / dl.boxcloud.com: disproven 2026-08-14 14:45 (no Access-Control-* on any vector); only re-open with a header-capturing channel.
 
-[NEXT] PROBE: run 3 sequential `GET /` (NO Range header, record status per request — expect a 200/206 mix to confirm time-varying dual-backend routing), then route sweep of `GET /robots.txt`, `/favicon.ico`, `/embed/1`, `/s/1`, `/notes/`, `/files/1`, `/preview/1`, `/api/` recording exact status (200/206/302/404) per path, no redirects followed, no Range on any request. ~11 requests total; 404s on invented-style paths are normal object-layer misses and must NOT trigger the 4xx stop (reserved for 403/429/401 application denial).
+[NEXT] PROBE: OPTIONS https://upload.box.com/api/2.0/files/content with headers Origin: https://evil.example, Access-Control-Request-Method: POST, Access-Control-Request-Headers: authorization,content-type — record status and every Access-Control-* + Vary header verbatim (read-only preflight, no body). Then OPTIONS https://upload.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET, same header capture. Then GET https://upload.box.com/ recording status only (GCS-bucket-vs-app fingerprint). Stop probing upload.box.com on 401/403/429.
