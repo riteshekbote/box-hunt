@@ -275,3 +275,4 @@ impact: If any common path returns 206, the pinned-asset whitelist is broader th
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — 206 = whitelist wider than the 3 known keys (new pinned asset, route table incomplete); 404 = confirms 3-key whitelist.
 [NEXT] PROBE: GET https://cloud.app.box.com/app.js with UA "box-research/1.0 +(research)"; record status only — 206 = second non-fingerprinted pinned asset; 404 = consistent with exactly-3-key route table.
+## 2026-08-14 20:52:35 UTC account.box.com (ling3)
