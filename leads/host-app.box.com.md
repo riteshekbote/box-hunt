@@ -95,3 +95,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/robots.txt with UA box-research/1.0 — record status + headers (compare vs cloud.app.box.com 206 range layer).
 [NEXT] PROBE: GET https://app.box.com/favicon.ico with UA box-research/1.0 — record status + Accept-Ranges/Content-Type (distinguish range-layer vs normal static).
 ## 2026-08-14 13:56:46 UTC app.box.com (ling3)
+## 2026-08-14 14:45:52 UTC app.box.com (ling3)
