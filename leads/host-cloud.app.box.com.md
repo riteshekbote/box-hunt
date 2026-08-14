@@ -161,3 +161,4 @@ testability: PASSIVE
 [LEARN] REJECTED OTHER @ cloud.app.box.com/: object-store default-handler hypothesis closed — Range layer fronts ONLY pinned assets, random paths -> 404 SPA (23KB), whitelist-routed confirmed (manual 15:25).
 [NEXT] PROBE: 7xGET with UA "box-research/1.0 +(research)", pause 2s, stop only on 403/429 (404/206/401 are route facts), order matters — asset names first, API last:
 ## 2026-08-14 11:09:09 UTC cloud.app.box.com (ling3)
+## 2026-08-14 11:53:57 UTC cloud.app.box.com (ling3)
