@@ -36,7 +36,6 @@
   "phase": "POC",
   "status": "IN_PROGRESS"
 }=== MY LAST LEADS (tail) ===
-asset: app.box.com/api/2.0/
 confidence: 35
 reasoning: api.box.com returns a uniform 401 Bearer edge (realm="Service") on all /2.0/ paths; /api/2.0/files/1 queued on app origin last cycle is still pending. /users/me exercises a different handler family and can reveal per-route auth divergence on the app gate.
 verify_steps: GET https://app.box.com/api/2.0/users/me (UA box-research/1.0) → record status, WWW-Authenticate, body
@@ -96,6 +95,7 @@ testability: PASSIVE
 [NEXT] PROBE: HEAD https://app.box.com/ with UA box-research/1.0 — record status, Server, Content-Type, Set-Cookie presence (HEAD surface differs from prior queued GET root probe).
 [NEXT] PROBE: GET https://app.box.com/account/login with UA box-research/1.0 — record status, Location, Content-Type, body prefix (auth-plane path placement on app origin; distinct from /oauth2/authorize queued earlier).
 ## 2026-08-14 21:39:19 UTC app.box.com (ling3)
+## 2026-08-14 21:55:50 UTC app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)

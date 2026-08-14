@@ -161,3 +161,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/account/login with UA box-research/1.0 — record status, Location, Content-Type, body prefix (auth-plane path placement on app origin; distinct from /oauth2/authorize queued earlier).
 ## 2026-08-14 21:39:19 UTC app.box.com (ling3)
 ## 2026-08-14 21:55:50 UTC app.box.com (ling3)
+## 2026-08-14 22:13:30 UTC app.box.com (ling3)
