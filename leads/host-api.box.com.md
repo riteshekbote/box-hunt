@@ -171,3 +171,4 @@ testability: PASSIVE
 [NEXT] PROBE: 2 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/ (2) https://cloud.app.box.com/api/2.0/ — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401/404 informative, continue).
 ## 2026-08-14 20:25:13 UTC api.box.com (ling3)
 ## 2026-08-14 20:52:35 UTC api.box.com (ling3)
+## 2026-08-14 21:12:03 UTC api.box.com (ling3)
