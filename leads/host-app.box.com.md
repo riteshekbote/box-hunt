@@ -130,3 +130,16 @@ testability: PASSIVE
 ## 2026-08-14 17:27:12 UTC app.box.com (ling3)
 ## 2026-08-14 18:14:57 UTC app.box.com (ling3)
 ## 2026-08-14 19:15:23 UTC app.box.com (bigpickle)
+## 2026-08-14 19:57:22 UTC app.box.com (bigpickle)
+[NEW] app.box.com: executor output this cycle covered only cloud.app.box.com/upload (13 static-path probes, all 206/404) — none of the app-origin probes queued last cycle (users/me, SPA-fallback, api/2.0 preflight) were executed or recorded. App-origin surface still unprobed; rotating to fresh app-origin targets so POC keeps moving without exact no-op repeats.
+[HYP] Unauthenticated API-gate differential on app origin (search handler family)
+class: MISCONFIG
+asset: app.box.com/api/2.0/search
+confidence: 40
+reasoning: api.box.com returns a uniform 401 Bearer edge (realm="Service") on /2.0/ paths; /search and /oauth2 routes on app.box.com hit different handler families and can expose a per-route auth divergence, SPA fallback, or stray 2xx that api.box.com does not. No app-origin HTTP facts exist in context yet.
+verify_steps: GET https://app.box.com/api/2.0/search?query=zz ; GET https://app.box.com/oauth2/authorize (UA box-research/1.0) → record status, WWW-Authenticate, Content-Type, body prefix
+impact: auth-schema or 2xx-to-login divergence on the primary app origin (low)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/api/2.0/search?query=zz with UA box-research/1.0 — record status, WWW-Authenticate, Content-Type, first 200 chars of body (auth-gate differential vs api.box.com uniform 401).
+[NEXT] PROBE: GET https://app.box.com/oauth2/authorize with UA box-research/1.0 — record status, Location, Content-Type, body prefix (login-form vs 302 vs edge-404 decides auth-plane placement on app origin).
+[NEXT] PROBE: OPTIONS https://app.box.com/ with Origin: https://attacker.example + Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (root-edge preflight surface, distinct from last cycle's api/2.0 preflight).
