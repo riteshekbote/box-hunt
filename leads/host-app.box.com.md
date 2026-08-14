@@ -189,3 +189,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/trash with UA box-research/1.0 — record status, Location, Content-Type, body prefix (authenticated-app route as auth-gate fingerprint, distinct from login-plane paths already queued).
 ## 2026-08-14 23:17:47 UTC app.box.com (ling3)
 ## 2026-08-14 23:40:53 UTC app.box.com (ling3)
+## 2026-08-14 23:58:43 UTC app.box.com (ling3)
