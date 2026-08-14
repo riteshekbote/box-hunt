@@ -1,6 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/2.0/: Executor run at 2026-08-14 17:06:10 replayed the stale robots.txt set again (root 206, favicon 206, etc.); my api/2.0 differential probe (search/users/me/folders/1) was never executed. Re-emission below is a first execution, not a no-op — no identical probe has returned results.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/2.0/: Executor run 2026-08-14 19:53:29 replayed the stale robots.txt set a third time; my api/2.0 trio (search/users/me/folders/1) has never executed after 3 emissions — repeated emission is a confirmed no-op, so the differential cannot advance on that probe list.
 
-[NEXT] PROBE: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401s/404s informative, continue).
+[PARKED] cloud.app.box.com/api/2.0/ distinct-edge differential (search / users/me / folders/1): blocked on executor — probe never executed after 3 emissions (19:53 run was stale robots.txt again). Re-open only if a result for those paths appears.
+
+[HYP] cloud.app.box.com API edge path-scope: mounted at /api/ (version-agnostic) vs /api/2.0/ only
+class: MISCONFIG
+asset: cloud.app.box.com/api/
+confidence: 30
+reasoning: Manual dig 15:25: /api/2.0/files/1 -> 401 while unguessable paths -> 404 SPA (23KB), proving an auth-wrapped edge exists ahead of the SPA fallback. Bare-path status (/api/ and /api/2.0/) discriminates a version-scoped mount (401 on 2.0, 404 SPA on /api/) from a broad mount (401 on both). Never probed before.
+evidence_needed: status of /api/ and /api/2.0/ bare paths
+verify_steps: 2 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/ (2) https://cloud.app.box.com/api/2.0/ — record status + content-type verbatim; 401/404 informative, stop host on first 403/429.
+impact: Reveals the width of the alternate API edge; if /api/ broadly 401s, the edge extends beyond /2.0/, widening any future auth/hardening-differential surface. Low unless a status/body differential to api.box.com surfaces.
+testability: PASSIVE
+
+[NEXT] PROBE: 2 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/ (2) https://cloud.app.box.com/api/2.0/ — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401/404 informative, continue).
