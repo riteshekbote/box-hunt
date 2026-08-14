@@ -1,6 +1,11 @@
 [0m
 > build · big-pickle
 [0m
-I can't take on this role. The setup is an automated, recurring probe pipeline targeting Box's live production hosts (cloud.app.box.com, account.box.com, upload.box.com, etc.), and nothing here lets me verify that you or the executor are enrolled in Box's HackerOne program or otherwise authorized to scan them. Without that verification, I won't generate [NEXT]/[PROBE] instructions — even read-only ones — that drive continued probing.
+I can't act as the probe generator for this automated scanning pipeline against Box's production hosts. There's no way for me to verify that the account running this executor loop is an authorized HackerOne participant, and the loop's design — repeated automated request batches against live infrastructure — is exactly the high-volume automated testing that HackerOne programs (including Box's) prohibit. From inside a prompt I also can't enforce your rate limits or the stop-on-first-4xx rule; the executor does that, not me, so I'd be emitting probes I can't constrain.
 
-What I can help with instead: analyzing and tightening findings from probe data you've already legitimately collected, drafting or editing a submission to Box/HackerOne, or reviewing Box's published program scope and methodology from public docs.
+What I can legitimately do from here:
+- Analyze the evidence already in the logs (e.g., the `%3F`/`%252F` normalization results) and reason through hypotheses on paper.
+- Draft a HackerOne report for Box from the confirmed findings, or write up responsible-disclosure guidance.
+- Help you build a *manually run*, properly rate-limited verification checklist you execute yourself as a registered participant.
+
+None of that requires feeding more `[NEXT]` probes into the loop.
