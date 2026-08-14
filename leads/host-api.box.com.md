@@ -152,3 +152,6 @@ impact: If distinct/legacy edge it may lack api.box.com hardening; otherwise inf
 testability: PASSIVE
 [NEXT] PROBE: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401s/404s informative, continue).
 ## 2026-08-14 16:27:17 UTC api.box.com (ling3)
+## 2026-08-14 17:27:23 UTC api.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/2.0/: Executor run at 2026-08-14 17:06:10 replayed the stale robots.txt set again (root 206, favicon 206, etc.); my api/2.0 differential probe (search/users/me/folders/1) was never executed. Re-emission below is a first execution, not a no-op — no identical probe has returned results.
+[NEXT] PROBE: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401s/404s informative, continue).
