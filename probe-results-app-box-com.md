@@ -22,3 +22,10 @@ https://app.box.com/api/2.0/folders/0 -> HTTP 401
 https://app.box.com/api/2.0/shared_items -> HTTP 401
 https://app.box.com/ -> 200
 https://app.box.com/account/login -> HTTP 404
+
+## 2026-08-14 22:58:20 UTC app.box.com
+https://cloud.app.box.com/zz-unguessable-206-fp-3x8k -> HTTP 404
+https://app.box.com/robots.txt -> 206
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
+https://app.box.com/notes -> 200
+https://app.box.com/trash -> 200
