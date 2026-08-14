@@ -123,3 +123,4 @@ testability: PASSIVE
 [PARKED] Authenticated download behavior on dl.boxcloud.com (Range/206 streaming, signed-URL validation, file-version tokens): all sit behind the 401 Bearer gate; requires a token → AUTH_HELPED, not probeable in this read-only pipeline without a new rule.
 ## 2026-08-14 12:33:01 UTC dl.boxcloud.com (ling3)
 ## 2026-08-14 13:56:47 UTC dl.boxcloud.com (ling3)
+## 2026-08-14 14:45:48 UTC dl.boxcloud.com (ling3)
