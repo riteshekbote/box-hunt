@@ -140,3 +140,4 @@ testability: PASSIVE
 [NEXT] PROBE: (1) GET https://cloud.app.box.com/7xv4m9qk2 (plain, no headers) — 206 => whole-origin default handler, 404 => whitelist-routed. (2) GET https://cloud.app.box.com/.well-known/security.txt — non-pinned real path test. (3) GET https://cloud.app.box.com/7xv4m9qk2/?probe=1 — query-normalization on a random key. UA box-research/1.0, 2s spacing, no redirect follow.
 ## 2026-08-14 19:57:05 UTC notes.services.box.com (ling3)
 ## 2026-08-14 20:25:13 UTC notes.services.box.com (ling3)
+## 2026-08-14 20:52:35 UTC notes.services.box.com (ling3)
