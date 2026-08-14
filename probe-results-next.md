@@ -518,3 +518,12 @@ https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+
+## 2026-08-14 14:45 UTC (manual, opencode)
+CORS hypothesis probes (from leads RANKED 09:17:01):
+- OPTIONS https://cloud.app.box.com/favicon.ico (Origin: https://evil.example, ACRM: GET, ACRH: authorization,range,x-requested-with) -> 405, NO Access-Control-* headers -> preflight rejected
+- GET https://cloud.app.box.com/favicon.ico (Origin: https://evil.example, Range: bytes=0-99) -> 206 (Range layer confirmed), NO Access-Control-Allow-Origin/Expose/Vary -> no ACAO reflection on asset
+- GET https://cloud.app.box.com/ (Origin: https://evil.example) -> 302, no Access-Control-* headers
+- OPTIONS https://dl.boxcloud.com/ (Origin: https://evil.example, ACRM: GET) -> 404, no Access-Control-* headers
+- GET https://dl.boxcloud.com/ (Origin: https://evil.example) -> 404, no Access-Control-* headers
+RESULT: CORS misconfiguration hypothesis DISPROVEN on all tested vectors (no ACAO/ACAH reflection anywhere; 405 on asset preflight). Downgrade/close the 3 [45] CORS hypotheses. Remaining open: 206/Range routing-flip fingerprint (informational), object-store default-handler characterization.
