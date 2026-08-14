@@ -145,3 +145,17 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://app.box.com/ with Origin: https://attacker.example + Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (root-edge preflight surface, distinct from last cycle's api/2.0 preflight).
 ## 2026-08-14 20:25:16 UTC app.box.com (ling3)
 ## 2026-08-14 20:52:36 UTC app.box.com (ling3)
+## 2026-08-14 21:12:13 UTC app.box.com (bigpickle)
+[NEW] app.box.com: Executor output this cycle again covered only cloud.app.box.com/upload static paths (206/404) — app-origin queue from prior cycles (users/me, SPA-fallback, preflights) remains unexecuted. App-origin surface still has zero recorded HTTP facts; rotating to fresh, never-queued app-origin targets to keep POC advancing without no-op repeats.
+[HYP] Unauthenticated API-gate differential on app origin (folders/shared_items handler families)
+class: MISCONFIG
+asset: app.box.com/api/2.0/
+confidence: 40
+reasoning: api.box.com shows a uniform 401 Bearer edge (realm="Service") on /2.0/ paths; app.box.com is a distinct origin mounting the same API. /folders/0 and /shared_items exercise handler families never probed on either origin and can reveal a per-route auth divergence, SPA fallback, or stray 2xx.
+verify_steps: GET https://app.box.com/api/2.0/folders/0 ; GET https://app.box.com/api/2.0/shared_items (UA box-research/1.0) → record status, WWW-Authenticate, Content-Type, body prefix
+impact: auth-schema or 2xx-to-login divergence on the primary app origin (low)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/api/2.0/folders/0 with UA box-research/1.0 — record status, WWW-Authenticate, Content-Type, first 200 chars of body.
+[NEXT] PROBE: GET https://app.box.com/api/2.0/shared_items with UA box-research/1.0 — record status, WWW-Authenticate, Content-Type, body prefix.
+[NEXT] PROBE: HEAD https://app.box.com/ with UA box-research/1.0 — record status, Server, Content-Type, Set-Cookie presence (HEAD surface differs from prior queued GET root probe).
+[NEXT] PROBE: GET https://app.box.com/account/login with UA box-research/1.0 — record status, Location, Content-Type, body prefix (auth-plane path placement on app origin; distinct from /oauth2/authorize queued earlier).

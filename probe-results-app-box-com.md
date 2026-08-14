@@ -16,3 +16,9 @@ https://app.box.com/apple-touch-icon.png -> HTTP 404
 https://app.box.com/api/2.0/search?query=zz -> HTTP 401
 https://app.box.com/oauth2/authorize -> HTTP 404
 https://app.box.com/ -> 200
+
+## 2026-08-14 21:12:22 UTC app.box.com
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
+https://app.box.com/api/2.0/shared_items -> HTTP 401
+https://app.box.com/ -> 200
+https://app.box.com/account/login -> HTTP 404
