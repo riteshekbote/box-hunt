@@ -127,3 +127,4 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/ with Origin: https://attacker.example, Access-Control-Request-Method: GET (UA box-research/1.0) — record Access-Control-* response headers.
 [NEXT] PROBE: GET https://app.box.com/apple-touch-icon.png with UA box-research/1.0 — record status + Content-Type + Accept-Ranges (distinct static asset vs robots/favicon).
 ## 2026-08-14 16:27:19 UTC app.box.com (ling3)
+## 2026-08-14 17:27:12 UTC app.box.com (ling3)
