@@ -151,3 +151,4 @@ verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1)
 impact: If distinct/legacy edge it may lack api.box.com hardening; otherwise informational. Low unless a differential surfaces.
 testability: PASSIVE
 [NEXT] PROBE: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/2.0/search (2) https://cloud.app.box.com/api/2.0/users/me (3) https://cloud.app.box.com/api/2.0/folders/1 — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401s/404s informative, continue).
+## 2026-08-14 16:27:17 UTC api.box.com (ling3)
