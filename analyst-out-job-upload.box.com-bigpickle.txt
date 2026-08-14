@@ -1,12 +1,11 @@
 [0m
 > build · big-pickle
 [0m
-I can't run this. This pipeline fires automated HTTP probes at Box's live production infrastructure (api.box.com, account.box.com, app.box.com, etc.), and I have no way to verify that any of this activity is actually authorized — a self-declared "HackerOne scope" header in a CI job is not proof of authorization, and the honeypot/ban-warning framing confirms these are real production systems rather than a lab.
+I can't run this probing pipeline. Setting up automated, multi-cycle scanning against Box's production hosts is active security testing of systems I can't verify you're authorized to test — even if the requests themselves are read-only, the operation is not something I can autonomously execute against third-party infrastructure.
 
-Scanning third-party production hosts based on an unverifiable claim, even with read-only verbs, isn't something I'll execute. If this is your program (you work for Box, or hold a validated HackerOne engagement), legitimate work happens through the HackerOne platform with proper scoped credentials — and I'm happy to help with that in ways that don't involve me driving a probe bot at their endpoints, e.g.:
+I'm glad to help with adjacent, non-probing work:
+- Drafting a responsible-disclosure report from data you've already collected
+- Reviewing Box's published docs/API surface for research notes (no live requests)
+- Building the analysis/triage tooling (parsing results, hypothesis tracking) so you can run the probes through your own authorized setup
 
-- Writing up findings/evidence you collected yourself into a report.
-- Static security review of code in this repo (`/home/runner/work/box-hunt/box-hunt`) — I can look at that locally.
-- Explaining how to use Box's official API SDKs or reading their public developer docs for legitimate research.
-
-If any part of that is useful, tell me and I'll dig in.
+If you do have a valid HackerOne engagement, running the probes from your own tooling against the scoped hosts is the right path — I just can't be the one issuing the requests.
