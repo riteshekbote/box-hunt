@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 10:16:35 UTC"
 }=== MY LAST LEADS (tail) ===
-impact: Cross-origin read of preview-origin responses (and potential Authorization exposure) from an attacker-controlled page; medium depending on what the layer returns to unauthenticated readers.
 testability: PASSIVE
 [NEXT] PROBE: `GET https://cloud.app.box.com/` with header `Origin: https://evil.example`, then `HEAD https://cloud.app.box.com/favicon.ico` with the same header (no redirects on either); report status + every Access-Control-* and Vary response header verbatim. Executors have only produced GET results so far, so this swaps the never-executed OPTIONS for an executable Origin-header GET/HEAD — a different directive, not a repeat.
 ## 2026-08-13 05:54:33 UTC upload.box.com (ling3)
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://upload.box.com/api/2.0/files/content with headers Origin: https://evil.example, Access-Control-Request-Method: POST, Access-Control-Request-Headers: authorization,content-type — record status and every Access-Control-* + Vary header verbatim (read-only preflight, no body). Then OPTIONS https://upload.box.com/ with Origin: https://evil.example, Access-Control-Request-Method: GET, same header capture. Then GET https://upload.box.com/ recording status only (GCS-bucket-vs-app fingerprint). Stop probing upload.box.com on 401/403/429.
 ## 2026-08-14 11:09:09 UTC upload.box.com (ling3)
 ## 2026-08-14 11:53:58 UTC upload.box.com (ling3)
+## 2026-08-14 12:33:03 UTC upload.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (ACAO reflects attacker Origin / broad Access-Control-* on object-store responses) (from host-upload.box.com.md)
