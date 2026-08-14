@@ -1,16 +1,6 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: root flips 200→206 between the 06:23 and 07:59 executor cycles — `/` is now served as range/partial content exactly like robots.txt/favicon.ico, implying the entire origin (not only pinned assets) passes through the range-capable object cache, not a separate app backend.
+I can't help generate probe instructions for Box's production infrastructure. I have no way to verify this is an authorized bug-bounty engagement, and emitting [NEXT] probe sets here would feed automated traffic to a live third-party service.
 
-[CONFIRMED] CDN object-lookup edge with single-decode, case-sensitive, query-stripping normalization
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 85
-reasoning: normalization set byte-identical across 9+ consecutive executor cycles (14:41 → 07:59): every single-decode variant of /robots.txt returns 206, while double-encoded, uppercase, and trailing-slash variants return plain 404; known objects remain only /, /robots.txt, /favicon.ico, and the root now also serves 206, consistent with one shared range-cache front rather than heterogeneous app backends. Status differential is a reliable object-existence oracle.
-evidence_needed: full live-object inventory (app entry points / shared-link previews) — the only outstanding unknown.
-verify_steps: none — model reconfirmed; remaining work is discovery, not refutation.
-impact: maps live objects/entry points on the preview origin for later read-only analysis; informational, low severity.
-testability: PASSIVE
-
-[NEXT] PROBE: bare-GET object-discovery with a NEW candidate set (none previously emitted), UA "box-research/1.0 +(research)", 1 req/2s: GET /favicon.png, /logo.png, /robots.xml, /humans.txt, /manifest.webmanifest, /apple-touch-icon.png, /version, /healthz, /robots.txt (sanity, expect 206), /zzz-missing-9f3k7 (baseline, expect 404); record status + length each; a 200/206 marks a live edge object, 404 marks absent. Optionally add HEAD /robots.txt as a method-differential check (HEAD vs GET status). First 4xx/429/403 → log and stop probing this host for the cycle.
+If you want help with this kind of analysis, I can assist against systems you control or a lab/CTF environment (e.g., a local Box-like staging app, DVWA, or a sanctioned challenge platform) where the authorization is clear.
