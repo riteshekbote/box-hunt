@@ -1,20 +1,29 @@
-[NEW] app.box.com: no active hypotheses for this origin; opening unauthenticated API-gate + SPA-static fingerprint surface for POC.
-[HYP] Unauthenticated API gate differential on app origin
+[NEW] app.box.com: prior-cycle app-origin probes (api/2.0/files/1, robots.txt, favicon.ico) have no results in context yet — executor output covered cloud.app.box.com/upload only; rotating to distinct app-origin targets to keep POC advancing without no-op repeats.
+[HYP] Unauthenticated API-gate differential on app origin (endpoint sweep)
 class: MISCONFIG
 asset: app.box.com/api/2.0/
 confidence: 35
-reasoning: api.box.com returns a uniform 401 Bearer edge (realm="Service", invalid_token) on all /2.0/ paths; app.box.com mounts its own edge and may serve a differing auth gate, SPA fallback, or stray 2xx on files/folders paths. No differentials recorded for app origin yet.
-verify_steps: GET https://app.box.com/api/2.0/files/1 (UA box-research/1.0) → record status/body; GET https://app.box.com/api/2.0/nonexistent-random-path → record status
-impact: informational if identical to api.box.com; potential auth-schema leak or 2xx-to-login divergence if different (low)
+reasoning: api.box.com returns a uniform 401 Bearer edge (realm="Service") on all /2.0/ paths; /api/2.0/files/1 queued on app origin last cycle is still pending. /users/me exercises a different handler family and can reveal per-route auth divergence on the app gate.
+verify_steps: GET https://app.box.com/api/2.0/users/me (UA box-research/1.0) → record status, WWW-Authenticate, body
+impact: auth-schema or 2xx-to-login divergence on app origin (low)
 testability: PASSIVE
-[HYP] SPA origin static/range fingerprint vs cloud.app.box.com
+[HYP] SPA-fallback fingerprint on app origin vs cloud object-store layer
 class: MISCONFIG
 asset: app.box.com/
-confidence: 30
-reasoning: cloud.app.box.com returns 206 on pinned assets (robots.txt, favicon.ico) via a Range layer; app.box.com is a distinct origin serving the primary SPA and may exhibit different static handling or header surface. Range-layer presence/absence here distinguishes origin architecture.
-verify_steps: GET https://app.box.com/robots.txt; GET https://app.box.com/favicon.ico; GET https://app.box.com/ (UA box-research/1.0) → record status, Content-Type, Server, Accept-Ranges
-impact: none alone; origin fingerprint for subsequent targeted probes (low)
+confidence: 40
+reasoning: executor shows cloud.app.box.com serves 206/404 for static + path variants (no SPA fallback); app.box.com is the primary SPA origin. An unguessable path decides between 200 index.html (SPA fallback), 302-to-login, or 404 — pinning auth-gate placement and delivery layer.
+verify_steps: GET https://app.box.com/zz-unguessable-fp-7q2m9x (UA box-research/1.0) → record status, Content-Type, Location, Server
+impact: static-shell/auth behavior map; info only (low)
 testability: PASSIVE
-[NEXT] PROBE: GET https://app.box.com/api/2.0/files/1 with UA box-research/1.0 — record status + body + Server/Content-Type (compare to api.box.com uniform 401).
-[NEXT] PROBE: GET https://app.box.com/robots.txt with UA box-research/1.0 — record status + headers (compare vs cloud.app.box.com 206 range layer).
-[NEXT] PROBE: GET https://app.box.com/favicon.ico with UA box-research/1.0 — record status + Accept-Ranges/Content-Type (distinguish range-layer vs normal static).
+[HYP] CORS surface on app.box.com API/SPA edge
+class: MISCONFIG
+asset: app.box.com/api/2.0/
+confidence: 35
+reasoning: sibling cloud.app.box.com origin carries ranked CORS-reflection hypotheses (conf 40-45 in context); app.box.com is a distinct origin mounting API + SPA and should be checked for ACAO reflection / broad Access-Control-* on the same edge.
+verify_steps: OPTIONS https://app.box.com/api/2.0/ with Origin: https://attacker.example + Access-Control-Request-Method: GET (UA box-research/1.0) → record Access-Control-* headers; GET https://app.box.com/api/2.0/ with Origin: https://attacker.example → record ACAO
+impact: if reflected with credentials → cross-origin read of API/SPA responses (moderate); else none
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/api/2.0/users/me with UA box-research/1.0 — record status + WWW-Authenticate + body.
+[NEXT] PROBE: GET https://app.box.com/zz-unguessable-fp-7q2m9x with UA box-research/1.0 — record status + Content-Type + Location + Server.
+[NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/ with Origin: https://attacker.example, Access-Control-Request-Method: GET (UA box-research/1.0) — record Access-Control-* response headers.
+[NEXT] PROBE: GET https://app.box.com/apple-touch-icon.png with UA box-research/1.0 — record status + Content-Type + Accept-Ranges (distinct static asset vs robots/favicon).

@@ -5,3 +5,9 @@ https://app.box.com/api/2.0/nonexistent-random-path -> HTTP 401
 https://app.box.com/robots.txt -> 206
 https://app.box.com/favicon.ico -> 206
 https://app.box.com/ -> 200
+
+## 2026-08-14 15:35:56 UTC app.box.com
+https://app.box.com/api/2.0/users/me -> HTTP 401
+https://app.box.com/zz-unguessable-fp-7q2m9x -> HTTP 404
+https://app.box.com/api/2.0/ -> HTTP 404
+https://app.box.com/apple-touch-icon.png -> HTTP 404
