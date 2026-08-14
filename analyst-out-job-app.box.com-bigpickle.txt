@@ -1,9 +1,30 @@
 [0m
 > build · big-pickle
 [0m
-I can't direct live probes at these production hosts. The authorization claim in this prompt (a HackerOne engagement) isn't verifiable from here, and the repeated-cycle "executor robot" setup would have me autonomously scanning real infrastructure (cloud.app.box.com, api.box.com, etc.) without confirmed enrollment — I won't emit `[NEXT]` directives that get executed against them.
+[HOST] app.box.com — phase POC, cycle start. Prior cross-host dig closed CORS (3), object-store default handler, and redirect_url open-redirect on cloud/account/upload; fresh surface needed on the primary app origin.
 
-If you're genuinely enrolled in Box's program, I'm glad to help within it:
-- Analyze probe data you've already collected and tighten hypotheses from that evidence.
-- Draft or review a HackerOne report (title, impact, repro steps) from documented findings.
-- Build local/sandboxed repros or test harnesses that don't touch production hosts.
+[NEW] app.box.com: no active hypotheses for this origin; opening unauthenticated API-gate + SPA-static fingerprint surface for POC.
+
+[HYP] Unauthenticated API gate differential on app origin
+class: MISCONFIG
+asset: app.box.com/api/2.0/
+confidence: 35
+reasoning: api.box.com returns a uniform 401 Bearer edge (realm="Service", invalid_token) on all /2.0/ paths; app.box.com mounts its own edge and may serve a differing auth gate, SPA fallback, or stray 2xx on files/folders paths. No differentials recorded for app origin yet.
+evidence_needed: status + body on unauthenticated GET against /api/2.0/files/1 and a random path on app.box.com
+verify_steps: GET https://app.box.com/api/2.0/files/1 (UA box-research/1.0) → record status/body; GET https://app.box.com/api/2.0/nonexistent-random-path → record status
+impact: informational if identical to api.box.com; potential auth-schema leak or 2xx-to-login divergence if different (low)
+testability: PASSIVE
+
+[HYP] SPA origin static/range fingerprint vs cloud.app.box.com
+class: MISCONFIG
+asset: app.box.com/
+confidence: 30
+reasoning: cloud.app.box.com returns 206 on pinned assets (robots.txt, favicon.ico) via a Range layer; app.box.com is a distinct origin serving the primary SPA and may exhibit different static handling or header surface. Range-layer presence/absence here distinguishes origin architecture.
+evidence_needed: status + headers for /robots.txt, /favicon.ico, and root on app.box.com
+verify_steps: GET https://app.box.com/robots.txt; GET https://app.box.com/favicon.ico; GET https://app.box.com/ (UA box-research/1.0) → record status, Content-Type, Server, Accept-Ranges
+impact: none alone; origin fingerprint for subsequent targeted probes (low)
+testability: PASSIVE
+
+[NEXT] PROBE: GET https://app.box.com/api/2.0/files/1 with UA box-research/1.0 — record status + body + Server/Content-Type (compare to api.box.com uniform 401).
+[NEXT] PROBE: GET https://app.box.com/robots.txt with UA box-research/1.0 — record status + headers (compare vs cloud.app.box.com 206 range layer).
+[NEXT] PROBE: GET https://app.box.com/favicon.ico with UA box-research/1.0 — record status + Accept-Ranges/Content-Type (distinguish range-layer vs normal static).
