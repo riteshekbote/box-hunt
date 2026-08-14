@@ -107,3 +107,17 @@ testability: PASSIVE
 ## 2026-08-14 09:11:02 UTC dl.boxcloud.com (ling3)
 ## 2026-08-14 10:15:33 UTC dl.boxcloud.com (ling3)
 ## 2026-08-14 11:09:11 UTC dl.boxcloud.com (ling3)
+## 2026-08-14 11:54:43 UTC dl.boxcloud.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/: edge-routing fingerprint confirmed — origin root and junk paths → 404 (no origin-level CORS/static layer), `/api/2.0/files/1/content` → 401 (Bearer download edge is the only mounted handler), `/folders/shared/static/static/1-content` → 404. Matches the file-CDN role; prior root preflight (OPTIONS / with attacker Origin → 404, no Access-Control-*) proved the root has no CORS layer, but the content handler is a distinct, never-preflighted code path.
+[LEARN] ACCEPTED AUTH @ dl.boxcloud.com/api/2.0/files/1/content: file content is gated by 401 Bearer before any Range/version/signed-URL logic runs; all real download behavior is AUTH_HELPED and not reachable with read-only anonymous requests.
+[HYP] Download-edge CORS on dl.boxcloud.com API content handler
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/1/content
+confidence: 20
+reasoning: Only the root (→404) was ever preflighted on dl.boxcloud.com; the 401 content handler is a distinct code path and the only high-value one on the CDN — if it mounts a permissive or reflected Access-Control-* policy, an attacker page could read a victim's authenticated file downloads/tokens from the CDN origin. No OPTIONS has ever reached this handler.
+verify_steps: OPTIONS https://dl.boxcloud.com/api/2.0/files/1/content with Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range; then GET the same path with Origin: https://evil.example and Range: bytes=0-99; capture status line, WWW-Authenticate realm, all Access-Control-* and Vary headers.
+impact: Cross-origin read of download responses / token exposure on the file CDN if ACAO reflects attacker origin or ACAH allows Authorization — high severity.
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://dl.boxcloud.com/api/2.0/files/1/content with headers Origin: https://evil.example, Access-Control-Request-Method: GET, Access-Control-Request-Headers: authorization,range; UA box-research/1.0; record status line + ALL Access-Control-* + Vary + WWW-Authenticate headers — first preflight to actually hit the download edge (prior root OPTIONS 404'd at a different handler; cloud.app.box.com CORS tests already closed).
+[NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/1/content with headers Origin: https://evil.example and Range: bytes=0-99; UA box-research/1.0; record status line (expect 401), WWW-Authenticate realm, any Access-Control-* / Vary — characterizes the Bearer gate and checks for pre-auth Range/header leakage on the content handler.
+[PARKED] Authenticated download behavior on dl.boxcloud.com (Range/206 streaming, signed-URL validation, file-version tokens): all sit behind the 401 Bearer gate; requires a token → AUTH_HELPED, not probeable in this read-only pipeline without a new rule.
