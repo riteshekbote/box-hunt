@@ -156,3 +156,4 @@ testability: PASSIVE
 [NEXT] PROBE: bare-GET object-discovery with a NEW candidate set (none previously emitted), UA "box-research/1.0 +(research)", 1 req/2s: GET /favicon.png, /logo.png, /robots.xml, /humans.txt, /manifest.webmanifest, /apple-touch-icon.png, /version, /healthz, /robots.txt (sanity, expect 206), /zzz-missing-9f3k7 (baseline, expect 404); record status + length each; a 200/206 marks a live edge object, 404 marks absent. Optionally add HEAD /robots.txt as a method-differential check (HEAD vs GET status). First 4xx/429/403 → log and stop probing this host for the cycle.
 ## 2026-08-14 10:15:33 UTC m.box.com (ling3)
 ## 2026-08-14 11:09:10 UTC m.box.com (ling3)
+## 2026-08-14 11:53:59 UTC m.box.com (ling3)
