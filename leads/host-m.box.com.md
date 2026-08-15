@@ -241,3 +241,24 @@ testability: PASSIVE
 ## 2026-08-15 17:34:37 UTC m.box.com (ling3)
 ## 2026-08-15 17:51:58 UTC m.box.com (ling3)
 ## 2026-08-15 18:00:36 UTC m.box.com (ling3)
+## 2026-08-15 18:35:37 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: executor served the byte-identical 13-line normalization set for the 4th consecutive labeled cycle (16:56/17:31/17:53 + unlabeled), root flipped back to 200; both discovery emissions (04:15 10-req, 07:39 6-req) still unexecuted — surface remains unexplored, not refuted.
+[HYP] Object-store default handler vs whitelist-routed (fresh nonce, 3rd emission)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: root intermittently 206 proves the range layer fronts the origin root; every pinned-object decoration normalizes to 206 except double-encoded and trailing-slash forms (404), and no arbitrary unguessable key has ever been probed — the default-handler question is unrefuted.
+verify_steps: bare GET /zzz-nonexistent-2f7a9, UA box-research, 1 req/2s.
+impact: if 206 on arbitrary paths, object-store default handler enables existence-oracle across the full key space; informational/low absent auth data.
+testability: PASSIVE
+[HYP] Object-store normalizer case-sensitivity: /ROBOTS.TXT and /Robots.txt vs /robots.txt
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: normalization map claimed case-sensitive in prior cycles but uppercase/mixed-case keys were never probed; %72obots.txt and robots%2Etxt both 206 confirm single-decode normalization only.
+verify_steps: bare GET /ROBOTS.TXT then /Robots.txt, UA box-research, 1 req/2s.
+impact: tightens the object-key model for future discovery sweeps; informational.
+testability: PASSIVE
+[PARKED] CORS misconfig on cloud.app.box.com preview origin (3 related, conf 45): discriminator requires an attacker-Origin OPTIONS preflight / custom-header GET, but the executor only emits bare URLs — parked until a header-capable executor mode is authorized.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization map byte-identical across 4 consecutive labeled cycles; single-decode + query-strip reconfirmed (%72obots.txt, robots%2Etxt=206 vs %252F, robots%252Etxt=404); case-sensitivity remains the unverified branch of the model.
+[NEXT] PROBE: bare-GET 8-request sweep (distinct from every prior emission), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /ROBOTS.TXT (case test), 2) GET /Robots.txt (mixed-case test), 3) GET /zzz-nonexistent-2f7a9 (fresh random nonce — default-handler discriminator), 4) HEAD /favicon.ico (method differential vs GET 206), 5) GET /index.html (object-store default document), 6) GET /favicon.ico (sanity, expect 206), 7) GET /robots.txt (sanity, expect 206), 8) GET / (root status 200/206 flip). Record status + length each; 200/206 = live edge object, 404 = absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
