@@ -229,3 +229,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/favicon.ico with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 chars of body (206 = shared object-store edge with cloud origin; 200/302 = distinct app web layer).
 [NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/users/me with Origin: https://attacker.example and Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (preflight before the bearer gate on the token-validity handler).
 [NEXT] PROBE: GET https://app.box.com/all with UA box-research/1.0 — record status, Location, Content-Type, first 200 chars of body (authenticated-app route as auth-gate fingerprint; never queued before).
+## 2026-08-15 04:48:55 UTC app.box.com (bigpickle)
