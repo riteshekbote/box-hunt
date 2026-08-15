@@ -265,3 +265,18 @@ testability: PASSIVE
 ## 2026-08-15 22:58:24 UTC cloud.app.box.com (ling3)
 ## 2026-08-15 23:18:35 UTC cloud.app.box.com (ling3)
 ## 2026-08-15 23:37:59 UTC cloud.app.box.com (ling3)
+## 2026-08-15 23:53:43 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com/: Executor repeated the identical 15-probe batch across three consecutive cycles; the 22:43 CORS/nonce/uppercase [NEXT] queue was never executed — evidence gap persists on CORS posture, routing catch-all, and key case semantics.
+[NEW] cloud.app.box.com/: Root returns 200 while all non-root normalized paths return 206 — inconsistent with a pure default handler; suggests the 200 layer (app index) is distinct from the 206 object-store layer, or root maps to a real object of full length.
+[HYP] CORS misconfiguration on cloud.app.box.com 206 object-store layer (attacker Origin reflected with credentials)
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 45
+reasoning: Unauthenticated 206-on-any-normalized-path is the classic signature of a public GCS-bucket front, which frequently ships permissive `Access-Control-Allow-Origin` reflection. No CORS probe has ever executed (executor repeats, not my queue). The 206 layer's response headers are also the highest-signal fingerprint of the backend, so header capture covers two hypotheses at once.
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt with `Range: bytes=0-0` + `Origin: https://attacker.example.com`; (2) OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET`. Report all Access-Control-*, Server, Vary, Content-Range, Content-Length, ETag, x-goog-*, x-cache, via headers.
+impact: If ACAC=true + reflected origin, a malicious page can read credentialed responses from this origin (embedded-content/token context) — Medium/High.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with headers `Range: bytes=0-0` and `Origin: https://attacker.example.com` — report ALL response headers (Server, Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Vary, Content-Range, Content-Length, ETag, Last-Modified, x-goog-*, x-cache, via, set-cookie). [NOT EXECUTED in last 3 cycles — priority]
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with headers `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-* and Allow headers. [NOT EXECUTED in last 3 cycles — priority]
+[NEXT] PROBE: GET https://cloud.app.box.com/8f4a2c9d1b6e3f20 with `Range: bytes=0-0` — report status + Content-Range + Content-Length; if 206, compare its Content-Length against robots.txt's to test real-object vs synthesized-default-body semantics.
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with `Range: bytes=0-0` — report status (206 = case-insensitive normalizer; 404 = case-sensitive object-store key).
