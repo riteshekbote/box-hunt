@@ -213,3 +213,4 @@ testability: PASSIVE
 [NEXT] PROBE: bare-GET 6-request discriminator set (distinct from all prior emissions), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /zzz-missing-9f3k7 (random unguessable path — 404 = whitelist-routed, 206 = default range-handler), 2) HEAD /robots.txt (method differential vs GET 206), 3) GET /robots.txt/robots.txt (nested-pinned path normalization), 4) GET /static/robots.txt (prefix routing), 5) GET /favicon.ico (sanity, expect 206), 6) GET /robots.txt (sanity, expect 206). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
 ## 2026-08-15 07:56:23 UTC m.box.com (ling3)
 ## 2026-08-15 08:18:47 UTC m.box.com (ling3)
+## 2026-08-15 08:48:37 UTC m.box.com (ling3)
