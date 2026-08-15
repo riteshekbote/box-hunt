@@ -234,3 +234,4 @@ impact: recon-grade responder fingerprint of the upload gateway; the first measu
 testability: PASSIVE
 [PARKED] upload.box.com Range/partial-content layer on root: `GET /` with Range returned no row — the executor does not fold upload-origin root paths into the battery; parked and re-targeted onto robots.txt (the path class the battery demonstrably executes).
 [NEXT] PROBE: GET https://upload.box.com/robots.txt, status only, UA `box-research/1.0 +(research)`, 1 req/2s. If a row returns, next cycle adds `Range: bytes=0-1023` to the same URL.
+## 2026-08-15 13:44:06 UTC upload.box.com (ling3)
