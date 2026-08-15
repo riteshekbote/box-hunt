@@ -205,3 +205,4 @@ impact: If arbitrary keys reach the Range layer, the object-store edge may serve
 testability: PASSIVE
 [NEXT] PROBE: 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)": (1) HEAD https://cloud.app.box.com/ (2) GET https://cloud.app.box.com/bh-u7xq2-kz48m with header `Range: bytes=0-0` (3) GET https://cloud.app.box.com/robots.txt with header `Range: bytes=0-0` — record status + content-type + Accept-Ranges/Content-Range verbatim into probe-results-next.md. Stop host on first 403/429 (404s informative, continue).
 ## 2026-08-15 07:56:23 UTC api.box.com (ling3)
+## 2026-08-15 08:18:46 UTC api.box.com (ling3)
