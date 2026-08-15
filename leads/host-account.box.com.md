@@ -384,3 +384,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/./robots.txt with UA "box-research/1.0 +(research)"; record status only — single-dot axis, never probed; 206 = `./` stripped and zero-length segments handled, 404 = single-dot not collapsed.
 ## 2026-08-15 17:13:36 UTC account.box.com (ling3)
 ## 2026-08-15 17:34:38 UTC account.box.com (ling3)
+## 2026-08-15 17:51:42 UTC account.box.com (ling3)
