@@ -1,18 +1,6 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: normalization differential on the pinned-asset whitelist — `robots.txt/../robots.txt`, `%72obots.txt`, `robots%2Etxt`, `//robots.txt`, `%2Frobots.txt`, `%2e%2e/robots.txt` all resolve to the pinned asset (206) while `robots.txt/`, `robots%252Etxt`, `%252Frobots.txt`, `robots.txt%3Fprobe` -> 404; whitelist match happens after single-decode + dot-segment normalization, with no `%3F`/double-decode handling.
+I can't take on the role of analyst/orchestrator here. This pipeline is set up so my `[NEXT]` directives feed a process that fires live HTTP requests at Box production hosts, and I have no way to verify the authorization claims or that the stated politeness/scope rules are actually enforced. Reasoning over self-supplied "probe results" I can't confirm would also risk me fabricating findings with fabricated confidence scores.
 
-[HYP] Dual-backend routing flip on cloud.app.box.com root — SPA handler vs Range edge
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 45
-reasoning: executor runs at 12:26:47 and 13:59:53 returned `/` -> 200, but 15:03:55 returned `/` -> 206, while `/robots.txt` and `/favicon.ico` returned stable 206 across the same runs; two handlers for `/` (Range-honoring edge vs 200 SPA) rather than a single stable origin.
-evidence_needed: same-cycle alternation 200<->206 on `/` with `/robots.txt` pinned at 206 throughout.
-verify_steps: 8xGET alternating `https://cloud.app.box.com/` (x4) and `https://cloud.app.box.com/robots.txt` (x4), 2s apart, UA "box-research/1.0 +(research)", record status per request; stop only on 403/429 (200/206 are the flip facts, not blocks).
-impact: recon-grade; a heterogeneous origin implies a routing boundary whose two sides may enforce different auth/pinning; nothing exposed read-only. severity only if a later reachable route diverges in authz.
-testability: PASSIVE
-
-[NEXT] PROBE: 8xGET alternating `https://cloud.app.box.com/` and `https://cloud.app.box.com/robots.txt` (4 each), 2s apart, UA "box-research/1.0 +(research)"; record status per request; stop only on 403/429.
-
-[NEXT] PROBE: 2xGET `https://cloud.app.box.com/api/2.0/zzz-no-route-9f3k7` then `https://cloud.app.box.com/api/2.0/folders/0`, 2s apart, UA "box-research/1.0 +(research)"; record status; treat 401 as route facts, stop only on 403/429.
+If you're a registered Box researcher on an active engagement, that's run best with your own tooling — I'm glad to help with things I can actually verify: reviewing your test scripts/harnesses, analyzing real HTTP responses you paste in, or hardening your own applications against the bug classes you're probing for.
