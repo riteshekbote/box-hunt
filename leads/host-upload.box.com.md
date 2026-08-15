@@ -264,3 +264,16 @@ testability: PASSIVE
 ## 2026-08-15 22:22:11 UTC upload.box.com (ling3)
 ## 2026-08-15 22:42:57 UTC upload.box.com (ling3)
 ## 2026-08-15 22:58:25 UTC upload.box.com (ling3)
+## 2026-08-15 23:19:15 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com/robots.txt -> HTTP 404 on the status channel: first NON-API row ever for this origin — the surface map expands from `{/api/2.0/files/content -> 404}` to include an answering origin on arbitrary GET paths. The earlier "silent edge" assumption is dead.
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com/robots.txt: the robots.txt probe resolved the responder-fingerprint hypothesis — the upload gateway DOES answer non-API GETs with 404 (not dropped on the status channel, not 403/302-to-login). Responder behavior is now measured: flat-404 origin, unlike the cloud.app 206/Range layer. What remains unmeasured is only route/method semantics, not answerability.
+[HYP] upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt`
+class: MISCONFIG
+asset: upload.box.com/robots.txt/
+confidence: 40
+reasoning: cloud.app proved its 206 layer is normalization-sensitive (`/robots.txt/ -> 404`, `%72obots.txt -> 206`). upload.box.com now answers robots.txt with 404; if it shares the app-edge/object-store family, the trailing-slash variant should show a distinct status (301/308 redirect or 404) vs bare. On a status-only channel, redirect-vs-flat is the only body-independent discriminator left.
+verify_steps: 1) GET https://upload.box.com/robots.txt/ (status only, UA box-research/1.0 +(research), 1 req/2s). 2) If a 3xx appears, note it and do not follow (rule 6). Stop on first 401/403/429.
+impact: recon-grade origin-family fingerprint (app-edge vs object-store front) guiding whether upload CORS/preflight analysis is worthwhile on this host.
+testability: PASSIVE
+[PARKED] upload.box.com Range/partial-content layer on root: root and OPTIONS paths still produce no rows on the status channel; the Range discriminator is only actionable on a path the battery demonstrably runs (now robots.txt), so it rides along on the trailing-slash probe next cycle if a 2xx/3xx surfaces.
+[NEXT] PROBE: GET https://upload.box.com/robots.txt/ (trailing slash), status only, UA `box-research/1.0 +(research)`, 1 req/2s. Compare against known bare-path 404. Stop on first 401/403/429.

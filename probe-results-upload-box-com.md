@@ -9,3 +9,6 @@ https://upload.box.com/robots.txt -> HTTP 404
 
 ## 2026-08-15 13:15:28 UTC upload.box.com
 https://upload.box.com/robots.txt -> HTTP 404
+
+## 2026-08-15 23:19:18 UTC upload.box.com
+https://upload.box.com/robots.txt/ -> HTTP 404

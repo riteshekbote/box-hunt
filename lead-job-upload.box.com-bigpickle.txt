@@ -1,12 +1,12 @@
-[NEW] upload.box.com: 12:55 executor battery re-ran only the fixed set; the Range/OPTIONS probes emitted at 12:37 produced no rows on the status channel. Observed surface remains exactly `{/api/2.0/files/content -> 404}` — origin root and every non-API path stay unmeasurable through this pipeline.
-[LEARN] REJECTED MISCONFIG @ upload.box.com/: `GET /` with `Range: bytes=0-1023` emitted no observable row, and the executor does not surface the upload origin's root/OPTIONS paths at all — the 206-vs-200/404 discrimination is not confirmable on the status-only channel. Closed.
-[HYP] upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key
+[NEW] upload.box.com/robots.txt -> HTTP 404 on the status channel: first NON-API row ever for this origin — the surface map expands from `{/api/2.0/files/content -> 404}` to include an answering origin on arbitrary GET paths. The earlier "silent edge" assumption is dead.
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com/robots.txt: the robots.txt probe resolved the responder-fingerprint hypothesis — the upload gateway DOES answer non-API GETs with 404 (not dropped on the status channel, not 403/302-to-login). Responder behavior is now measured: flat-404 origin, unlike the cloud.app 206/Range layer. What remains unmeasured is only route/method semantics, not answerability.
+[HYP] upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt`
 class: MISCONFIG
-asset: upload.box.com/robots.txt
-confidence: 35
-reasoning: The fixed battery proves `/api/2.0/files/content` 404s on all methods, but the sibling cloud.app origin serves robots.txt from a pinned key through a 206/Range layer, and the executor battery demonstrably runs robots.txt URLs (10 variants this cycle). The upload origin has never returned a row for any non-API path, so its responder/object-layer behavior is entirely unmeasured.
-verify_steps: 1) GET https://upload.box.com/robots.txt (status only). 2) If a row appears, re-fetch same URL with `Range: bytes=0-1023`. 3) HEAD https://upload.box.com/robots.txt. Stop on first 401/403/429.
-impact: recon-grade responder fingerprint of the upload gateway; the first measurable signal toward the upload CORS / object-store-fronting question on this origin.
+asset: upload.box.com/robots.txt/
+confidence: 40
+reasoning: cloud.app proved its 206 layer is normalization-sensitive (`/robots.txt/ -> 404`, `%72obots.txt -> 206`). upload.box.com now answers robots.txt with 404; if it shares the app-edge/object-store family, the trailing-slash variant should show a distinct status (301/308 redirect or 404) vs bare. On a status-only channel, redirect-vs-flat is the only body-independent discriminator left.
+verify_steps: 1) GET https://upload.box.com/robots.txt/ (status only, UA box-research/1.0 +(research), 1 req/2s). 2) If a 3xx appears, note it and do not follow (rule 6). Stop on first 401/403/429.
+impact: recon-grade origin-family fingerprint (app-edge vs object-store front) guiding whether upload CORS/preflight analysis is worthwhile on this host.
 testability: PASSIVE
-[PARKED] upload.box.com Range/partial-content layer on root: `GET /` with Range returned no row — the executor does not fold upload-origin root paths into the battery; parked and re-targeted onto robots.txt (the path class the battery demonstrably executes).
-[NEXT] PROBE: GET https://upload.box.com/robots.txt, status only, UA `box-research/1.0 +(research)`, 1 req/2s. If a row returns, next cycle adds `Range: bytes=0-1023` to the same URL.
+[PARKED] upload.box.com Range/partial-content layer on root: root and OPTIONS paths still produce no rows on the status channel; the Range discriminator is only actionable on a path the battery demonstrably runs (now robots.txt), so it rides along on the trailing-slash probe next cycle if a 2xx/3xx surfaces.
+[NEXT] PROBE: GET https://upload.box.com/robots.txt/ (trailing slash), status only, UA `box-research/1.0 +(research)`, 1 req/2s. Compare against known bare-path 404. Stop on first 401/403/429.
