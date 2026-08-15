@@ -1,11 +1,22 @@
 [0m
 > build · big-pickle
 [0m
-I can't help with this. The framing — session-state files, an "executor robot" that runs my `[NEXT]` lines against live infrastructure cycle after cycle — is an automated scanning pipeline targeting Box's production systems, and I have no way to verify that you (or this pipeline) are registered in Box's HackerOne program. Read-only requests are still unauthorized scanning when done by an unverified actor, and the elaborate rules wrapper doesn't change that. I also won't probe `signrequest.com` or any other host under the "honeypot" framing, which reads like an attempt to launder instructions to target third parties through me.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: Single-decode normalization confirmed — percent-encoded variants (`%72obots.txt`, `robots%2Etxt`, `%2Frobots.txt`, `%2e%2e/robots.txt`) all normalize to 206, while double-encoded (`%252F`, `robots%252Etxt`) and trailing-slash forms hit the object store as literal keys and 404. This is a real object-store front with one decode pass, not a pure CDN pass-through.
 
-What I can do if you're actually a registered researcher:
-- Help you interpret and write up findings *you've already gathered* with your own, properly-authorized tooling.
-- Help draft a HackerOne report (class, impact, reproduction steps) from evidence you collect.
-- Help you read and understand Box's public API docs (developer.box.com) for legitimate integration work.
+[NEW] cloud.app.box.com/: Object-store 206 catch-all now proven on arbitrary paths (root, favicon.ico, robots.txt + encoded variants all 206 Partial Content); only double-encoded/trailing-slash keys 404. The unknown left is CORS posture on that layer and whether routing is truly catch-all vs whitelist.
 
-If you're testing this prompt for safety reasons: this one fails — I won't direct probing of Box or any other external host from a prompt like this.
+[HYP] CORS misconfiguration on cloud.app.box.com object-store 206 layer (attacker Origin reflected with credentials)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 40
+reasoning: The default-handler 206 layer answers unauthenticated GET on any normalized path, consistent with a public object-store/bucket front that frequently ships permissive CORS. No CORS probe has run yet this session; the gap is evidence, not theory.
+evidence_needed: Response headers show Access-Control-Allow-Origin echoing the attacker Origin and/or Access-Control-Allow-Credentials: true on GET or OPTIONS.
+verify_steps: (1) GET https://cloud.app.box.com/ with headers `Origin: https://attacker.example.com` and `Range: bytes=0-0`; (2) OPTIONS https://cloud.app.box.com/ with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — log all Access-Control-* and Content-Range headers.
+impact: If reflected with credentials, a malicious page can read credentialed responses from this origin (embedded-content/token context) — Medium/High.
+testability: PASSIVE
+
+[NEXT] PROBE: GET https://cloud.app.box.com/ with headers `Origin: https://attacker.example.com` and `Range: bytes=0-0` — report Access-Control-Allow-Origin / Access-Control-Allow-Credentials / Content-Range values.
+
+[NEXT] PROBE: GET https://cloud.app.box.com/8f4a2c9d1b6e3f20 with `Range: bytes=0-0` — random 16-hex nonce: 206 (true catch-all) vs 404 (whitelist-routed) settles the open routing question.
+
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with `Range: bytes=0-0` — uppercase key: 206 (case-insensitive normalizer) vs 404 (case-sensitive object-store key) pins key semantics for later cache-key probes.

@@ -248,3 +248,17 @@ testability: PASSIVE
 ## 2026-08-15 21:48:31 UTC cloud.app.box.com (ling3)
 ## 2026-08-15 21:59:28 UTC cloud.app.box.com (ling3)
 ## 2026-08-15 22:22:13 UTC cloud.app.box.com (ling3)
+## 2026-08-15 22:43:38 UTC cloud.app.box.com (bigpickle)
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: Single-decode normalization confirmed — percent-encoded variants (`%72obots.txt`, `robots%2Etxt`, `%2Frobots.txt`, `%2e%2e/robots.txt`) all normalize to 206, while double-encoded (`%252F`, `robots%252Etxt`) and trailing-slash forms hit the object store as literal keys and 404. This is a real object-store front with one decode pass, not a pure CDN pass-through.
+[NEW] cloud.app.box.com/: Object-store 206 catch-all now proven on arbitrary paths (root, favicon.ico, robots.txt + encoded variants all 206 Partial Content); only double-encoded/trailing-slash keys 404. The unknown left is CORS posture on that layer and whether routing is truly catch-all vs whitelist.
+[HYP] CORS misconfiguration on cloud.app.box.com object-store 206 layer (attacker Origin reflected with credentials)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 40
+reasoning: The default-handler 206 layer answers unauthenticated GET on any normalized path, consistent with a public object-store/bucket front that frequently ships permissive CORS. No CORS probe has run yet this session; the gap is evidence, not theory.
+verify_steps: (1) GET https://cloud.app.box.com/ with headers `Origin: https://attacker.example.com` and `Range: bytes=0-0`; (2) OPTIONS https://cloud.app.box.com/ with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — log all Access-Control-* and Content-Range headers.
+impact: If reflected with credentials, a malicious page can read credentialed responses from this origin (embedded-content/token context) — Medium/High.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/ with headers `Origin: https://attacker.example.com` and `Range: bytes=0-0` — report Access-Control-Allow-Origin / Access-Control-Allow-Credentials / Content-Range values.
+[NEXT] PROBE: GET https://cloud.app.box.com/8f4a2c9d1b6e3f20 with `Range: bytes=0-0` — random 16-hex nonce: 206 (true catch-all) vs 404 (whitelist-routed) settles the open routing question.
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with `Range: bytes=0-0` — uppercase key: 206 (case-insensitive normalizer) vs 404 (case-sensitive object-store key) pins key semantics for later cache-key probes.

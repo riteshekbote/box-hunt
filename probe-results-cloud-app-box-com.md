@@ -32,3 +32,8 @@ https://cloud.app.box.com/` -> HTTP 404
 https://cloud.app.box.com/robots.txt` -> HTTP 404
 https://cloud.app.box.com/api/2.0/zzz-no-route-9f3k7` -> HTTP 401
 https://cloud.app.box.com/api/2.0/folders/0` -> HTTP 401
+
+## 2026-08-15 22:43:45 UTC cloud.app.box.com
+https://cloud.app.box.com/ -> 200
+https://cloud.app.box.com/8f4a2c9d1b6e3f20 -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
