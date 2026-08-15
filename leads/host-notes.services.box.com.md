@@ -206,3 +206,16 @@ testability: PASSIVE
 ## 2026-08-15 14:43:07 UTC notes.services.box.com (ling3)
 ## 2026-08-15 14:59:32 UTC notes.services.box.com (bigpickle)
 ## 2026-08-15 15:20:37 UTC notes.services.box.com (ling3)
+## 2026-08-15 15:40:31 UTC notes.services.box.com (bigpickle)
+[NEW] notes.services.box.com: fresh surface start — executor history contains zero probes for this host (all 14 fixed probes target cloud.app.box.com/upload.box.com); prior host-state "POC IN_PROGRESS" was tracking the now-exhausted cloud.app.box.com pinned-surface, not this host.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com: case-sensitivity and HEAD-matrix [NEXT] probes (ROBOTS.TXT, Favicon.ico, HEAD robots.txt) dropped again — 15:32 executor run is byte-identical to 14:55, so the fixed 14-probe list is not extensible by this pipeline; the 206/404 object-store surface is EXHAUSTED for status-only observability. No confirmed finding from this surface.
+[PARKED] Object-store default-handler vs whitelist-routed + normalizer case-sensitivity @ cloud.app.box.com: both discriminators require arbitrary-path or case-variant probes the executor does not execute; status-only logging on the pinned suite cannot resolve them. Confidence held (45/40) pending a probe-extensible pipeline.
+[HYP] notes.services.box.com: responder fingerprint + route surface baseline
+class: MISCONFIG
+asset: notes.services.box.com/
+confidence: 10
+reasoning: zero prior probe results for this host in executor history; Box Notes is a real-time collaboration backend, so the first cycle must establish responder identity (app vs object-store 206-front vs uniform-404 gateway) and the static/route suite before any grounded hypothesis can exist.
+verify_steps: GET https://notes.services.box.com/, GET https://notes.services.box.com/robots.txt, GET https://notes.services.box.com/favicon.ico, HEAD https://notes.services.box.com/ — UA box-research/1.0, 2s spacing, no redirect follow.
+impact: LOW (informational) — determines whether this host shares the 206 object-store front, a narrow-route gateway, or a distinct app backend; all later hypotheses depend on this baseline.
+testability: PASSIVE
+[NEXT] PROBE: (1) GET https://notes.services.box.com/ — responder fingerprint. (2) GET https://notes.services.box.com/robots.txt — static/key suite presence. (3) GET https://notes.services.box.com/favicon.ico — pinned-static signature. (4) HEAD https://notes.services.box.com/ — method matrix baseline. UA box-research/1.0, 2s spacing, no redirect follow.
