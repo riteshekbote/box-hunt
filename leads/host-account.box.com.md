@@ -311,3 +311,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/app.js with UA "box-research/1.0 +(research)"; record status only — re-emitted (never executed). 206 = second non-fingerprinted pinned asset; 404 = consistent with 3-key route table.
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — first case-axis probe. 206 = case-insensitive whitelist match; 404 = exact-case match, closing the final normalization axis.
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: `%3F` axis resolved (previous cycle) — split-before-decode confirmed by `robots.txt%3Fprobe`→404; not re-probed. Remaining anonymous surface: route-table width + case axis (both probed this cycle); CORS reflection and 200/206 backend flip stay PARKED (require header-verbatim capture, an executor capability outside current rules).
+## 2026-08-15 04:48:37 UTC account.box.com (ling3)

@@ -37,29 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 20:25:56 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/robots.txt
-confidence: 60
-reasoning: Raw `robots.txt?probe=9f3k7` → 206 proves a query-strip exists; `%2Frobots.txt`/`%2e%2e/robots.txt` → 206 proves decode-first. Whether the query split runs on the raw `?` before decode or on the decoded bytes after is untested — the `robots.txt%3Fprobe` probe emitted at 18:29 has not appeared in any of the 3 subsequent executor batches (03:11/04:59/06:23 are identical standard batches, %3F absent).
-verify_steps: (1) GET https://cloud.app.box.com/robots.txt%3Fprobe with UA "box-research/1.0 +(research)"; record status only. (2) GET https://cloud.app.box.com/favicon.ico%3Fprobe with same UA; record status only.
-impact: Decides whether an encoded `?` can diverge the edge-cache key from the normalized key after decode — the last constructible ordering primitive on this origin. Informational; low.
-testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt%3Fprobe with UA "box-research/1.0 +(research)"; record status only — 206 = query split runs after decode (encoded `?` becomes the delimiter, key strips to `robots.txt`); 404 = split on raw `?` before decode (key stays literal `robots.txt%3Fprobe`). Never executed in any batch to date.
-[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico%3Fprobe with UA "box-research/1.0 +(research)"; record status only — 206 = cross-validates decode-before-split on the second whitelisted key; 404 = consistent with raw-split-first.
-[PARKED] CORS misconfiguration on cloud.app.box.com (ACAO/ACAH reflection on 206 assets): executor output drops OPTIONS/header lines, so Access-Control-* can neither be proven nor denied; unchanged this cycle.
-[PARKED] Dual-backend 200/206 root flip: alternation confirmed at status level across 5+ cycles but no header/body differential is observable at status-only fidelity; remains parked.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Once the `%3F` axis resolves, the anonymous surface (root + 3 whitelisted keys + full normalization model) is exhaustively characterized — remaining items (CORS, backend flip) require header-verbatim capture (executor capability) or AUTH_HELPED scope, both outside current rules.
-## 2026-08-14 08:00:33 UTC account.box.com (ling3)
-## 2026-08-14 09:11:00 UTC account.box.com (ling3)
-## 2026-08-14 10:15:33 UTC account.box.com (ling3)
-## 2026-08-14 11:09:12 UTC account.box.com (ling3)
-## 2026-08-14 11:54:05 UTC account.box.com (ling3)
-## 2026-08-14 12:33:01 UTC account.box.com (ling3)
-## 2026-08-14 13:56:46 UTC account.box.com (ling3)
-## 2026-08-14 14:46:32 UTC account.box.com (bigpickle)
-## 2026-08-14 15:34:58 UTC account.box.com (ling3)
-## 2026-08-14 16:27:17 UTC account.box.com (ling3)
-## 2026-08-14 17:27:12 UTC account.box.com (ling3)
-## 2026-08-14 18:14:55 UTC account.box.com (ling3)
 ## 2026-08-14 19:15:00 UTC account.box.com (ling3)
 ## 2026-08-14 19:57:03 UTC account.box.com (ling3)
 ## 2026-08-14 20:25:55 UTC account.box.com (bigpickle)
@@ -97,6 +74,29 @@ testability: PASSIVE
 ## 2026-08-15 01:10:20 UTC account.box.com (ling3)
 ## 2026-08-15 02:18:27 UTC account.box.com (ling3)
 ## 2026-08-15 03:07:48 UTC account.box.com (ling3)
+## 2026-08-15 03:50:20 UTC account.box.com (ling3)
+## 2026-08-15 04:16:23 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com: route-table probes (index.html, app.js) scheduled last cycle never executed — 3 consecutive executor batches (01:46/03:00/03:50 UTC) are identical standard lists; re-emitting and adding the untested case axis.
+[HYP] Route-table boundary: whitelist exactly 3 keys vs wider pinned set
+class: MISCONFIG
+asset: cloud.app.box.com/index.html
+confidence: 55
+reasoning: Random-path 404s (5 cycles) fingerprint "exactly 3 whitelisted keys", but common asset names never probed; `robots.txt/`→404 and `robots.txt/../robots.txt`→206 bracket the collapse behavior, yet a 4th pinned key would be invisible to the random-path fingerprint.
+verify_steps: (1) GET https://cloud.app.box.com/index.html UA "box-research/1.0 +(research)"; (2) GET https://cloud.app.box.com/app.js same UA; record status only.
+impact: 206 on either = whitelist broader than fingerprinted (route table incomplete, new anonymous keys); all-404 = 3-key table confirmed. Informational; low.
+testability: PASSIVE
+[HYP] Whitelist match case sensitivity: exact-case vs case-insensitive
+class: MISCONFIG
+asset: cloud.app.box.com/ROBOTS.TXT
+confidence: 40
+reasoning: Normalization model is fully specified (raw-`?`-split → single-decode → dot-collapse → slash-collapse → 3-key match) but no uppercase variant of any key has been probed in any batch — the case axis is the sole untested matcher property.
+verify_steps: (1) GET https://cloud.app.box.com/ROBOTS.TXT UA "box-research/1.0 +(research)"; record status only.
+impact: 206 = case-insensitive match (each of the 3 keys effectively serves 2^length case variants anonymously); 404 = exact-case model complete. Informational; low.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — re-emitted (never executed; no prior result exists). 206 = new pinned asset, route table broader than 3 keys; 404 = confirms exactly-3-key whitelist.
+[NEXT] PROBE: GET https://cloud.app.box.com/app.js with UA "box-research/1.0 +(research)"; record status only — re-emitted (never executed). 206 = second non-fingerprinted pinned asset; 404 = consistent with 3-key route table.
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — first case-axis probe. 206 = case-insensitive whitelist match; 404 = exact-case match, closing the final normalization axis.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: `%3F` axis resolved (previous cycle) — split-before-decode confirmed by `robots.txt%3Fprobe`→404; not re-probed. Remaining anonymous surface: route-table width + case axis (both probed this cycle); CORS reflection and 200/206 backend flip stay PARKED (require header-verbatim capture, an executor capability outside current rules).
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
@@ -111,7 +111,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 
-## RANKED 2026-08-15 01:46:32 UTC
+## RANKED 2026-08-15 03:50:23 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
@@ -125,7 +125,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: CORS misconfiguration on upload.box.com API edge (ACAO reflects attacker Origin on upload preflight) (from host-upload.box.com.md)
 
-## RANKED 2026-08-15 03:00:52 UTC
+## RANKED 2026-08-15 04:42:38 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
@@ -154,40 +154,40 @@ https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
 
-## 2026-08-14 23:56:00 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
-https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/ -> HTTP 404
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
-https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
-https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
-https://cloud.app.box.com/robots%252Etxt -> HTTP 404
-https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
-
-## 2026-08-15 01:46:32 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
-https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/ -> HTTP 404
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
-https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
-https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
-https://cloud.app.box.com/robots%252Etxt -> HTTP 404
-https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
-
 ## 2026-08-15 03:00:51 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
+https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
+
+## 2026-08-15 03:50:23 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
+https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots.txt%3Fprobe -> HTTP 404
+
+## 2026-08-15 04:42:38 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
