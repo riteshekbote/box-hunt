@@ -206,3 +206,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/zz-un-206-fp-7q2m with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 chars of body (206 = shared object-store default handler; 200 HTML = SPA fallback; 404 = explicit edge route).
 [NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/files with Origin: https://attacker.example and Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (preflight/CORS differential on the files handler family; distinct from folders/0 preflight already queued).
 [NEXT] PROBE: GET https://app.box.com/login with UA box-research/1.0 — record status, Location, Content-Type, first 200 chars of body (auth-plane path placement on app origin; distinct from /account/login and /oauth2/authorize already queued).
+## 2026-08-15 03:07:33 UTC app.box.com (ling3)
