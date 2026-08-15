@@ -246,3 +246,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root 200→206 flip observed between 03:50 and 04:42 executor cycles — confirms the dual-backend routing flip hypothesis (heterogeneous origin): shell and Range/object-store handlers alternate on the same path rather than a fixed route table; raising that hypothesis to 55.
 ## 2026-08-15 05:37:24 UTC app.box.com (ling3)
 ## 2026-08-15 05:56:44 UTC app.box.com (ling3)
+## 2026-08-15 06:26:23 UTC app.box.com (ling3)
