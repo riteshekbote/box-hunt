@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 11:54:46 UTC"
 }=== MY LAST LEADS (tail) ===
-[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/: edge-routing fingerprint confirmed — origin root and junk paths → 404 (no origin-level CORS/static layer), `/api/2.0/files/1/content` → 401 (Bearer download edge is the only mounted handler), `/folders/shared/static/static/1-content` → 404. Matches the file-CDN role; prior root preflight (OPTIONS / with attacker Origin → 404, no Access-Control-*) proved the root has no CORS layer, but the content handler is a distinct, never-preflighted code path.
 [LEARN] ACCEPTED AUTH @ dl.boxcloud.com/api/2.0/files/1/content: file content is gated by 401 Bearer before any Range/version/signed-URL logic runs; all real download behavior is AUTH_HELPED and not reachable with read-only anonymous requests.
 [HYP] Download-edge CORS on dl.boxcloud.com API content handler
 class: MISCONFIG
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-15 08:18:45 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 08:48:34 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 09:10:47 UTC dl.boxcloud.com (ling3)
+## 2026-08-15 09:37:16 UTC dl.boxcloud.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
