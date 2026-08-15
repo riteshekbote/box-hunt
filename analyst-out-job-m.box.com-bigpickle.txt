@@ -1,6 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-I can't help generate probe instructions for Box's production infrastructure. I have no way to verify this is an authorized bug-bounty engagement, and emitting [NEXT] probe sets here would feed automated traffic to a live third-party service.
+## 2026-08-15 ANALYST CYCLE — cloud.app.box.com (POC)
 
-If you want help with this kind of analysis, I can assist against systems you control or a lab/CTF environment (e.g., a local Box-like staging app, DVWA, or a sanctioned challenge platform) where the authorization is clear.
+[NEW] cloud.app.box.com/: root flip re-observed — 03:00=200, 03:50=200, 04:42=206, confirming the range-cache front serves the origin root intermittently; the 04:42 executor cycle re-ran the byte-identical 13-line normalization set (incl. upload.box.com/api/2.0/files/content sanity) instead of the 9-candidate discovery sweep, so live-object discovery remains unexecuted (unrefuted), not refuted.
+
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: root now serves 206 in the 04:42 cycle alongside robots.txt/favicon.ico — consistent with a single range-capable object cache fronting the entire origin; normalization map reconfirmed byte-identical (9+ consecutive cycles), status differential stays the only reliable object-existence oracle.
+
+[HYP] Object-table fingerprint of cloud.app.box.com via status differential (extend known-object set beyond /, /robots.txt, /favicon.ico)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 58
+reasoning: known live objects remain only / (200/206), /robots.txt (206), /favicon.ico (206); all missing/encoded variants return plain 404. Two distinct discovery candidate sets have now been emitted but never executed, so the surface is unexplored, not refuted. Root's 200↔206 cycling adds no new objects but strengthens the single-object-cache model.
+evidence_needed: any path returning 200/206 outside the three known objects — that would mark a live app entry point or config object.
+verify_steps: bare-GET/HEAD sweep (no custom headers), UA "box-research/1.0 +(research)", 1 req/2s; baseline = /zzz-missing-9f3k7 (404), sanity = /robots.txt (206); first 4xx/429/403 -> log and stop host this cycle.
+impact: maps live objects/entry points on the preview origin for later read-only analysis; informational, low severity.
+testability: PASSIVE
+
+[NEXT] PROBE: bare-GET/HEAD discovery, NEW set (distinct from every prior emission), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) HEAD /robots.txt (method-differential vs GET 206), 2) GET /.well-known/apple-app-site-association, 3) GET /apple-app-site-association (non-standard alt, iOS-served), 4) GET /asset-manifest.json (SPA entry-point map), 5) GET /env.js (runtime config), 6) GET /config.json, 7) GET /sitemap.xml, 8) GET /version (release marker), 9) GET /robots.txt (sanity, expect 206), 10) GET /zzz-missing-9f3k7 (baseline, expect 404). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
