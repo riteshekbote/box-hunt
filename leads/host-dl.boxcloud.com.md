@@ -183,3 +183,4 @@ verify_steps: GET https://cloud.app.box.com/Pn9k4Wm2sX6v with UA box-research/1.
 impact: If 206, the Range/partial-content backend fronts arbitrary paths and any Access-Control policy riding it is origin-wide; medium-high depending on that policy. If 404, CORS scope stays bounded to pinned assets.
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/Pn9k4Wm2sX6v (fresh 12-char nonce, distinct from prior 7xq9ZzK2nX4w and t3Kv9Xq2Mp7Z) then GET https://cloud.app.box.com/ once more, UA box-research/1.0; record both status lines — 206-on-nonce proves object-store-default origin-global; 404 proves pinned-whitelist; the paired root re-tests the 200/206 flip under identical conditions.
+## 2026-08-15 10:53:50 UTC dl.boxcloud.com (ling3)
