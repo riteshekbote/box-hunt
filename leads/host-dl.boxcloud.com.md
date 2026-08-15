@@ -171,3 +171,15 @@ testability: PASSIVE
 ## 2026-08-15 09:37:16 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 09:54:32 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 10:10:18 UTC dl.boxcloud.com (ling3)
+## 2026-08-15 10:37:06 UTC dl.boxcloud.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ dl.boxcloud.com/api/2.0/files/1/content: the identical preflight+GET pair has been re-emitted across 25+ consecutive cycles with zero executor output, while the executor demonstrably ran the cloud.app.box.com robots suite and upload.box.com probes this cycle — the download edge is unreachable through this toolchain, so the surface is EXHAUSTED (not refuted) here.
+[PARKED] Download-edge CORS on dl.boxcloud.com/api/2.0/files/1/content: 25+ cycles of the same OPTIONS+GET emitted no results; the executor returns nothing for dl.boxcloud.com, so the Bearer-gate preflight/header-leak evidence cannot be collected in this pipeline — needs a direct-probe channel, parked.
+[HYP] Object-store default handler vs whitelist-routed (re-keyed on fresh nonce)
+class: MISCONFIG
+asset: cloud.app.box.com/<fresh-nonce>
+confidence: 55
+reasoning: robots.txt/favicon single-encoded variants all normalize to 206 while double-encoded (%252F, %252E) and suffix-forms 404, proving the 206/Range layer has a normalizer with an exact-key whitelist; root flipped 200→206 across earlier cycles. The discriminator is an unguessable path: 206 ⇒ origin-global object-store default (reopens CORS surface host-wide), 404 ⇒ pinned-key whitelist only.
+verify_steps: GET https://cloud.app.box.com/Pn9k4Wm2sX6v with UA box-research/1.0; record status line only; compare with the simultaneous root GET (200 expected).
+impact: If 206, the Range/partial-content backend fronts arbitrary paths and any Access-Control policy riding it is origin-wide; medium-high depending on that policy. If 404, CORS scope stays bounded to pinned assets.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/Pn9k4Wm2sX6v (fresh 12-char nonce, distinct from prior 7xq9ZzK2nX4w and t3Kv9Xq2Mp7Z) then GET https://cloud.app.box.com/ once more, UA box-research/1.0; record both status lines — 206-on-nonce proves object-store-default origin-global; 404 proves pinned-whitelist; the paired root re-tests the 200/206 flip under identical conditions.
