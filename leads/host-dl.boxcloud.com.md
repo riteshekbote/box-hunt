@@ -206,3 +206,4 @@ verify_steps: GET https://cloud.app.box.com/K9wQ4zR7vM2n/ then GET https://cloud
 impact: 206 on the nonce ⇒ object-store default handler fronts arbitrary paths origin-wide (reopens the parked CORS surface host-wide, medium-high); 404 ⇒ pinned-key whitelist, CORS scope stays bounded.
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/K9wQ4zR7vM2n/ (fresh 12-char nonce + trailing slash, distinct from Pn9k4Wm2sX6v/t3Kv9Xq2Mp7Z/7xq9ZzK2nX4w) then GET https://cloud.app.box.com/, UA box-research/1.0, status lines only — slash-suffix is a new asset form (prior nonce probes were bare and never executed); 206 ⇒ origin-global object-store default, 404 ⇒ whitelist-scoped; the paired root re-characterizes the 200/206 flip.
+## 2026-08-15 15:39:47 UTC dl.boxcloud.com (ling3)
