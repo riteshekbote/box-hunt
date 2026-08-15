@@ -1125,3 +1125,17 @@
 - [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether any non-pinned path hits the 206/Range layer (from host-notes.services.box.com.md)
 - [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether a random unguessable path hits the 206/Range layer (from host-notes.services.box.com.md)
 - [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
+
+## RANKED 2026-08-15 09:36:23 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com Range/partial-content layer: GET / with Range discriminates object-store Range-front (206) vs plain app gateway (200/404) (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: Object-store normalizer case sensitivity: lowercased keys vs exact-case keys (from host-notes.services.box.com.md)
+- [40] cloud.app.box.com/: Object-store exact-key lookup w/ aggressive normalizer: suffix-decorated pinned key discriminates prefix-match vs exact-key whitelist (from host-notes.services.box.com.md)
+- [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether any non-pinned path hits the 206/Range layer (from host-notes.services.box.com.md)
+- [40] cloud.app.box.com/: Object-store default handler vs whitelist-routed: whether a random unguessable path hits the 206/Range layer (from host-notes.services.box.com.md)
+- [40] cloud.app.box.com/: Dual-backend routing flip on cloud.app.box.com root (200 vs 206 alternation) reveals heterogeneous origin (from host-upload.box.com.md)
