@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 23:42:31 UTC"
 }=== MY LAST LEADS (tail) ===
-confidence: 45
 reasoning: pinned assets (robots.txt, favicon.ico) return 206 across all 12 normalization variants, and double-encoding breaks normalization to 404. Whether a never-pinned random path also returns 206 (object-store default handler fronting the whole origin) or 404 (whitelist-routed, pinned assets only) is untested and decides how much of the origin sits behind the range-capable edge.
 verify_steps: (1) GET https://cloud.app.box.com/9kz3w7pq2 with Range: bytes=0-1023. (2) GET https://cloud.app.box.com/ with Range: bytes=999999999999- (416 => real range parser; 206 => Range ignored, 206 is default serving).
 impact: whole-origin object-store fronting + reflected ACAO on this origin => cross-origin read of tokenized preview content; MEDIUM-HIGH if ACAO ever observable, else informational edge fingerprint.
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-15 03:07:30 UTC notes.services.box.com (ling3)
 ## 2026-08-15 03:50:20 UTC notes.services.box.com (ling3)
 ## 2026-08-15 04:15:34 UTC notes.services.box.com (ling3)
+## 2026-08-15 04:48:36 UTC notes.services.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
