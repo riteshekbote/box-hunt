@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-15 13:15:29 UTC"
 }=== MY LAST LEADS (tail) ===
-testability: PASSIVE
 [PARKED] CORS on upload.box.com API edge: OPTIONS on /api/2.0/files/content -> 404, and the status-only channel cannot observe Access-Control-* headers; re-open only with a header-capturing probe channel.
 [NEXT] PROBE: upload.box.com route fingerprint, status-only, 1 req/2s — 1) OPTIONS / (Origin https://evil.example, ACRM GET); 2) GET /; 3) HEAD /; 4) GET /upload; 5) GET /api/2.0/files/content/; 6) GET /healthz; 7) GET /version; 8) OPTIONS /api/2.0/files/content/ (Origin, ACRM POST, ACRH authorization); 9) GET /files; 10) GET /f/. Record status per request; 404/405 = normal edge routing (no 4xx stop), stop only on 401/403/429.
 ## 2026-08-14 22:40:35 UTC upload.box.com (ling3)
@@ -97,6 +96,7 @@ testability: PASSIVE
 [PARKED] upload.box.com Range/partial-content layer on root: `GET /` with Range returned no row — the executor does not fold upload-origin root paths into the battery; parked and re-targeted onto robots.txt (the path class the battery demonstrably executes).
 [NEXT] PROBE: GET https://upload.box.com/robots.txt, status only, UA `box-research/1.0 +(research)`, 1 req/2s. If a row returns, next cycle adds `Range: bytes=0-1023` to the same URL.
 ## 2026-08-15 13:44:06 UTC upload.box.com (ling3)
+## 2026-08-15 13:59:35 UTC upload.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)

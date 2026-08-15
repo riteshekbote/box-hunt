@@ -236,3 +236,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://upload.box.com/robots.txt, status only, UA `box-research/1.0 +(research)`, 1 req/2s. If a row returns, next cycle adds `Range: bytes=0-1023` to the same URL.
 ## 2026-08-15 13:44:06 UTC upload.box.com (ling3)
 ## 2026-08-15 13:59:35 UTC upload.box.com (ling3)
+## 2026-08-15 14:22:08 UTC upload.box.com (ling3)
