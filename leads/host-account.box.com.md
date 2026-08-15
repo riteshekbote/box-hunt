@@ -403,3 +403,10 @@ testability: PASSIVE
 ## 2026-08-15 22:58:25 UTC account.box.com (ling3)
 ## 2026-08-15 23:18:35 UTC account.box.com (ling3)
 ## 2026-08-15 23:37:59 UTC account.box.com (ling3)
+## 2026-08-15 23:54:59 UTC account.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: dot-root and single-dot axes (`robots.txt/..`, `robots.txt/./robots.txt`) — emitted 2026-08-15, then 3 executor cycles (22:54/23:30/23:52) ran lists containing neither; the 22:54→23:30 diff is only an appended `upload.box.com/robots.txt/` item, and 23:52 is byte-identical to 23:30, proving the executor list is fixed and cloud.app never receives arbitrary/dot paths; executor-gated, not evidence-gated.
+[PARKED] Object-store dot-root feed (`robots.txt/..`): decides whether dot-collapse feeds the 200 root through the 206 layer; 0 executor runs across 3 fixed-list cycles — permanently gated on the executor accepting arbitrary paths.
+[PARKED] Single-dot axis (`robots.txt/./robots.txt`): same executor-gate as above; no result means no evidence to fold into the normalizer model.
+[NEXT] PROBE: GET https://cloud.app.box.com/probe_9a1b2c3d4e with UA "box-research/1.0 +(research)"; record status only — decisive whitelist-vs-default-handler test for the [45] hypothesis; 206 = 206/Range object layer answers arbitrary keys (whole-origin fronting, key-space risk), 404 = pinned-key whitelist (robots.txt/favicon.ico only).
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — case axis never probed; 206 = case-insensitive key match (canonical keys lowercased), 404 = exact-case whitelist.
+[NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — plausible-asset guess; 206 = key list spans real app assets, 404 = fronting limited to probe-file pairs.

@@ -1,23 +1,14 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: `%2e%2e/robots.txt` → 206 in all 3 batches this cycle (absent from all earlier cycles) — first encoded-dot-dot datapoint; encoded `..` collapses exactly like raw `../`, proving single-URL-decode runs BEFORE the dot-collapse. Normalizer ordering is now fully evidenced.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: dot-root and single-dot axes (`robots.txt/..`, `robots.txt/./robots.txt`) — emitted 2026-08-15, then 3 executor cycles (22:54/23:30/23:52) ran lists containing neither; the 22:54→23:30 diff is only an appended `upload.box.com/robots.txt/` item, and 23:52 is byte-identical to 23:30, proving the executor list is fixed and cloud.app never receives arbitrary/dot paths; executor-gated, not evidence-gated.
 
-[HYP] Dot-collapse reaches the root key: `robots.txt/..` resolves via dot-segment removal
-class: MISCONFIG
-asset: cloud.app.box.com/robots.txt/..
-confidence: 40
-reasoning: The exact-key match runs on the post-collapse path (robots.txt/../robots.txt→206, %2e%2e/robots.txt→206). RFC 3986 dot-segment removal turns `robots.txt/..` into an empty path — the first probe that drives a non-pinned input into the root slot through the normalizer, discriminating root-as-whitelist-key vs default handler (top-ranked [45] hypothesis).
-evidence_needed: status of robots.txt/..
-verify_steps: (1) GET https://cloud.app.box.com/robots.txt/.. UA "box-research/1.0 +(research)"; record status only. 200/206 = collapse feeds root → root is normalizer-reachable, default-handler model gains weight; 404 = collapse yields a non-key → root handled outside the whitelist.
-impact: None directly; closes the whitelist-vs-default-handler question that gates object-store fronting impact. Informational; low.
-testability: PASSIVE
+[PARKED] Object-store dot-root feed (`robots.txt/..`): decides whether dot-collapse feeds the 200 root through the 206 layer; 0 executor runs across 3 fixed-list cycles — permanently gated on the executor accepting arbitrary paths.
 
-[PARKED] Whitelist key-uniformity (favicon.ico/ + robots.txt;probe): emitted once each at 08:49; 3 further executor cycles (15:32, 15:53, 16:37) ran byte-identical fixed lists containing neither path — permanently executor-gated, not re-emitted per same-NEXT-twice rule.
+[PARKED] Single-dot axis (`robots.txt/./robots.txt`): same executor-gate as above; no result means no evidence to fold into the normalizer model.
 
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: normalizer ordering closed — decode precedes both collapsers (`%2e%2e/`→206 dot, `%2F`→206 slash), double-encode→404, decode depth exactly 1. Open question narrows to collapse OUTPUT semantics (does `..`-removal feed root?), probed via the [NEXT] below.
+[NEXT] PROBE: GET https://cloud.app.box.com/probe_9a1b2c3d4e with UA "box-research/1.0 +(research)"; record status only — decisive whitelist-vs-default-handler test for the [45] hypothesis; 206 = 206/Range object layer answers arbitrary keys (whole-origin fronting, key-space risk), 404 = pinned-key whitelist (robots.txt/favicon.ico only).
 
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: key-uniformity surface is executor-gated, not evidence-gated — 3 consecutive byte-identical batches prove the fixed-list pipeline again; no further evidence-gated work remains until the executor runs arbitrary paths or captures headers (CORS reflection + 200/206 backend flip stay PARKED, same capability gap).
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — case axis never probed; 206 = case-insensitive key match (canonical keys lowercased), 404 = exact-case whitelist.
 
-[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/.. with UA "box-research/1.0 +(research)"; record status only — collapse-driven root probe; 200/206 = root reachable via normalizer (default-handler weight), 404 = root outside whitelist matching.
-[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/./robots.txt with UA "box-research/1.0 +(research)"; record status only — single-dot axis, never probed; 206 = `./` stripped and zero-length segments handled, 404 = single-dot not collapsed.
+[NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — plausible-asset guess; 206 = key list spans real app assets, 404 = fronting limited to probe-file pairs.
