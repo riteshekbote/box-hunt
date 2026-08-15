@@ -328,3 +328,15 @@ impact: 206-wildcard = whole-origin Range fronting with a uniform object (info/l
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/zz-cd-fp-9k2m with UA box-research/1.0 — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes (206+CR = wildcard default-handler fronts entire origin; 404 = whitelist-routed; resolves the top-ranked open question on this origin).
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: dot-segment and multi-slash collapse with trailing-slash rejection and a single-decode-pass asymmetry (%72obots.txt/%2e%2e/robots.txt/..//robots.txt -> 206; %252Frobots.txt/robots%252Etxt/robots.txt/ -> 404) is a stable fingerprint of a case-insensitive GCS-like object-store normalizer fronted by a Range-capable edge; upload.box.com/robots.txt -> 404 confirms the 8 hosts sit on heterogeneous edges, so no cross-host generalization.
+## 2026-08-15 23:19:12 UTC app.box.com (bigpickle)
+[NEW] app.box.com: zero app-origin evidence persists — executor again returned only cloud/upload results; the queued app probes (robots.txt, /robots.txt/, random-key, OPTIONS preflight) all remain unexecuted across consecutive cycles, and the queued cloud discriminator zz-cd-fp-9k2m was also never run (results tail shows only the fixed cloud-batch).
+[HYP] App-origin object-store parity via never-existing key
+class: MISCONFIG
+asset: app.box.com/zz-ap-fp-6t8n
+confidence: 45
+reasoning: cloud.app.box.com answers 206 for all known keys and single-encode variants, proving a Range-capable object-store normalizer; whether the same layer also fronts the app origin is unmeasured (app evidence = 0). A never-existing bare key on app.box.com splits the space at once: 206+Content-Range = shared wildcard object-store edge; 404 = app serves its own SPA/router layer; 200 HTML = distinct web shell.
+verify_steps: GET https://app.box.com/zz-ap-fp-6t8n with UA box-research/1.0 — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes
+impact: delivery-topology map for the primary origin; wildcard-206 would flag the same uniform-object Range fronting observed on cloud, incl. whether arbitrary keys shadow real content (info/low, config-signal)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/zz-ap-fp-6t8n with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 bytes (206+CR = shared wildcard object-store edge on app; 404 = app-local router; 200 HTML = distinct SPA layer).
+[NEXT] PROBE: GET https://cloud.app.box.com/app/zz-cd-fp-9k2m with UA box-research/1.0 — nested-path re-key of the unresolved wildcard-vs-whitelist question (206 = default handler covers arbitrary nested paths; 404 = whitelist-routed pinning).
