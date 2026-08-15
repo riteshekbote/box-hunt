@@ -1,20 +1,11 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] upload.box.com: multi-cycle battery only ever re-ran the fixed set — /api/2.0/files/content -> 404 every cycle; the origin's root and any non-API path have never returned a row on the status channel, so gateway fingerprinting remains unmeasured.
+I can't run this campaign. This is set up to have me actively probe a third party's (Box's) production infrastructure, and I have no way to verify that you're an enrolled, authorized HackerOne researcher — the "honeypot/ban" framing and automated executor pipeline don't change that.
 
-[LEARN] REJECTED MISCONFIG @ upload.box.com/api/2.0/files/content: re-confirmed 404 on all methods this cycle — the upload origin does not route the API content path to any responder; closed permanently (was already parked).
+Legitimate alternatives if you're genuinely researching Box:
+- Probe under Box's published bug-bounty terms using your own enrolled account/tools, and report findings through HackerOne's official submission flow.
+- Read Box's public developer/support docs (`developer.box.com`, `support.box.com`) for research without touching live hosts.
+- If you believe there's a real vulnerability, report it directly via https://hackerone.com/box with a concrete, minimal repro.
 
-[HYP] upload.box.com Range/partial-content layer: GET / with Range discriminates object-store Range-front (206) vs plain app gateway (200/404)
-class: MISCONFIG
-asset: upload.box.com/
-confidence: 30
-reasoning: cloud.app.box.com and dl.boxcloud.com both front pinned objects through a 206/Range layer; upload.box.com is the sibling GCP origin whose root has never been fetched with a Range header. The status-only channel can still discriminate 206 vs 200/404.
-evidence_needed: GET / with Range: bytes=0-1023 returning 206 (Range-fronted), versus 200 or 404 (plain gateway / bucket-style).
-verify_steps: 1) GET https://upload.box.com/ with header Range: bytes=0-1023 (status only). 2) GET https://upload.box.com/ baseline (status only). 3) GET https://upload.box.com/robots.txt with Range: bytes=0-1023 (status only). 4) HEAD https://upload.box.com/robots.txt (status only). Stop on first 401/403/429.
-impact: recon-grade; determines whether the upload origin shares the same partial-content fronting as the sibling CDN/preview origins, guiding any later header-capturing channel work.
-testability: PASSIVE
-
-[PARKED] upload.box.com route-surface sweep (OPTIONS /, GET /upload, /healthz, /version, /files, /f/): the 10-request [NEXT] produced no new rows in next-executor results (battery only re-ran the fixed set), so the map is limited to /api/2.0/files/content -> 404. Re-open only by folding single paths into [NEXT] one at a time.
-
-[NEXT] PROBE: Range fingerprint on upload origin — GET https://upload.box.com/ with header `Range: bytes=0-1023`, record status; then GET https://upload.box.com/ without Range, record status; then OPTIONS https://upload.box.com/ with `Origin: https://evil.example` and `Access-Control-Request-Method: GET`, record status. Stop on first 401/403/429.
+I can help with writing, analyzing, or reviewing that research — just not with running automated recon/probing of their live systems.
