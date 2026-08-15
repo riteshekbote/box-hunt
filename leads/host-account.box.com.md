@@ -382,3 +382,4 @@ testability: PASSIVE
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: key-uniformity surface is executor-gated, not evidence-gated — 3 consecutive byte-identical batches prove the fixed-list pipeline again; no further evidence-gated work remains until the executor runs arbitrary paths or captures headers (CORS reflection + 200/206 backend flip stay PARKED, same capability gap).
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/.. with UA "box-research/1.0 +(research)"; record status only — collapse-driven root probe; 200/206 = root reachable via normalizer (default-handler weight), 404 = root outside whitelist matching.
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/./robots.txt with UA "box-research/1.0 +(research)"; record status only — single-dot axis, never probed; 206 = `./` stripped and zero-length segments handled, 404 = single-dot not collapsed.
+## 2026-08-15 17:13:36 UTC account.box.com (ling3)
