@@ -48,3 +48,6 @@ https://app.box.com/files -> 200
 ## 2026-08-15 17:52:31 UTC app.box.com
 https://app.box.com/robots.txt -> 206
 https://app.box.com/ -> 200
+
+## 2026-08-15 19:54:30 UTC app.box.com
+https://app.box.com/robots.txt/ -> HTTP 404

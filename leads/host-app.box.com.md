@@ -296,3 +296,14 @@ testability: PASSIVE
 ## 2026-08-15 18:59:41 UTC app.box.com (ling3)
 ## 2026-08-15 19:21:28 UTC app.box.com (bigpickle)
 ## 2026-08-15 19:40:47 UTC app.box.com (ling3)
+## 2026-08-15 19:54:28 UTC app.box.com (bigpickle)
+[NEW] app.box.com: executor returned no app-origin results for a consecutive cycle (cloud.app.box.com + upload.box.com only); all queued app probes (favicon.ico, /all, /files, HEAD zz-un-206-fp-7q2m, security.txt, OPTIONS) remain unexecuted — app-origin evidence still zero.
+[HYP] App-origin trailing-slash normalizer parity
+class: MISCONFIG
+asset: app.box.com/robots.txt/
+confidence: 40
+reasoning: cloud.app.box.com answers 206 on robots.txt and every single-encode variant (%72, %2E, %2F, //) while returning 404 only on trailing-slash and double-encode — trailing-slash rejection is a stable fingerprint of the shared object-store normalizer. app.box.com's answer to the same key is unmeasured and cleanly splits shared-edge vs distinct-SPA.
+verify_steps: GET https://app.box.com/robots.txt/ with UA box-research/1.0
+impact: delivery-topology map for the primary origin; 404 = shared 206/Range fronting on app (info, low)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/robots.txt/ with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 chars (404 = shared normalizer/object-store edge; 200 HTML = distinct SPA layer).
