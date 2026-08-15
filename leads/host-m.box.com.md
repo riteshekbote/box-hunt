@@ -298,3 +298,4 @@ testability: PASSIVE
 [PARKED] CORS misconfig on cloud.app.box.com preview origin (conf 45): discriminator needs an attacker-Origin OPTIONS preflight / custom-header GET; executor only emits bare URLs — parked until a header-capable executor mode is authorized.
 [NEXT] PROBE: 4-request sweep, distinct from both the 13-URL default batch and the 18:35 8-sweep (fresh nonce, trimmed set), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /ROBOTS.TXT (case test), 2) GET /Robots.txt (mixed-case test), 3) GET /zzz-nonexistent-8c41b (fresh nonce — default-handler discriminator), 4) HEAD /favicon.ico (method differential vs GET 206). Record status + length each; 206 = live object, 404 = absent; first 4xx/429/403 -> log and stop probing this host for the cycle.
 ## 2026-08-15 23:37:58 UTC m.box.com (ling3)
+## 2026-08-15 23:53:30 UTC m.box.com (ling3)
