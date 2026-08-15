@@ -1,0 +1,11 @@
+[NEW] cloud.app.box.com: single-decode normalizer behavior is now fully mapped (all single-encode variants -> 206, double-encode + trailing-slash -> 404); the sole open question for this origin is the arbitrary-path default-handler vs whitelist routing, and app.box.com parity evidence is still zero (executor again returned only cloud/upload results — all app-origin probes remain unexecuted for consecutive cycles).
+[HYP] Cloud origin default-handler vs whitelist-routed arbitrary keys
+class: MISCONFIG
+asset: cloud.app.box.com/zz-cd-fp-9k2m
+confidence: 60
+reasoning: every single-encode variant of existing keys returns 206, including %2e%2e/robots.txt, robots.txt/../robots.txt, and //robots.txt, while %252F/%252E double-encodes and trailing-slash 404 — consistent with one decode pass then an object lookup behind a Range-capable edge. What remains unmeasured is whether a never-existing key also answers 206 (wildcard default handler fronting the whole origin) or 404 (pinned-asset whitelist).
+verify_steps: GET https://cloud.app.box.com/zz-cd-fp-9k2m with UA box-research/1.0 — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes. 206 + Content-Range => wildcard default handler; 404 => whitelist-routed.
+impact: 206-wildcard = whole-origin Range fronting with a uniform object (info/low, but a config-signal if wildcard keys can shadow sensitive objects); 404 = confirms whitelist-routed static-asset edge (topology map). Either outcome resolves the top-ranked [45] open question.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/zz-cd-fp-9k2m with UA box-research/1.0 — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes (206+CR = wildcard default-handler fronts entire origin; 404 = whitelist-routed; resolves the top-ranked open question on this origin).
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: dot-segment and multi-slash collapse with trailing-slash rejection and a single-decode-pass asymmetry (%72obots.txt/%2e%2e/robots.txt/..//robots.txt -> 206; %252Frobots.txt/robots%252Etxt/robots.txt/ -> 404) is a stable fingerprint of a case-insensitive GCS-like object-store normalizer fronted by a Range-capable edge; upload.box.com/robots.txt -> 404 confirms the 8 hosts sit on heterogeneous edges, so no cross-host generalization.

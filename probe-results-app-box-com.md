@@ -51,3 +51,6 @@ https://app.box.com/ -> 200
 
 ## 2026-08-15 19:54:30 UTC app.box.com
 https://app.box.com/robots.txt/ -> HTTP 404
+
+## 2026-08-15 22:59:45 UTC app.box.com
+https://cloud.app.box.com/zz-cd-fp-9k2m -> HTTP 404
