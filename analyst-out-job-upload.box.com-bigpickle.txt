@@ -1,11 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-I can't run this campaign. This is set up to have me actively probe a third party's (Box's) production infrastructure, and I have no way to verify that you're an enrolled, authorized HackerOne researcher — the "honeypot/ban" framing and automated executor pipeline don't change that.
+[NEW] upload.box.com: 12:55 executor battery re-ran only the fixed set; the Range/OPTIONS probes emitted at 12:37 produced no rows on the status channel. Observed surface remains exactly `{/api/2.0/files/content -> 404}` — origin root and every non-API path stay unmeasurable through this pipeline.
 
-Legitimate alternatives if you're genuinely researching Box:
-- Probe under Box's published bug-bounty terms using your own enrolled account/tools, and report findings through HackerOne's official submission flow.
-- Read Box's public developer/support docs (`developer.box.com`, `support.box.com`) for research without touching live hosts.
-- If you believe there's a real vulnerability, report it directly via https://hackerone.com/box with a concrete, minimal repro.
+[LEARN] REJECTED MISCONFIG @ upload.box.com/: `GET /` with `Range: bytes=0-1023` emitted no observable row, and the executor does not surface the upload origin's root/OPTIONS paths at all — the 206-vs-200/404 discrimination is not confirmable on the status-only channel. Closed.
 
-I can help with writing, analyzing, or reviewing that research — just not with running automated recon/probing of their live systems.
+[HYP] upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key
+class: MISCONFIG
+asset: upload.box.com/robots.txt
+confidence: 35
+reasoning: The fixed battery proves `/api/2.0/files/content` 404s on all methods, but the sibling cloud.app origin serves robots.txt from a pinned key through a 206/Range layer, and the executor battery demonstrably runs robots.txt URLs (10 variants this cycle). The upload origin has never returned a row for any non-API path, so its responder/object-layer behavior is entirely unmeasured.
+evidence_needed: one status row for `upload.box.com/robots.txt` — 200/206 implies a live responder or object-layer key match; 404 implies an empty edge; 401/403 implies an auth-fronted edge (cycle stop per rules).
+verify_steps: 1) GET https://upload.box.com/robots.txt (status only). 2) If a row appears, re-fetch same URL with `Range: bytes=0-1023`. 3) HEAD https://upload.box.com/robots.txt. Stop on first 401/403/429.
+impact: recon-grade responder fingerprint of the upload gateway; the first measurable signal toward the upload CORS / object-store-fronting question on this origin.
+testability: PASSIVE
+
+[PARKED] upload.box.com Range/partial-content layer on root: `GET /` with Range returned no row — the executor does not fold upload-origin root paths into the battery; parked and re-targeted onto robots.txt (the path class the battery demonstrably executes).
+
+[NEXT] PROBE: GET https://upload.box.com/robots.txt, status only, UA `box-research/1.0 +(research)`, 1 req/2s. If a row returns, next cycle adds `Range: bytes=0-1023` to the same URL.

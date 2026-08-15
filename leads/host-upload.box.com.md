@@ -221,3 +221,16 @@ testability: PASSIVE
 ## 2026-08-15 11:47:12 UTC upload.box.com (ling3)
 ## 2026-08-15 11:59:35 UTC upload.box.com (ling3)
 ## 2026-08-15 12:37:33 UTC upload.box.com (bigpickle)
+## 2026-08-15 13:15:26 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com: 12:55 executor battery re-ran only the fixed set; the Range/OPTIONS probes emitted at 12:37 produced no rows on the status channel. Observed surface remains exactly `{/api/2.0/files/content -> 404}` — origin root and every non-API path stay unmeasurable through this pipeline.
+[LEARN] REJECTED MISCONFIG @ upload.box.com/: `GET /` with `Range: bytes=0-1023` emitted no observable row, and the executor does not surface the upload origin's root/OPTIONS paths at all — the 206-vs-200/404 discrimination is not confirmable on the status-only channel. Closed.
+[HYP] upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key
+class: MISCONFIG
+asset: upload.box.com/robots.txt
+confidence: 35
+reasoning: The fixed battery proves `/api/2.0/files/content` 404s on all methods, but the sibling cloud.app origin serves robots.txt from a pinned key through a 206/Range layer, and the executor battery demonstrably runs robots.txt URLs (10 variants this cycle). The upload origin has never returned a row for any non-API path, so its responder/object-layer behavior is entirely unmeasured.
+verify_steps: 1) GET https://upload.box.com/robots.txt (status only). 2) If a row appears, re-fetch same URL with `Range: bytes=0-1023`. 3) HEAD https://upload.box.com/robots.txt. Stop on first 401/403/429.
+impact: recon-grade responder fingerprint of the upload gateway; the first measurable signal toward the upload CORS / object-store-fronting question on this origin.
+testability: PASSIVE
+[PARKED] upload.box.com Range/partial-content layer on root: `GET /` with Range returned no row — the executor does not fold upload-origin root paths into the battery; parked and re-targeted onto robots.txt (the path class the battery demonstrably executes).
+[NEXT] PROBE: GET https://upload.box.com/robots.txt, status only, UA `box-research/1.0 +(research)`, 1 req/2s. If a row returns, next cycle adds `Range: bytes=0-1023` to the same URL.
