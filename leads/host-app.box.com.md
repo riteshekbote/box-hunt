@@ -291,3 +291,4 @@ testability: PASSIVE
 [NEXT] PROBE: HEAD https://app.box.com/ with UA box-research/1.0 — record status, Content-Range, Content-Type, Server (HEAD 206+Content-Range = Range fronting on root; HEAD 200 no Content-Range = SPA shell).
 [NEXT] PROBE: OPTIONS https://app.box.com/ with Origin: https://attacker.example and Access-Control-Request-Method: GET, UA box-research/1.0 — record all Access-Control-* and Allow headers (preflight-before-auth schema vs api.box.com uniform 401 bearer edge).
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt: 206 across all single-encode path variants with 404 only on trailing-slash/double-encode locks the object-store default-handler + case-insensitive normalizer topology for the cloud origin (upload robots.txt 404 confirms heterogeneous edges) — parity mirror test now queued on app origin.
+## 2026-08-15 18:00:36 UTC app.box.com (ling3)
