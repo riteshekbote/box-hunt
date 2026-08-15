@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-15 07:39:18 UTC"
 }=== MY LAST LEADS (tail) ===
-confidence: 30
 reasoning: Manual dig 15:25: /api/2.0/files/1 -> 401 while unguessable paths -> 404 SPA (23KB), proving an auth-wrapped edge exists ahead of the SPA fallback. Bare-path status (/api/ and /api/2.0/) discriminates a version-scoped mount (401 on 2.0, 404 SPA on /api/) from a broad mount (401 on both). Never probed before.
 verify_steps: 2 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/ (2) https://cloud.app.box.com/api/2.0/ — record status + content-type verbatim; 401/404 informative, stop host on first 403/429.
 impact: Reveals the width of the alternate API edge; if /api/ broadly 401s, the edge extends beyond /2.0/, widening any future auth/hardening-differential surface. Low unless a status/body differential to api.box.com surfaces.
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-15 13:59:11 UTC api.box.com (ling3)
 ## 2026-08-15 14:22:07 UTC api.box.com (ling3)
 ## 2026-08-15 14:43:07 UTC api.box.com (ling3)
+## 2026-08-15 14:59:07 UTC api.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
