@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-15 13:15:29 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: cloud.app.box.com and dl.boxcloud.com both front pinned objects through a 206/Range layer; upload.box.com is the sibling GCP origin whose root has never been fetched with a Range header. The status-only channel can still discriminate 206 vs 200/404.
 verify_steps: 1) GET https://upload.box.com/ with header Range: bytes=0-1023 (status only). 2) GET https://upload.box.com/ baseline (status only). 3) GET https://upload.box.com/robots.txt with Range: bytes=0-1023 (status only). 4) HEAD https://upload.box.com/robots.txt (status only). Stop on first 401/403/429.
 impact: recon-grade; determines whether the upload origin shares the same partial-content fronting as the sibling CDN/preview origins, guiding any later header-capturing channel work.
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-15 21:08:15 UTC upload.box.com (ling3)
 ## 2026-08-15 21:32:22 UTC upload.box.com (ling3)
 ## 2026-08-15 21:48:32 UTC upload.box.com (ling3)
+## 2026-08-15 21:59:30 UTC upload.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: Object-store normalizer case sensitivity: lowercased keys vs exact-case keys (from host-notes.services.box.com.md)
 
