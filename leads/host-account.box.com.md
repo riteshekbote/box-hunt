@@ -313,3 +313,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: `%3F` axis resolved (previous cycle) — split-before-decode confirmed by `robots.txt%3Fprobe`→404; not re-probed. Remaining anonymous surface: route-table width + case axis (both probed this cycle); CORS reflection and 200/206 backend flip stay PARKED (require header-verbatim capture, an executor capability outside current rules).
 ## 2026-08-15 04:48:37 UTC account.box.com (ling3)
 ## 2026-08-15 05:10:41 UTC account.box.com (ling3)
+## 2026-08-15 05:37:36 UTC account.box.com (ling3)
