@@ -195,3 +195,14 @@ testability: PASSIVE
 ## 2026-08-15 14:22:09 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 14:43:07 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 14:59:06 UTC dl.boxcloud.com (ling3)
+## 2026-08-15 15:21:10 UTC dl.boxcloud.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: the robots suite proves a single-decode normalizer with exact-key lookup — every single-encoded/query/`..` variant of pinned keys → 206 while double-encoded (%252F, %252E) and slash-suffix forms → 404, and query strings are ignored (robots.txt?probe=9f3k7 → 206). The remaining discriminator (arbitrary path → 206 origin-global vs 404 whitelist-scoped) is still open because the bare-nonce probe was emitted twice and never appeared in executor output.
+[HYP] Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce)
+class: MISCONFIG
+asset: cloud.app.box.com/<fresh-nonce>/
+confidence: 55
+reasoning: robots.txt/ → 404 while robots.txt → 206 shows the slash-suffix rule, but it is untested on an unguessable key; root flips 200↔206 across cycles. A slash-suffixed nonce discriminates a shape-specific 404 rule from a key-specific whitelist.
+verify_steps: GET https://cloud.app.box.com/K9wQ4zR7vM2n/ then GET https://cloud.app.box.com/; UA box-research/1.0; record status lines only.
+impact: 206 on the nonce ⇒ object-store default handler fronts arbitrary paths origin-wide (reopens the parked CORS surface host-wide, medium-high); 404 ⇒ pinned-key whitelist, CORS scope stays bounded.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/K9wQ4zR7vM2n/ (fresh 12-char nonce + trailing slash, distinct from Pn9k4Wm2sX6v/t3Kv9Xq2Mp7Z/7xq9ZzK2nX4w) then GET https://cloud.app.box.com/, UA box-research/1.0, status lines only — slash-suffix is a new asset form (prior nonce probes were bare and never executed); 206 ⇒ origin-global object-store default, 404 ⇒ whitelist-scoped; the paired root re-characterizes the 200/206 flip.
