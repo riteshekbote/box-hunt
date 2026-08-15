@@ -264,3 +264,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with `Range: bytes=0-0` — uppercase key: 206 (case-insensitive normalizer) vs 404 (case-sensitive object-store key) pins key semantics for later cache-key probes.
 ## 2026-08-15 22:58:24 UTC cloud.app.box.com (ling3)
 ## 2026-08-15 23:18:35 UTC cloud.app.box.com (ling3)
+## 2026-08-15 23:37:59 UTC cloud.app.box.com (ling3)
