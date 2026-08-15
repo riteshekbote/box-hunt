@@ -44,3 +44,7 @@ https://app.box.com/all -> 200
 https://app.box.com/zz-un-206-fp-7q2m -> HTTP 404
 https://app.box.com/.well-known/security.txt -> HTTP 404
 https://app.box.com/files -> 200
+
+## 2026-08-15 17:52:31 UTC app.box.com
+https://app.box.com/robots.txt -> 206
+https://app.box.com/ -> 200

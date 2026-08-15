@@ -277,3 +277,17 @@ testability: PASSIVE
 ## 2026-08-15 16:56:12 UTC app.box.com (ling3)
 ## 2026-08-15 17:13:37 UTC app.box.com (ling3)
 ## 2026-08-15 17:34:38 UTC app.box.com (ling3)
+## 2026-08-15 17:52:26 UTC app.box.com (bigpickle)
+[NEW] app.box.com: no app-origin results this cycle — executor returned only cloud.app.box.com/upload.box.com; all 6 queued app probes (favicon.ico, /all, /files, HEAD zz-un-206-fp-7q2m, security.txt, OPTIONS users/me) remain unexecuted.
+[HYP] App-origin routing parity vs cloud object-store normalizer
+class: MISCONFIG
+asset: app.box.com/robots.txt
+confidence: 35
+reasoning: cloud.app.box.com answers 206 for robots.txt, favicon.ico, and every single-encoded variant (%72, %2E, %252F->404, //) while 404 only on trailing-slash and double-encode; upload.box.com robots.txt is 404. app.box.com's answer to the same key is unmeasured and is the cheapest discriminator between shared 206/Range fronting and a distinct SPA web layer.
+verify_steps: GET https://app.box.com/robots.txt with UA box-research/1.0
+impact: delivery-topology map for the primary origin; flags whether the cloud 206/Range layer also fronts app (info, low)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/robots.txt with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 chars (206 = shared object-store edge; 404 = explicit app route; 200 SPA = distinct layer).
+[NEXT] PROBE: HEAD https://app.box.com/ with UA box-research/1.0 — record status, Content-Range, Content-Type, Server (HEAD 206+Content-Range = Range fronting on root; HEAD 200 no Content-Range = SPA shell).
+[NEXT] PROBE: OPTIONS https://app.box.com/ with Origin: https://attacker.example and Access-Control-Request-Method: GET, UA box-research/1.0 — record all Access-Control-* and Allow headers (preflight-before-auth schema vs api.box.com uniform 401 bearer edge).
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt: 206 across all single-encode path variants with 404 only on trailing-slash/double-encode locks the object-store default-handler + case-insensitive normalizer topology for the cloud origin (upload robots.txt 404 confirms heterogeneous edges) — parity mirror test now queued on app origin.
