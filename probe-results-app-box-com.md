@@ -34,3 +34,8 @@ https://app.box.com/trash -> 200
 https://app.box.com/zz-un-206-fp-7q2m -> HTTP 404
 https://app.box.com/api/2.0/files -> HTTP 401
 https://app.box.com/login -> 200
+
+## 2026-08-15 04:16:11 UTC app.box.com
+https://app.box.com/favicon.ico -> 206
+https://app.box.com/api/2.0/users/me -> HTTP 401
+https://app.box.com/all -> 200
