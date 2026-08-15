@@ -262,3 +262,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ with headers `Origin: https://attacker.example.com` and `Range: bytes=0-0` — report Access-Control-Allow-Origin / Access-Control-Allow-Credentials / Content-Range values.
 [NEXT] PROBE: GET https://cloud.app.box.com/8f4a2c9d1b6e3f20 with `Range: bytes=0-0` — random 16-hex nonce: 206 (true catch-all) vs 404 (whitelist-routed) settles the open routing question.
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with `Range: bytes=0-0` — uppercase key: 206 (case-insensitive normalizer) vs 404 (case-sensitive object-store key) pins key semantics for later cache-key probes.
+## 2026-08-15 22:58:24 UTC cloud.app.box.com (ling3)
