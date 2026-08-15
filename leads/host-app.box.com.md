@@ -307,3 +307,4 @@ verify_steps: GET https://app.box.com/robots.txt/ with UA box-research/1.0
 impact: delivery-topology map for the primary origin; 404 = shared 206/Range fronting on app (info, low)
 testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/robots.txt/ with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 chars (404 = shared normalizer/object-store edge; 200 HTML = distinct SPA layer).
+## 2026-08-15 20:07:51 UTC app.box.com (ling3)
