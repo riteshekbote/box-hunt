@@ -341,3 +341,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/zz-ap-fp-6t8n with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 bytes (206+CR = shared wildcard object-store edge on app; 404 = app-local router; 200 HTML = distinct SPA layer).
 [NEXT] PROBE: GET https://cloud.app.box.com/app/zz-cd-fp-9k2m with UA box-research/1.0 — nested-path re-key of the unresolved wildcard-vs-whitelist question (206 = default handler covers arbitrary nested paths; 404 = whitelist-routed pinning).
 ## 2026-08-15 23:37:59 UTC app.box.com (ling3)
+## 2026-08-15 23:53:14 UTC app.box.com (ling3)
