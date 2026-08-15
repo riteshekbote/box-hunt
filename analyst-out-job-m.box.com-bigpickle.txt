@@ -1,20 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-## 2026-08-15 ANALYST CYCLE — cloud.app.box.com (POC)
+[NEW] cloud.app.box.com/: root flip re-observed — 06:54 executor cycle served `/` as 206, while the 13-line normalization map stayed byte-identical; both prior discovery sweeps (03:07, 04:49) remain unexecuted, so the pinned-object table and the default-handler question are still unexplored, not refuted.
 
-[NEW] cloud.app.box.com/: root flip re-observed — 03:00=200, 03:50=200, 04:42=206, confirming the range-cache front serves the origin root intermittently; the 04:42 executor cycle re-ran the byte-identical 13-line normalization set (incl. upload.box.com/api/2.0/files/content sanity) instead of the 9-candidate discovery sweep, so live-object discovery remains unexecuted (unrefuted), not refuted.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization map (single-decode, case-sensitive, query-stripping) stable across 10+ cycles and root intermittently serves 206 — consistent with one range-capable object cache fronting the origin; live-object set remains only {/, /robots.txt, /favicon.ico} with all decorated/encoded variants at 404.
 
-[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: root now serves 206 in the 04:42 cycle alongside robots.txt/favicon.ico — consistent with a single range-capable object cache fronting the entire origin; normalization map reconfirmed byte-identical (9+ consecutive cycles), status differential stays the only reliable object-existence oracle.
-
-[HYP] Object-table fingerprint of cloud.app.box.com via status differential (extend known-object set beyond /, /robots.txt, /favicon.ico)
+[HYP] Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin
 class: OTHER
 asset: cloud.app.box.com/
-confidence: 58
-reasoning: known live objects remain only / (200/206), /robots.txt (206), /favicon.ico (206); all missing/encoded variants return plain 404. Two distinct discovery candidate sets have now been emitted but never executed, so the surface is unexplored, not refuted. Root's 200↔206 cycling adds no new objects but strengthens the single-object-cache model.
-evidence_needed: any path returning 200/206 outside the three known objects — that would mark a live app entry point or config object.
-verify_steps: bare-GET/HEAD sweep (no custom headers), UA "box-research/1.0 +(research)", 1 req/2s; baseline = /zzz-missing-9f3k7 (404), sanity = /robots.txt (206); first 4xx/429/403 -> log and stop host this cycle.
-impact: maps live objects/entry points on the preview origin for later read-only analysis; informational, low severity.
+confidence: 50
+reasoning: root served 206 in the 06:54 cycle, proving the range layer can front origin root content; every decorated pinned variant (trailing slash, double-encode, query-suffix) returns plain 404, and no random path has ever been tested because both discovery sweeps were skipped. Whether arbitrary paths hit 206 (default handler) or 404 (exact-key whitelist) remains the sole discriminator.
+evidence_needed: one random unguessable path response status — 206 proves catch-all range handler, 404 proves exact-key whitelist.
+verify_steps: bare GET, UA "box-research/1.0 +(research)", 1 req/2s; if random path = 206 → object-table enumeration/replay surface; if 404 → whitelist confirmed, informational only.
+impact: if 206 on arbitrary paths, the origin is an object-store default handler — enables existence oracle across the full key space; informational/low absent auth data.
 testability: PASSIVE
 
-[NEXT] PROBE: bare-GET/HEAD discovery, NEW set (distinct from every prior emission), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) HEAD /robots.txt (method-differential vs GET 206), 2) GET /.well-known/apple-app-site-association, 3) GET /apple-app-site-association (non-standard alt, iOS-served), 4) GET /asset-manifest.json (SPA entry-point map), 5) GET /env.js (runtime config), 6) GET /config.json, 7) GET /sitemap.xml, 8) GET /version (release marker), 9) GET /robots.txt (sanity, expect 206), 10) GET /zzz-missing-9f3k7 (baseline, expect 404). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
+[NEXT] PROBE: bare-GET 6-request discriminator set (distinct from all prior emissions), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /zzz-missing-9f3k7 (random unguessable path — 404 = whitelist-routed, 206 = default range-handler), 2) HEAD /robots.txt (method differential vs GET 206), 3) GET /robots.txt/robots.txt (nested-pinned path normalization), 4) GET /static/robots.txt (prefix routing), 5) GET /favicon.ico (sanity, expect 206), 6) GET /robots.txt (sanity, expect 206). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.

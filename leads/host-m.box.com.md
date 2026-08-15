@@ -199,3 +199,15 @@ testability: PASSIVE
 ## 2026-08-15 05:56:46 UTC m.box.com (ling3)
 ## 2026-08-15 06:26:26 UTC m.box.com (ling3)
 ## 2026-08-15 07:05:33 UTC m.box.com (ling3)
+## 2026-08-15 07:39:03 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root flip re-observed — 06:54 executor cycle served `/` as 206, while the 13-line normalization map stayed byte-identical; both prior discovery sweeps (03:07, 04:49) remain unexecuted, so the pinned-object table and the default-handler question are still unexplored, not refuted.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization map (single-decode, case-sensitive, query-stripping) stable across 10+ cycles and root intermittently serves 206 — consistent with one range-capable object cache fronting the origin; live-object set remains only {/, /robots.txt, /favicon.ico} with all decorated/encoded variants at 404.
+[HYP] Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: root served 206 in the 06:54 cycle, proving the range layer can front origin root content; every decorated pinned variant (trailing slash, double-encode, query-suffix) returns plain 404, and no random path has ever been tested because both discovery sweeps were skipped. Whether arbitrary paths hit 206 (default handler) or 404 (exact-key whitelist) remains the sole discriminator.
+verify_steps: bare GET, UA "box-research/1.0 +(research)", 1 req/2s; if random path = 206 → object-table enumeration/replay surface; if 404 → whitelist confirmed, informational only.
+impact: if 206 on arbitrary paths, the origin is an object-store default handler — enables existence oracle across the full key space; informational/low absent auth data.
+testability: PASSIVE
+[NEXT] PROBE: bare-GET 6-request discriminator set (distinct from all prior emissions), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /zzz-missing-9f3k7 (random unguessable path — 404 = whitelist-routed, 206 = default range-handler), 2) HEAD /robots.txt (method differential vs GET 206), 3) GET /robots.txt/robots.txt (nested-pinned path normalization), 4) GET /static/robots.txt (prefix routing), 5) GET /favicon.ico (sanity, expect 206), 6) GET /robots.txt (sanity, expect 206). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
