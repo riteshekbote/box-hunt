@@ -1,0 +1,21 @@
+[NEW] cloud.app.box.com: route-table probes (index.html, app.js) scheduled last cycle never executed — 3 consecutive executor batches (01:46/03:00/03:50 UTC) are identical standard lists; re-emitting and adding the untested case axis.
+[HYP] Route-table boundary: whitelist exactly 3 keys vs wider pinned set
+class: MISCONFIG
+asset: cloud.app.box.com/index.html
+confidence: 55
+reasoning: Random-path 404s (5 cycles) fingerprint "exactly 3 whitelisted keys", but common asset names never probed; `robots.txt/`→404 and `robots.txt/../robots.txt`→206 bracket the collapse behavior, yet a 4th pinned key would be invisible to the random-path fingerprint.
+verify_steps: (1) GET https://cloud.app.box.com/index.html UA "box-research/1.0 +(research)"; (2) GET https://cloud.app.box.com/app.js same UA; record status only.
+impact: 206 on either = whitelist broader than fingerprinted (route table incomplete, new anonymous keys); all-404 = 3-key table confirmed. Informational; low.
+testability: PASSIVE
+[HYP] Whitelist match case sensitivity: exact-case vs case-insensitive
+class: MISCONFIG
+asset: cloud.app.box.com/ROBOTS.TXT
+confidence: 40
+reasoning: Normalization model is fully specified (raw-`?`-split → single-decode → dot-collapse → slash-collapse → 3-key match) but no uppercase variant of any key has been probed in any batch — the case axis is the sole untested matcher property.
+verify_steps: (1) GET https://cloud.app.box.com/ROBOTS.TXT UA "box-research/1.0 +(research)"; record status only.
+impact: 206 = case-insensitive match (each of the 3 keys effectively serves 2^length case variants anonymously); 404 = exact-case model complete. Informational; low.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — re-emitted (never executed; no prior result exists). 206 = new pinned asset, route table broader than 3 keys; 404 = confirms exactly-3-key whitelist.
+[NEXT] PROBE: GET https://cloud.app.box.com/app.js with UA "box-research/1.0 +(research)"; record status only — re-emitted (never executed). 206 = second non-fingerprinted pinned asset; 404 = consistent with 3-key route table.
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — first case-axis probe. 206 = case-insensitive whitelist match; 404 = exact-case match, closing the final normalization axis.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: `%3F` axis resolved (previous cycle) — split-before-decode confirmed by `robots.txt%3Fprobe`→404; not re-probed. Remaining anonymous surface: route-table width + case axis (both probed this cycle); CORS reflection and 200/206 backend flip stay PARKED (require header-verbatim capture, an executor capability outside current rules).
