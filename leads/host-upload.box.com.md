@@ -207,3 +207,4 @@ testability: PASSIVE
 [PARKED] upload.box.com route-surface sweep (OPTIONS /, GET /upload, /healthz, /version, /files, /f/): the 10-request [NEXT] produced no new rows in next-executor results (battery only re-ran the fixed set), so the map is limited to /api/2.0/files/content -> 404. Re-open only by folding single paths into [NEXT] one at a time.
 [NEXT] PROBE: Range fingerprint on upload origin — GET https://upload.box.com/ with header `Range: bytes=0-1023`, record status; then GET https://upload.box.com/ without Range, record status; then OPTIONS https://upload.box.com/ with `Origin: https://evil.example` and `Access-Control-Request-Method: GET`, record status. Stop on first 401/403/429.
 ## 2026-08-15 07:38:33 UTC upload.box.com (ling3)
+## 2026-08-15 07:56:23 UTC upload.box.com (ling3)
