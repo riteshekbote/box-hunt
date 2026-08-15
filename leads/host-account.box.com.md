@@ -320,3 +320,28 @@ testability: PASSIVE
 ## 2026-08-15 07:38:29 UTC account.box.com (ling3)
 ## 2026-08-15 07:56:22 UTC account.box.com (ling3)
 ## 2026-08-15 08:18:45 UTC account.box.com (ling3)
+## 2026-08-15 08:49:37 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com: 6 consecutive executor batches (01:46→08:41 UTC) are byte-identical standard lists — custom [NEXT] probes (index.html, app.js, ROBOTS.TXT) never executed; route-table-width and case axes are unreachable at current executor capability, not re-emitted (same-NEXT-twice rule). Declaring the status-fidelity anonymous surface EXHAUSTED; opening the key-uniformity surface (all 5-stage-normalizer evidence comes from robots.txt variants alone).
+[HYP] Whitelist normalizer uniformity across pinned keys: trailing-slash handling is key-independent
+class: MISCONFIG
+asset: cloud.app.box.com/favicon.ico/
+confidence: 60
+reasoning: The only trailing-slash datapoint in the entire model is robots.txt/→404; every other normalization axis was also proven via robots.txt only. favicon.ico/ has never been probed, so slash-collapse is characterized on exactly one of three keys. Uniform behavior is assumed, not evidenced.
+verify_steps: (1) GET https://cloud.app.box.com/favicon.ico/ UA "box-research/1.0 +(research)"; record status only.
+impact: 404 = normalizer uniform across pinned keys (model closed on trailing-slash); 206 = slash-collapse is key-dependent → per-key route rules → route table is NOT the simple 3-key model. Informational; low.
+testability: PASSIVE
+[HYP] Exact-key whitelist vs opaque-separator handling: semicolon-suffixed pinned key
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt;probe
+confidence: 45
+reasoning: Every tested decoration collapses via a known normalizer op (slash, dot, encoded char, query-split) — semicolon is the one common opaque separator never probed. Exact-key model predicts 404 (no param/suffix handler); 206 would expose a suffix/param fallback the 5-stage model cannot explain.
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt;probe UA "box-research/1.0 +(research)"; record status only.
+impact: 404 = exact-key model complete for opaque separators; 206 = undocumented key-matching behavior beyond the 5-stage normalizer. Informational; low.
+testability: PASSIVE
+[PARKED] Route-table width (index.html/app.js): emitted twice, never executed — executor batches identical across 6 cycles; capability gap, same class as header-verbatim capture. Not re-emitted.
+[PARKED] Whitelist case axis (ROBOTS.TXT): emitted once, never executed — same executor capability gap.
+[PARKED] CORS reflection on 206 assets + 200/206 backend flip: remain header-verbatim-capture gated (unchanged).
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: status-fidelity anonymous surface is exhaustively characterized — 3-key whitelist {root, robots.txt, favicon.ico} behind 5-stage normalizer (raw-?-split → single-decode → dot-collapse → slash-collapse → exact-key match), root dual-backend 200/206 flip, trailing-slash→404, `%3F`/double-encode→404. All remaining axes are executor-capability-gated (custom paths, header capture), not evidence-gated.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: custom [NEXT] path probes do not reach the executor — 6 consecutive identical batches prove the pipeline runs a fixed standard list; the route-width/case hypotheses are unverifiable until the executor executes arbitrary paths or header-verbatim output. No probes re-emitted this cycle for previously-emitted assets.
+[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico/ with UA "box-research/1.0 +(research)"; record status only — first non-robots.txt normalizer probe, trailing-slash axis; 404 = uniform slash-collapse across keys (model closed), 206 = key-dependent slash rules → route table broader than 3-key model.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt;probe with UA "box-research/1.0 +(research)"; record status only — opaque-separator axis, never probed; 404 = exact-key model holds, 206 = undocumented suffix/param matching outside the 5-stage normalizer.

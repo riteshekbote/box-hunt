@@ -1,21 +1,24 @@
-[NEW] cloud.app.box.com: route-table probes (index.html, app.js) scheduled last cycle never executed — 3 consecutive executor batches (01:46/03:00/03:50 UTC) are identical standard lists; re-emitting and adding the untested case axis.
-[HYP] Route-table boundary: whitelist exactly 3 keys vs wider pinned set
+[NEW] cloud.app.box.com: 6 consecutive executor batches (01:46→08:41 UTC) are byte-identical standard lists — custom [NEXT] probes (index.html, app.js, ROBOTS.TXT) never executed; route-table-width and case axes are unreachable at current executor capability, not re-emitted (same-NEXT-twice rule). Declaring the status-fidelity anonymous surface EXHAUSTED; opening the key-uniformity surface (all 5-stage-normalizer evidence comes from robots.txt variants alone).
+[HYP] Whitelist normalizer uniformity across pinned keys: trailing-slash handling is key-independent
 class: MISCONFIG
-asset: cloud.app.box.com/index.html
-confidence: 55
-reasoning: Random-path 404s (5 cycles) fingerprint "exactly 3 whitelisted keys", but common asset names never probed; `robots.txt/`→404 and `robots.txt/../robots.txt`→206 bracket the collapse behavior, yet a 4th pinned key would be invisible to the random-path fingerprint.
-verify_steps: (1) GET https://cloud.app.box.com/index.html UA "box-research/1.0 +(research)"; (2) GET https://cloud.app.box.com/app.js same UA; record status only.
-impact: 206 on either = whitelist broader than fingerprinted (route table incomplete, new anonymous keys); all-404 = 3-key table confirmed. Informational; low.
+asset: cloud.app.box.com/favicon.ico/
+confidence: 60
+reasoning: The only trailing-slash datapoint in the entire model is robots.txt/→404; every other normalization axis was also proven via robots.txt only. favicon.ico/ has never been probed, so slash-collapse is characterized on exactly one of three keys. Uniform behavior is assumed, not evidenced.
+verify_steps: (1) GET https://cloud.app.box.com/favicon.ico/ UA "box-research/1.0 +(research)"; record status only.
+impact: 404 = normalizer uniform across pinned keys (model closed on trailing-slash); 206 = slash-collapse is key-dependent → per-key route rules → route table is NOT the simple 3-key model. Informational; low.
 testability: PASSIVE
-[HYP] Whitelist match case sensitivity: exact-case vs case-insensitive
+[HYP] Exact-key whitelist vs opaque-separator handling: semicolon-suffixed pinned key
 class: MISCONFIG
-asset: cloud.app.box.com/ROBOTS.TXT
-confidence: 40
-reasoning: Normalization model is fully specified (raw-`?`-split → single-decode → dot-collapse → slash-collapse → 3-key match) but no uppercase variant of any key has been probed in any batch — the case axis is the sole untested matcher property.
-verify_steps: (1) GET https://cloud.app.box.com/ROBOTS.TXT UA "box-research/1.0 +(research)"; record status only.
-impact: 206 = case-insensitive match (each of the 3 keys effectively serves 2^length case variants anonymously); 404 = exact-case model complete. Informational; low.
+asset: cloud.app.box.com/robots.txt;probe
+confidence: 45
+reasoning: Every tested decoration collapses via a known normalizer op (slash, dot, encoded char, query-split) — semicolon is the one common opaque separator never probed. Exact-key model predicts 404 (no param/suffix handler); 206 would expose a suffix/param fallback the 5-stage model cannot explain.
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt;probe UA "box-research/1.0 +(research)"; record status only.
+impact: 404 = exact-key model complete for opaque separators; 206 = undocumented key-matching behavior beyond the 5-stage normalizer. Informational; low.
 testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — re-emitted (never executed; no prior result exists). 206 = new pinned asset, route table broader than 3 keys; 404 = confirms exactly-3-key whitelist.
-[NEXT] PROBE: GET https://cloud.app.box.com/app.js with UA "box-research/1.0 +(research)"; record status only — re-emitted (never executed). 206 = second non-fingerprinted pinned asset; 404 = consistent with 3-key route table.
-[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — first case-axis probe. 206 = case-insensitive whitelist match; 404 = exact-case match, closing the final normalization axis.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: `%3F` axis resolved (previous cycle) — split-before-decode confirmed by `robots.txt%3Fprobe`→404; not re-probed. Remaining anonymous surface: route-table width + case axis (both probed this cycle); CORS reflection and 200/206 backend flip stay PARKED (require header-verbatim capture, an executor capability outside current rules).
+[PARKED] Route-table width (index.html/app.js): emitted twice, never executed — executor batches identical across 6 cycles; capability gap, same class as header-verbatim capture. Not re-emitted.
+[PARKED] Whitelist case axis (ROBOTS.TXT): emitted once, never executed — same executor capability gap.
+[PARKED] CORS reflection on 206 assets + 200/206 backend flip: remain header-verbatim-capture gated (unchanged).
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: status-fidelity anonymous surface is exhaustively characterized — 3-key whitelist {root, robots.txt, favicon.ico} behind 5-stage normalizer (raw-?-split → single-decode → dot-collapse → slash-collapse → exact-key match), root dual-backend 200/206 flip, trailing-slash→404, `%3F`/double-encode→404. All remaining axes are executor-capability-gated (custom paths, header capture), not evidence-gated.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: custom [NEXT] path probes do not reach the executor — 6 consecutive identical batches prove the pipeline runs a fixed standard list; the route-width/case hypotheses are unverifiable until the executor executes arbitrary paths or header-verbatim output. No probes re-emitted this cycle for previously-emitted assets.
+[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico/ with UA "box-research/1.0 +(research)"; record status only — first non-robots.txt normalizer probe, trailing-slash axis; 404 = uniform slash-collapse across keys (model closed), 206 = key-dependent slash rules → route table broader than 3-key model.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt;probe with UA "box-research/1.0 +(research)"; record status only — opaque-separator axis, never probed; 404 = exact-key model holds, 206 = undocumented suffix/param matching outside the 5-stage normalizer.
