@@ -293,3 +293,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt: 206 across all single-encode path variants with 404 only on trailing-slash/double-encode locks the object-store default-handler + case-insensitive normalizer topology for the cloud origin (upload robots.txt 404 confirms heterogeneous edges) — parity mirror test now queued on app origin.
 ## 2026-08-15 18:00:36 UTC app.box.com (ling3)
 ## 2026-08-15 18:35:00 UTC app.box.com (ling3)
+## 2026-08-15 18:59:41 UTC app.box.com (ling3)
