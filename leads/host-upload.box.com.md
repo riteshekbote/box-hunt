@@ -208,3 +208,4 @@ testability: PASSIVE
 [NEXT] PROBE: Range fingerprint on upload origin — GET https://upload.box.com/ with header `Range: bytes=0-1023`, record status; then GET https://upload.box.com/ without Range, record status; then OPTIONS https://upload.box.com/ with `Origin: https://evil.example` and `Access-Control-Request-Method: GET`, record status. Stop on first 401/403/429.
 ## 2026-08-15 07:38:33 UTC upload.box.com (ling3)
 ## 2026-08-15 07:56:23 UTC upload.box.com (ling3)
+## 2026-08-15 08:18:47 UTC upload.box.com (ling3)
