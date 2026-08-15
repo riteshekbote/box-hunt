@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 23:42:31 UTC"
 }=== MY LAST LEADS (tail) ===
-confidence: 45
 reasoning: 12 normalization variants of robots.txt and favicon.ico are byte-stable 206 while root drifts 200; double-encoded and %3F-embedded paths are 404. Whether a never-pinned random key also serves 206 (whole-origin object-store default handler) or 404 (whitelist-routed) is the open discriminator — prior header-based probe of this never logged.
 verify_steps: (1) GET https://cloud.app.box.com/7xv4m9qk2 no headers, UA box-research/1.0. (2) GET https://cloud.app.box.com/.well-known/security.txt — real-world non-pinned path. (3) GET https://cloud.app.box.com/7xv4m9qk2/?probe=1 — query-normalized random key.
 impact: whole-origin object-store fronting behind one DNS name => if CORS ever misconfigured, cross-origin read of tokenized preview content; otherwise MEDIUM-LOW informational edge fingerprint (origin-wide normalizer).
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-15 09:37:17 UTC notes.services.box.com (ling3)
 ## 2026-08-15 09:54:33 UTC notes.services.box.com (ling3)
 ## 2026-08-15 10:10:19 UTC notes.services.box.com (ling3)
+## 2026-08-15 10:36:18 UTC notes.services.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
