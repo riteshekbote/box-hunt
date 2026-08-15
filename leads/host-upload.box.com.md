@@ -278,3 +278,4 @@ testability: PASSIVE
 [PARKED] upload.box.com Range/partial-content layer on root: root and OPTIONS paths still produce no rows on the status channel; the Range discriminator is only actionable on a path the battery demonstrably runs (now robots.txt), so it rides along on the trailing-slash probe next cycle if a 2xx/3xx surfaces.
 [NEXT] PROBE: GET https://upload.box.com/robots.txt/ (trailing slash), status only, UA `box-research/1.0 +(research)`, 1 req/2s. Compare against known bare-path 404. Stop on first 401/403/429.
 ## 2026-08-15 23:37:56 UTC upload.box.com (ling3)
+## 2026-08-15 23:53:14 UTC upload.box.com (ling3)
