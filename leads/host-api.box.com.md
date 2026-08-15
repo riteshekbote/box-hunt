@@ -238,3 +238,4 @@ verify_steps: 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)":
 impact: If arbitrary keys reach the Range layer, the object-store edge may serve non-whitelisted keys when the backend flips; widens any future key-discovery surface. Low-medium unless a body leak surfaces.
 testability: PASSIVE
 [NEXT] PROBE (fresh nonce, pending — prior emission unexecuted): 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)": (1) HEAD https://cloud.app.box.com/ (2) GET https://cloud.app.box.com/bh-u7xq2-kz48m with header `Range: bytes=0-0` (3) GET https://cloud.app.box.com/robots.txt with header `Range: bytes=0-0` — record status + content-type + Accept-Ranges/Content-Range verbatim into probe-results-next.md. Stop host on first 403/429 (404s informative, continue).
+## 2026-08-15 16:09:55 UTC api.box.com (ling3)
