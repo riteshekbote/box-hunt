@@ -367,3 +367,18 @@ testability: PASSIVE
 ## 2026-08-15 15:54:27 UTC account.box.com (ling3)
 ## 2026-08-15 16:09:49 UTC account.box.com (ling3)
 ## 2026-08-15 16:37:46 UTC account.box.com (ling3)
+## 2026-08-15 16:57:27 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com/: `%2e%2e/robots.txt` → 206 in all 3 batches this cycle (absent from all earlier cycles) — first encoded-dot-dot datapoint; encoded `..` collapses exactly like raw `../`, proving single-URL-decode runs BEFORE the dot-collapse. Normalizer ordering is now fully evidenced.
+[HYP] Dot-collapse reaches the root key: `robots.txt/..` resolves via dot-segment removal
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt/..
+confidence: 40
+reasoning: The exact-key match runs on the post-collapse path (robots.txt/../robots.txt→206, %2e%2e/robots.txt→206). RFC 3986 dot-segment removal turns `robots.txt/..` into an empty path — the first probe that drives a non-pinned input into the root slot through the normalizer, discriminating root-as-whitelist-key vs default handler (top-ranked [45] hypothesis).
+verify_steps: (1) GET https://cloud.app.box.com/robots.txt/.. UA "box-research/1.0 +(research)"; record status only. 200/206 = collapse feeds root → root is normalizer-reachable, default-handler model gains weight; 404 = collapse yields a non-key → root handled outside the whitelist.
+impact: None directly; closes the whitelist-vs-default-handler question that gates object-store fronting impact. Informational; low.
+testability: PASSIVE
+[PARKED] Whitelist key-uniformity (favicon.ico/ + robots.txt;probe): emitted once each at 08:49; 3 further executor cycles (15:32, 15:53, 16:37) ran byte-identical fixed lists containing neither path — permanently executor-gated, not re-emitted per same-NEXT-twice rule.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: normalizer ordering closed — decode precedes both collapsers (`%2e%2e/`→206 dot, `%2F`→206 slash), double-encode→404, decode depth exactly 1. Open question narrows to collapse OUTPUT semantics (does `..`-removal feed root?), probed via the [NEXT] below.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: key-uniformity surface is executor-gated, not evidence-gated — 3 consecutive byte-identical batches prove the fixed-list pipeline again; no further evidence-gated work remains until the executor runs arbitrary paths or captures headers (CORS reflection + 200/206 backend flip stay PARKED, same capability gap).
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/.. with UA "box-research/1.0 +(research)"; record status only — collapse-driven root probe; 200/206 = root reachable via normalizer (default-handler weight), 404 = root outside whitelist matching.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt/./robots.txt with UA "box-research/1.0 +(research)"; record status only — single-dot axis, never probed; 206 = `./` stripped and zero-length segments handled, 404 = single-dot not collapsed.
