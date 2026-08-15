@@ -191,3 +191,16 @@ testability: PASSIVE
 ## 2026-08-15 05:56:45 UTC api.box.com (ling3)
 ## 2026-08-15 06:26:24 UTC api.box.com (ling3)
 ## 2026-08-15 07:05:36 UTC api.box.com (ling3)
+## 2026-08-15 07:39:18 UTC api.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root backend flip confirmed — 06:54 run returned **206** for `/` after two consecutive 200s (05:36, 05:56), the first direct alternation evidence for the heterogeneous-origin hypothesis. robots.txt/favicon.ico stable **206** across all three runs with single-decode exact-key normalization (double-encoded `%252F`/`robots%252Etxt` → 404, `robots.txt%3Fprobe` → 404 while `?probe` query → 206).
+[PARKED] cloud.app.box.com/api/2.0/ distinct-edge differential (search / users/me / folders/1) AND bare-path `/api/` vs `/api/2.0/` scope test: executor replayed the stale robots.txt set at 05:36, 05:56, 06:54 — three consecutive emissions returned zero new evidence; both probe lists are closed pending executor change, not retried.
+[NEW] cloud.app.box.com/ backend alternation: root observed 200→200→206 across 05:36/05:56/06:54 runs while pinned keys (robots.txt, favicon.ico) hold 206 — the Range-layer front is origin-root-capable and flips against the SPA backend, leaving Range-layer width as the open discriminator.
+[HYP] Range-layer width via Range header: origin-wide 206 layer vs pinned-whitelist only
+class: MISCONFIG
+asset: cloud.app.box.com/ (arbitrary path + root + pinned key)
+confidence: 45
+reasoning: Executor evidence — root flipped 200↔206 (06:54), robots.txt/favicon.ico stable 206 with single-decode exact-key lookup, arbitrary unguessable paths previously 404 SPA. If the Range layer is origin-wide, a Range header on a random path returns 206/Content-Range instead of the 404-SPA fallback; pinned-key Range headers fingerprint the layer for comparison. This is the first emission; never probed.
+verify_steps: 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)": (1) HEAD https://cloud.app.box.com/ (2) GET https://cloud.app.box.com/bh-u7xq2-<fresh-token> with header Range: bytes=0-0 (3) GET https://cloud.app.box.com/robots.txt with header Range: bytes=0-0 — record status + content-type + Accept-Ranges/Content-Range verbatim; 404 informative, stop host on first 403/429.
+impact: If arbitrary keys reach the Range layer, the object-store edge may serve non-whitelisted keys when the backend flips; combined with the single-decode key grammar this widens any future key-discovery surface. Low-medium unless a body leak surfaces.
+testability: PASSIVE
+[NEXT] PROBE: 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)": (1) HEAD https://cloud.app.box.com/ (2) GET https://cloud.app.box.com/bh-u7xq2-kz48m with header `Range: bytes=0-0` (3) GET https://cloud.app.box.com/robots.txt with header `Range: bytes=0-0` — record status + content-type + Accept-Ranges/Content-Range verbatim into probe-results-next.md. Stop host on first 403/429 (404s informative, continue).

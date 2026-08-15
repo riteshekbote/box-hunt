@@ -1,18 +1,19 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/2.0/: Executor run 2026-08-14 19:53:29 replayed the stale robots.txt set a third time; my api/2.0 trio (search/users/me/folders/1) has never executed after 3 emissions — repeated emission is a confirmed no-op, so the differential cannot advance on that probe list.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root backend flip confirmed — 06:54 run returned **206** for `/` after two consecutive 200s (05:36, 05:56), the first direct alternation evidence for the heterogeneous-origin hypothesis. robots.txt/favicon.ico stable **206** across all three runs with single-decode exact-key normalization (double-encoded `%252F`/`robots%252Etxt` → 404, `robots.txt%3Fprobe` → 404 while `?probe` query → 206).
 
-[PARKED] cloud.app.box.com/api/2.0/ distinct-edge differential (search / users/me / folders/1): blocked on executor — probe never executed after 3 emissions (19:53 run was stale robots.txt again). Re-open only if a result for those paths appears.
+[PARKED] cloud.app.box.com/api/2.0/ distinct-edge differential (search / users/me / folders/1) AND bare-path `/api/` vs `/api/2.0/` scope test: executor replayed the stale robots.txt set at 05:36, 05:56, 06:54 — three consecutive emissions returned zero new evidence; both probe lists are closed pending executor change, not retried.
 
-[HYP] cloud.app.box.com API edge path-scope: mounted at /api/ (version-agnostic) vs /api/2.0/ only
+[NEW] cloud.app.box.com/ backend alternation: root observed 200→200→206 across 05:36/05:56/06:54 runs while pinned keys (robots.txt, favicon.ico) hold 206 — the Range-layer front is origin-root-capable and flips against the SPA backend, leaving Range-layer width as the open discriminator.
+
+[HYP] Range-layer width via Range header: origin-wide 206 layer vs pinned-whitelist only
 class: MISCONFIG
-asset: cloud.app.box.com/api/
-confidence: 30
-reasoning: Manual dig 15:25: /api/2.0/files/1 -> 401 while unguessable paths -> 404 SPA (23KB), proving an auth-wrapped edge exists ahead of the SPA fallback. Bare-path status (/api/ and /api/2.0/) discriminates a version-scoped mount (401 on 2.0, 404 SPA on /api/) from a broad mount (401 on both). Never probed before.
-evidence_needed: status of /api/ and /api/2.0/ bare paths
-verify_steps: 2 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/ (2) https://cloud.app.box.com/api/2.0/ — record status + content-type verbatim; 401/404 informative, stop host on first 403/429.
-impact: Reveals the width of the alternate API edge; if /api/ broadly 401s, the edge extends beyond /2.0/, widening any future auth/hardening-differential surface. Low unless a status/body differential to api.box.com surfaces.
+asset: cloud.app.box.com/ (arbitrary path + root + pinned key)
+confidence: 45
+reasoning: Executor evidence — root flipped 200↔206 (06:54), robots.txt/favicon.ico stable 206 with single-decode exact-key lookup, arbitrary unguessable paths previously 404 SPA. If the Range layer is origin-wide, a Range header on a random path returns 206/Content-Range instead of the 404-SPA fallback; pinned-key Range headers fingerprint the layer for comparison. This is the first emission; never probed.
+evidence_needed: (a) Range on unguessable path → 206+Content-Range vs 404-SPA; (b) HEAD root → Accept-Ranges (Range layer) vs text/html no-Range (SPA backend); (c) Range on robots.txt → Content-Range baseline
+verify_steps: 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)": (1) HEAD https://cloud.app.box.com/ (2) GET https://cloud.app.box.com/bh-u7xq2-<fresh-token> with header Range: bytes=0-0 (3) GET https://cloud.app.box.com/robots.txt with header Range: bytes=0-0 — record status + content-type + Accept-Ranges/Content-Range verbatim; 404 informative, stop host on first 403/429.
+impact: If arbitrary keys reach the Range layer, the object-store edge may serve non-whitelisted keys when the backend flips; combined with the single-decode key grammar this widens any future key-discovery surface. Low-medium unless a body leak surfaces.
 testability: PASSIVE
-
-[NEXT] PROBE: 2 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/api/ (2) https://cloud.app.box.com/api/2.0/ — record status + content-type verbatim into probe-results-next.md. Stop host on first 403/429 (401/404 informative, continue).
+[NEXT] PROBE: 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)": (1) HEAD https://cloud.app.box.com/ (2) GET https://cloud.app.box.com/bh-u7xq2-kz48m with header `Range: bytes=0-0` (3) GET https://cloud.app.box.com/robots.txt with header `Range: bytes=0-0` — record status + content-type + Accept-Ranges/Content-Range verbatim into probe-results-next.md. Stop host on first 403/429 (404s informative, continue).
