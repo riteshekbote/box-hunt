@@ -195,3 +195,4 @@ impact: maps live objects/entry points on the preview origin for later read-only
 testability: PASSIVE
 [NEXT] PROBE: bare-GET/HEAD discovery, NEW set (distinct from every prior emission), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) HEAD /robots.txt (method-differential vs GET 206), 2) GET /.well-known/apple-app-site-association, 3) GET /apple-app-site-association (non-standard alt, iOS-served), 4) GET /asset-manifest.json (SPA entry-point map), 5) GET /env.js (runtime config), 6) GET /config.json, 7) GET /sitemap.xml, 8) GET /version (release marker), 9) GET /robots.txt (sanity, expect 206), 10) GET /zzz-missing-9f3k7 (baseline, expect 404). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
 ## 2026-08-15 05:10:39 UTC m.box.com (ling3)
+## 2026-08-15 05:37:26 UTC m.box.com (ling3)
