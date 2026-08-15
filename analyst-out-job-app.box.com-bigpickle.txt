@@ -1,33 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com: 11/11 probe variants — raw, percent-encoded, traversal (`robots.txt/../robots.txt`), and query-suffixed paths all return 206 Partial Content; only double-encoded forms (`%252F`, `%252E`) 404. The 206/Range object-store layer fronts arbitrary decoded paths, not just pinned assets.
-
-[CONFIRMED] Object-store default handler — whitelist-routed branch rejected
+[NEW] app.box.com: Executor output for the last three cycles (23:32:56, 23:56:00, 01:46:32 UTC) is verbatim-identical and covers only cloud.app.box.com/upload.box.com paths — all 12+ app-origin probes queued since 21:12 (users/me, search, folders/0, shared_items, robots.txt, notes, trash, preflights, login-plane) remain unexecuted; app origin still has zero recorded HTTP facts. Rotating to fresh, never-queued app-origin discriminators.
+[NEW] cloud.app.box.com: Query-split-before-decode confirmed — `robots.txt?probe=9f3k7` → 206 while `robots.txt%3Fprobe` → 404 means the raw-layer `?` split precedes decode and a literal `?` lands in the object key; with `%252F`→404 and `%72obots.txt`→206, the normalizer model is single-decode + dot-segment collapse + exact-key default handler.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Refined normalizer model — single percent-decode (not double: `%252Frobots.txt`→404), dot-segment collapse (`/robots.txt/../robots.txt`, `/%2e%2e/robots.txt`→206), raw-layer query split before decode (`robots.txt%3Fprobe`→404 vs `?probe=9f3k7`→206), exact-key default handler; root→200 vs assets→206 proves a separate shell handler for `/`.
+[HYP] App-origin delivery-layer classifier: object-store default handler vs SPA shell vs edge-404
 class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 55
-reasoning: `robots.txt`, `favicon.ico`, `/%2Frobots.txt`, `/%2e%2e/robots.txt`, `robots.txt/../robots.txt` all 206 with no 302/auth divergence; a pinned-asset/whitelist router would 404 or 302 unknown decoded paths. Uniform 206 = Range-serving layer accepts arbitrary paths origin-wide.
-evidence_needed: one fresh unguessable path returning 206 to close the arbitrary-path branch
-verify_steps: GET https://cloud.app.box.com/zz-unguessable-206-fp-3x8k (UA box-research/1.0) → record status + Content-Range
-impact: delivery-topology map on preview origin; info only (low)
-testability: PASSIVE
-
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: uniform 206 across encoded/traversal/query variants confirms default object-store handler; `%25` double-encoding 404 is decoder-normalizer evidence, not a bypass.
-
-[HYP] App-origin static-vs-shell routing differential via robots.txt
-class: MISCONFIG
-asset: app.box.com/robots.txt
+asset: app.box.com/
 confidence: 40
-reasoning: cloud origin serves robots.txt as 206 from the object-store layer; app.box.com is the SPA/shell origin and is the only primary host with zero recorded HTTP facts. Its robots.txt behavior (206 vs 200 shell vs 302-to-login) pins whether app origin shares the object-store edge or a distinct web layer.
-evidence_needed: app.box.com/robots.txt status, Content-Type, Server, body prefix
-verify_steps: GET https://app.box.com/robots.txt (UA box-research/1.0)
-impact: delivery-layer map for the primary app origin; info only (low)
+reasoning: cloud.app.box.com facts (root→200 shell; robots.txt→206 across percent/traversal/double-slash variants; `robots.txt/`→404) establish single-decode + dot-segment-collapse + exact-key default object-store handler on the sibling preview origin. app.box.com is the primary SPA origin with zero recorded HTTP facts; one random unguessable path returns 206 (shared object-store default), 200 HTML (SPA fallback), or 404 (explicit edge route), classifying the whole origin's delivery layer.
+evidence_needed: status + Content-Range/Content-Type/Server + body prefix for GET /zz-un-206-fp-7q2m
+verify_steps: GET https://app.box.com/zz-un-206-fp-7q2m (UA box-research/1.0) → record status, Content-Range, Content-Type, Server, first 200 chars of body
+impact: delivery-topology map for the primary origin; if 206, same object-store fronting class as cloud (info only, low)
 testability: PASSIVE
-
-[NEW] app.box.com: 11 app-origin probes queued over prior cycles (users/me, SPA-fallback, api/2.0 preflights, folders/shared_items, account/login) still have zero executed results — executor output this cycle again covered only cloud.app.box.com paths. Rotating to never-queued app-origin targets so POC advances regardless.
-
-[NEXT] PROBE: GET https://app.box.com/robots.txt with UA box-research/1.0 — record status, Content-Type, Server, first 200 chars of body (vs cloud's 206 fingerprint).
-[NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/folders/0 with Origin: https://attacker.example + Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (fresh preflight target; the api/2.0/ root and origin-root preflights were queued earlier but never executed).
-[NEXT] PROBE: GET https://app.box.com/notes with UA box-research/1.0 — record status, Location, Content-Type, body prefix (Notes entry point on app origin, never probed).
-[NEXT] PROBE: GET https://app.box.com/trash with UA box-research/1.0 — record status, Location, Content-Type, body prefix (authenticated-app route as auth-gate fingerprint, distinct from login-plane paths already queued).
+[NEXT] PROBE: GET https://app.box.com/zz-un-206-fp-7q2m with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 chars of body (206 = shared object-store default handler; 200 HTML = SPA fallback; 404 = explicit edge route).
+[NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/files with Origin: https://attacker.example and Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (preflight/CORS differential on the files handler family; distinct from folders/0 preflight already queued).
+[NEXT] PROBE: GET https://app.box.com/login with UA box-research/1.0 — record status, Location, Content-Type, first 200 chars of body (auth-plane path placement on app origin; distinct from /account/login and /oauth2/authorize already queued).

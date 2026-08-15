@@ -191,3 +191,18 @@ testability: PASSIVE
 ## 2026-08-14 23:40:53 UTC app.box.com (ling3)
 ## 2026-08-14 23:58:43 UTC app.box.com (ling3)
 ## 2026-08-15 01:11:21 UTC app.box.com (ling3)
+## 2026-08-15 02:19:41 UTC app.box.com (bigpickle)
+[NEW] app.box.com: Executor output for the last three cycles (23:32:56, 23:56:00, 01:46:32 UTC) is verbatim-identical and covers only cloud.app.box.com/upload.box.com paths — all 12+ app-origin probes queued since 21:12 (users/me, search, folders/0, shared_items, robots.txt, notes, trash, preflights, login-plane) remain unexecuted; app origin still has zero recorded HTTP facts. Rotating to fresh, never-queued app-origin discriminators.
+[NEW] cloud.app.box.com: Query-split-before-decode confirmed — `robots.txt?probe=9f3k7` → 206 while `robots.txt%3Fprobe` → 404 means the raw-layer `?` split precedes decode and a literal `?` lands in the object key; with `%252F`→404 and `%72obots.txt`→206, the normalizer model is single-decode + dot-segment collapse + exact-key default handler.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Refined normalizer model — single percent-decode (not double: `%252Frobots.txt`→404), dot-segment collapse (`/robots.txt/../robots.txt`, `/%2e%2e/robots.txt`→206), raw-layer query split before decode (`robots.txt%3Fprobe`→404 vs `?probe=9f3k7`→206), exact-key default handler; root→200 vs assets→206 proves a separate shell handler for `/`.
+[HYP] App-origin delivery-layer classifier: object-store default handler vs SPA shell vs edge-404
+class: MISCONFIG
+asset: app.box.com/
+confidence: 40
+reasoning: cloud.app.box.com facts (root→200 shell; robots.txt→206 across percent/traversal/double-slash variants; `robots.txt/`→404) establish single-decode + dot-segment-collapse + exact-key default object-store handler on the sibling preview origin. app.box.com is the primary SPA origin with zero recorded HTTP facts; one random unguessable path returns 206 (shared object-store default), 200 HTML (SPA fallback), or 404 (explicit edge route), classifying the whole origin's delivery layer.
+verify_steps: GET https://app.box.com/zz-un-206-fp-7q2m (UA box-research/1.0) → record status, Content-Range, Content-Type, Server, first 200 chars of body
+impact: delivery-topology map for the primary origin; if 206, same object-store fronting class as cloud (info only, low)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/zz-un-206-fp-7q2m with UA box-research/1.0 — record status, Content-Range, Content-Type, Server, first 200 chars of body (206 = shared object-store default handler; 200 HTML = SPA fallback; 404 = explicit edge route).
+[NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/files with Origin: https://attacker.example and Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (preflight/CORS differential on the files handler family; distinct from folders/0 preflight already queued).
+[NEXT] PROBE: GET https://app.box.com/login with UA box-research/1.0 — record status, Location, Content-Type, first 200 chars of body (auth-plane path placement on app origin; distinct from /account/login and /oauth2/authorize already queued).
