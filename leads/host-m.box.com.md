@@ -276,3 +276,24 @@ testability: PASSIVE
 ## 2026-08-15 22:22:12 UTC m.box.com (ling3)
 ## 2026-08-15 22:42:56 UTC m.box.com (ling3)
 ## 2026-08-15 22:58:25 UTC m.box.com (ling3)
+## 2026-08-15 23:19:07 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: executor re-ran the identical 13-URL default batch three consecutive cycles (21:52/22:34/22:54, byte-identical) — my 18:35 8-request sweep was NOT executed; normalization model re-stabilized but the case-sensitivity and default-handler branches remain untouched and unrefuted.
+[HYP] Object-store normalizer case-sensitivity: uppercase / mixed-case keys vs exact-case keys
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: single-decode normalization is now 4x-confirmed (%72obots.txt, robots%2Etxt, %2Frobots.txt all 206; %252F and %252E 404) while only the case dimension was never probed; the object store is either exact-key (uppercase 404) or case-insensitive (uppercase 206) — no prior emission tested /ROBOTS.TXT or /Robots.txt.
+verify_steps: bare GET /ROBOTS.TXT then /Robots.txt, UA box-research, 1 req/2s.
+impact: pins the object-key model for future existence-oracle sweeps; informational/low absent auth data.
+testability: PASSIVE
+[HYP] Object-store default handler vs whitelist-routed (fresh nonce, 4th emission)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: root returns 200 while pinned objects return 206, proving the Range layer fronts only pinned keys; no random unguessable path has ever been probed despite three emissions, so the default-handler question is still open — 206 on a random nonce would reveal an object-store default handler (existence oracle across full key space).
+verify_steps: bare GET /zzz-nonexistent-8c41b, UA box-research, 1 req/2s, stop on first 4xx/429/403.
+impact: if 206 on arbitrary paths, existence-oracle across the whole object key space; informational/low.
+testability: PASSIVE
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization map byte-identical across 4 consecutive labeled cycles (single-decode + query-strip; trailing-slash, double-encode, dotdot-expanded variants all absent/404); case-sensitivity is the only untested branch of the model.
+[PARKED] CORS misconfig on cloud.app.box.com preview origin (conf 45): discriminator needs an attacker-Origin OPTIONS preflight / custom-header GET; executor only emits bare URLs — parked until a header-capable executor mode is authorized.
+[NEXT] PROBE: 4-request sweep, distinct from both the 13-URL default batch and the 18:35 8-sweep (fresh nonce, trimmed set), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /ROBOTS.TXT (case test), 2) GET /Robots.txt (mixed-case test), 3) GET /zzz-nonexistent-8c41b (fresh nonce — default-handler discriminator), 4) HEAD /favicon.ico (method differential vs GET 206). Record status + length each; 206 = live object, 404 = absent; first 4xx/429/403 -> log and stop probing this host for the cycle.

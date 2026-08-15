@@ -35,43 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-14 09:11:46 UTC"
+  "last_advance": "2026-08-15 18:35:37 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-15 04:15:34 UTC m.box.com (ling3)
-## 2026-08-15 04:49:00 UTC m.box.com (bigpickle)
-[NEW] cloud.app.box.com/: root flip re-observed — 03:00=200, 03:50=200, 04:42=206, confirming the range-cache front serves the origin root intermittently; the 04:42 executor cycle re-ran the byte-identical 13-line normalization set (incl. upload.box.com/api/2.0/files/content sanity) instead of the 9-candidate discovery sweep, so live-object discovery remains unexecuted (unrefuted), not refuted.
-[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: root now serves 206 in the 04:42 cycle alongside robots.txt/favicon.ico — consistent with a single range-capable object cache fronting the entire origin; normalization map reconfirmed byte-identical (9+ consecutive cycles), status differential stays the only reliable object-existence oracle.
-[HYP] Object-table fingerprint of cloud.app.box.com via status differential (extend known-object set beyond /, /robots.txt, /favicon.ico)
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 58
-reasoning: known live objects remain only / (200/206), /robots.txt (206), /favicon.ico (206); all missing/encoded variants return plain 404. Two distinct discovery candidate sets have now been emitted but never executed, so the surface is unexplored, not refuted. Root's 200↔206 cycling adds no new objects but strengthens the single-object-cache model.
-verify_steps: bare-GET/HEAD sweep (no custom headers), UA "box-research/1.0 +(research)", 1 req/2s; baseline = /zzz-missing-9f3k7 (404), sanity = /robots.txt (206); first 4xx/429/403 -> log and stop host this cycle.
-impact: maps live objects/entry points on the preview origin for later read-only analysis; informational, low severity.
-testability: PASSIVE
-[NEXT] PROBE: bare-GET/HEAD discovery, NEW set (distinct from every prior emission), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) HEAD /robots.txt (method-differential vs GET 206), 2) GET /.well-known/apple-app-site-association, 3) GET /apple-app-site-association (non-standard alt, iOS-served), 4) GET /asset-manifest.json (SPA entry-point map), 5) GET /env.js (runtime config), 6) GET /config.json, 7) GET /sitemap.xml, 8) GET /version (release marker), 9) GET /robots.txt (sanity, expect 206), 10) GET /zzz-missing-9f3k7 (baseline, expect 404). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
-## 2026-08-15 05:10:39 UTC m.box.com (ling3)
-## 2026-08-15 05:37:26 UTC m.box.com (ling3)
-## 2026-08-15 05:56:46 UTC m.box.com (ling3)
-## 2026-08-15 06:26:26 UTC m.box.com (ling3)
-## 2026-08-15 07:05:33 UTC m.box.com (ling3)
-## 2026-08-15 07:39:03 UTC m.box.com (bigpickle)
-[NEW] cloud.app.box.com/: root flip re-observed — 06:54 executor cycle served `/` as 206, while the 13-line normalization map stayed byte-identical; both prior discovery sweeps (03:07, 04:49) remain unexecuted, so the pinned-object table and the default-handler question are still unexplored, not refuted.
-[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization map (single-decode, case-sensitive, query-stripping) stable across 10+ cycles and root intermittently serves 206 — consistent with one range-capable object cache fronting the origin; live-object set remains only {/, /robots.txt, /favicon.ico} with all decorated/encoded variants at 404.
-[HYP] Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 50
-reasoning: root served 206 in the 06:54 cycle, proving the range layer can front origin root content; every decorated pinned variant (trailing slash, double-encode, query-suffix) returns plain 404, and no random path has ever been tested because both discovery sweeps were skipped. Whether arbitrary paths hit 206 (default handler) or 404 (exact-key whitelist) remains the sole discriminator.
-verify_steps: bare GET, UA "box-research/1.0 +(research)", 1 req/2s; if random path = 206 → object-table enumeration/replay surface; if 404 → whitelist confirmed, informational only.
-impact: if 206 on arbitrary paths, the origin is an object-store default handler — enables existence oracle across the full key space; informational/low absent auth data.
-testability: PASSIVE
-[NEXT] PROBE: bare-GET 6-request discriminator set (distinct from all prior emissions), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /zzz-missing-9f3k7 (random unguessable path — 404 = whitelist-routed, 206 = default range-handler), 2) HEAD /robots.txt (method differential vs GET 206), 3) GET /robots.txt/robots.txt (nested-pinned path normalization), 4) GET /static/robots.txt (prefix routing), 5) GET /favicon.ico (sanity, expect 206), 6) GET /robots.txt (sanity, expect 206). Record status + length each; a 200/206 marks a live edge object, 404 marks absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
-## 2026-08-15 07:56:23 UTC m.box.com (ling3)
-## 2026-08-15 08:18:47 UTC m.box.com (ling3)
-## 2026-08-15 08:48:37 UTC m.box.com (ling3)
-## 2026-08-15 09:10:47 UTC m.box.com (ling3)
-## 2026-08-15 09:37:17 UTC m.box.com (ling3)
 ## 2026-08-15 09:54:33 UTC m.box.com (ling3)
 ## 2026-08-15 10:10:17 UTC m.box.com (ling3)
 ## 2026-08-15 10:36:19 UTC m.box.com (ling3)
@@ -97,10 +62,45 @@ testability: PASSIVE
 ## 2026-08-15 17:34:37 UTC m.box.com (ling3)
 ## 2026-08-15 17:51:58 UTC m.box.com (ling3)
 ## 2026-08-15 18:00:36 UTC m.box.com (ling3)
+## 2026-08-15 18:35:37 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: executor served the byte-identical 13-line normalization set for the 4th consecutive labeled cycle (16:56/17:31/17:53 + unlabeled), root flipped back to 200; both discovery emissions (04:15 10-req, 07:39 6-req) still unexecuted — surface remains unexplored, not refuted.
+[HYP] Object-store default handler vs whitelist-routed (fresh nonce, 3rd emission)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: root intermittently 206 proves the range layer fronts the origin root; every pinned-object decoration normalizes to 206 except double-encoded and trailing-slash forms (404), and no arbitrary unguessable key has ever been probed — the default-handler question is unrefuted.
+verify_steps: bare GET /zzz-nonexistent-2f7a9, UA box-research, 1 req/2s.
+impact: if 206 on arbitrary paths, object-store default handler enables existence-oracle across the full key space; informational/low absent auth data.
+testability: PASSIVE
+[HYP] Object-store normalizer case-sensitivity: /ROBOTS.TXT and /Robots.txt vs /robots.txt
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: normalization map claimed case-sensitive in prior cycles but uppercase/mixed-case keys were never probed; %72obots.txt and robots%2Etxt both 206 confirm single-decode normalization only.
+verify_steps: bare GET /ROBOTS.TXT then /Robots.txt, UA box-research, 1 req/2s.
+impact: tightens the object-key model for future discovery sweeps; informational.
+testability: PASSIVE
+[PARKED] CORS misconfig on cloud.app.box.com preview origin (3 related, conf 45): discriminator requires an attacker-Origin OPTIONS preflight / custom-header GET, but the executor only emits bare URLs — parked until a header-capable executor mode is authorized.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization map byte-identical across 4 consecutive labeled cycles; single-decode + query-strip reconfirmed (%72obots.txt, robots%2Etxt=206 vs %252F, robots%252Etxt=404); case-sensitivity remains the unverified branch of the model.
+[NEXT] PROBE: bare-GET 8-request sweep (distinct from every prior emission), UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /ROBOTS.TXT (case test), 2) GET /Robots.txt (mixed-case test), 3) GET /zzz-nonexistent-2f7a9 (fresh random nonce — default-handler discriminator), 4) HEAD /favicon.ico (method differential vs GET 206), 5) GET /index.html (object-store default document), 6) GET /favicon.ico (sanity, expect 206), 7) GET /robots.txt (sanity, expect 206), 8) GET / (root status 200/206 flip). Record status + length each; 200/206 = live edge object, 404 = absent. First 4xx/429/403 -> log and stop probing this host for the cycle.
+## 2026-08-15 18:59:26 UTC m.box.com (ling3)
+## 2026-08-15 19:21:19 UTC m.box.com (ling3)
+## 2026-08-15 19:40:42 UTC m.box.com (ling3)
+## 2026-08-15 19:54:19 UTC m.box.com (ling3)
+## 2026-08-15 20:07:50 UTC m.box.com (ling3)
+## 2026-08-15 20:34:48 UTC m.box.com (ling3)
+## 2026-08-15 20:53:24 UTC m.box.com (ling3)
+## 2026-08-15 21:08:13 UTC m.box.com (ling3)
+## 2026-08-15 21:32:21 UTC m.box.com (ling3)
+## 2026-08-15 21:48:32 UTC m.box.com (ling3)
+## 2026-08-15 21:59:30 UTC m.box.com (ling3)
+## 2026-08-15 22:22:12 UTC m.box.com (ling3)
+## 2026-08-15 22:42:56 UTC m.box.com (ling3)
+## 2026-08-15 22:58:25 UTC m.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: Object-store normalizer case sensitivity: lowercased keys vs exact-case keys (from host-notes.services.box.com.md)
 
-## RANKED 2026-08-15 16:56:00 UTC
+## RANKED 2026-08-15 21:52:36 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -113,7 +113,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: notes.services.box.com: responder fingerprint + route surface baseline (from host-notes.services.box.com.md)
 - [40] cloud.app.box.com/: Object-store normalizer case sensitivity: lowercased keys vs exact-case keys (from host-notes.services.box.com.md)
 
-## RANKED 2026-08-15 17:31:27 UTC
+## RANKED 2026-08-15 22:34:13 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -126,7 +126,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: notes.services.box.com: responder fingerprint + route surface baseline (from host-notes.services.box.com.md)
 - [40] cloud.app.box.com/: Object-store normalizer case sensitivity: lowercased keys vs exact-case keys (from host-notes.services.box.com.md)
 
-## RANKED 2026-08-15 17:53:30 UTC
+## RANKED 2026-08-15 22:54:27 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -154,7 +154,7 @@ https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
 
-## 2026-08-15 16:56:00 UTC (executor)
+## 2026-08-15 21:52:36 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -170,7 +170,7 @@ https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
 
-## 2026-08-15 17:31:27 UTC (executor)
+## 2026-08-15 22:34:13 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -186,7 +186,7 @@ https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 https://cloud.app.box.com/robots%252Etxt -> HTTP 404
 https://cloud.app.box.com/%2e%2e/robots.txt -> 206 (len ?)
 
-## 2026-08-15 17:53:30 UTC (executor)
+## 2026-08-15 22:54:27 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
