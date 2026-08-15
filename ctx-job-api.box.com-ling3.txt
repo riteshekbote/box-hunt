@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-15 07:39:18 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: Executor evidence — root flipped 200↔206 (06:54), robots.txt/favicon.ico stable 206 with single-decode exact-key lookup, arbitrary unguessable paths previously 404 SPA. If the Range layer is origin-wide, a Range header on a random path returns 206/Content-Range instead of the 404-SPA fallback; pinned-key Range headers fingerprint the layer for comparison. This is the first emission; never probed.
 verify_steps: 3 read-only requests, 2s apart, UA "box-research/1.0 +(research)": (1) HEAD https://cloud.app.box.com/ (2) GET https://cloud.app.box.com/bh-u7xq2-<fresh-token> with header Range: bytes=0-0 (3) GET https://cloud.app.box.com/robots.txt with header Range: bytes=0-0 — record status + content-type + Accept-Ranges/Content-Range verbatim; 404 informative, stop host on first 403/429.
 impact: If arbitrary keys reach the Range layer, the object-store edge may serve non-whitelisted keys when the backend flips; combined with the single-decode key grammar this widens any future key-discovery surface. Low-medium unless a body leak surfaces.
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-15 21:59:28 UTC api.box.com (ling3)
 ## 2026-08-15 22:22:11 UTC api.box.com (ling3)
 ## 2026-08-15 22:42:56 UTC api.box.com (ling3)
+## 2026-08-15 22:58:25 UTC api.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: Object-store normalizer case sensitivity: lowercased keys vs exact-case keys (from host-notes.services.box.com.md)
 
