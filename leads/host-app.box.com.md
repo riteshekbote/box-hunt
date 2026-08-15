@@ -245,3 +245,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/files with UA box-research/1.0 — record status, Location, Content-Type, first 200 chars (302-to-login = SPA auth layer distinct from object-store; 206 = shared edge).
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root 200→206 flip observed between 03:50 and 04:42 executor cycles — confirms the dual-backend routing flip hypothesis (heterogeneous origin): shell and Range/object-store handlers alternate on the same path rather than a fixed route table; raising that hypothesis to 55.
 ## 2026-08-15 05:37:24 UTC app.box.com (ling3)
+## 2026-08-15 05:56:44 UTC app.box.com (ling3)

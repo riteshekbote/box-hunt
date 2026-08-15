@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 22:58:20 UTC"
 }=== MY LAST LEADS (tail) ===
-[NEXT] PROBE: OPTIONS https://app.box.com/api/2.0/folders/0 with Origin: https://attacker.example + Access-Control-Request-Method: GET (UA box-research/1.0) — record all Access-Control-* and Allow headers (fresh preflight target; the api/2.0/ root and origin-root preflights were queued earlier but never executed).
 [NEXT] PROBE: GET https://app.box.com/notes with UA box-research/1.0 — record status, Location, Content-Type, body prefix (Notes entry point on app origin, never probed).
 [NEXT] PROBE: GET https://app.box.com/trash with UA box-research/1.0 — record status, Location, Content-Type, body prefix (authenticated-app route as auth-gate fingerprint, distinct from login-plane paths already queued).
 ## 2026-08-14 23:17:47 UTC app.box.com (ling3)
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/.well-known/security.txt with UA box-research/1.0 — record status, Content-Range, Content-Type, first 200 chars (206 = object-store default handler; 200 HTML = SPA fallback; 404 = explicit edge route).
 [NEXT] PROBE: GET https://app.box.com/files with UA box-research/1.0 — record status, Location, Content-Type, first 200 chars (302-to-login = SPA auth layer distinct from object-store; 206 = shared edge).
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: root 200→206 flip observed between 03:50 and 04:42 executor cycles — confirms the dual-backend routing flip hypothesis (heterogeneous origin): shell and Range/object-store handlers alternate on the same path rather than a fixed route table; raising that hypothesis to 55.
+## 2026-08-15 05:37:24 UTC app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
