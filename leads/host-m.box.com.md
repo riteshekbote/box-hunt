@@ -375,3 +375,23 @@ testability: PASSIVE
 ## 2026-08-16 16:32:07 UTC m.box.com (ling3)
 ## 2026-08-16 16:53:40 UTC m.box.com (ling3)
 ## 2026-08-16 17:08:32 UTC m.box.com (ling3)
+## 2026-08-16 17:32:39 UTC m.box.com (bigpickle)
+[NEW] cloud.app.box.com/: first executed arbitrary-key probe — `/bhx-xp4k7-m9f3q` = HTTP 404, resolving the wildcard-default-handler question (no blanket 206 for non-live paths).
+[HYP] Trailing-slash exact-key-miss is key-wide (favicon generalization)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 65
+reasoning: `/robots.txt/`=404 vs `/robots.txt/../robots.txt`=206 pins exact-key lookup on one key; this cycle's nonce `/bhx-xp4k7-m9f3q`=404 rules out a wildcard 206 default handler, leaving per-key routing as the only confound; favicon.ico is a confirmed live 206 object, so `/favicon.ico/` discriminates per-key routing (206) from a uniform key-wide exact-key model (404).
+verify_steps: bare GET https://cloud.app.box.com/favicon.ico/ , UA box-research/1.0 +(research), 1 req/2s
+impact: completes the normalization model every future probe on this host is interpreted against; informational/low, no attacker data exposure.
+testability: PASSIVE
+[HYP] Dot-segment root-escape clamping at the object layer
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 40
+reasoning: `robots.txt/../robots.txt`=206 shows `..` collapses mid-path; unprobed is a LEADING `..`: a compliant normalizer clamps `/../robots.txt` to `/robots.txt` (206) while a raw object front 404s on key `../robots.txt`; `/%2e%2e/robots.txt` then pins decode-before-collapse ordering (decodes to `../` then clamps = 206) vs non-decoded path-position `%2e` (404).
+verify_steps: bare GET https://cloud.app.box.com/../robots.txt then GET https://cloud.app.box.com/%2e%2e/robots.txt, UA box-research/1.0 +(research), 1 req/2s
+impact: surfaces a normalization inconsistency at the root-escape/clamp boundary that could split cache keys if an upstream edge normalizer diverges; informational unless that divergence is shown.
+testability: PASSIVE
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: `/bhx-xp4k7-m9f3q`=404 executed — no wildcard 206 default handler exists; combined with root=200 and pinned-asset 206, arbitrary paths are exact-key misses. A default handler that 404s missing keys is not strictly excluded, so the trailing-slash favicon test remains the sole open discriminator.
+[NEXT] PROBE: 3-request sweep on cloud.app.box.com, every URL distinct from all prior emissions, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (trailing-slash miss on 2nd live key — expect 404 under key-wide model), 2) GET /../robots.txt (root-escape clamp — expect 206), 3) GET /%2e%2e/robots.txt (decode-before-collapse ordering — expect 206). Record status + content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.
