@@ -313,3 +313,4 @@ verify_steps: HEAD https://cloud.app.box.com/nonexistent-file-abc123.txt?probe=x
 impact: If the object store serves arbitrary objects via default-handler routing, it could expose internal bucket contents or allow cache-poisoning attacks. MEDIUM severity.
 testability: PASSIVE
 ## 2026-08-16 22:25:45 UTC notes.services.box.com (ling3)
+## 2026-08-16 22:43:52 UTC notes.services.box.com (ling3)
