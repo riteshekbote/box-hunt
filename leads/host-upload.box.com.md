@@ -476,3 +476,14 @@ impact: recon-grade; establishes whether the download CDN exposes any unsigned-a
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/robots.txt (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — first known-asset key on the download CDN after root → 404; 200/206 ⇒ allowlist edge, 404 ⇒ signed-only routing (favicon.ico + random nonce follow next cycle to confirm).
 ## 2026-08-16 21:37:31 UTC upload.box.com (ling3)
+## 2026-08-16 21:52:31 UTC upload.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/robots.txt: `GET /robots.txt` → 404 (executor batch 21:31:17), matching root 404. Eliminates the allowlist-edge model — no pinned static layer mirrors cloud.app.box.com. Leading model: strict signed-URL-only routing where every unsigned path is rejected at the edge.
+[HYP] Signed-only routing confirmation on dl.boxcloud.com download edge
+class: MISCONFIG
+asset: dl.boxcloud.com/favicon.ico (GET)
+confidence: 55
+reasoning: Root (404) and robots.txt (404) both reject unsigned paths. Two models remain: (a) full-origin signed-URL gate (any unsigned path 404s), or (b) selective 404s for only high-profile keys. favicon.ico — the second known-asset key — discriminates: 404 strengthens (a); any 200/206 revives the object-surface model.
+verify_steps: GET https://dl.boxcloud.com/favicon.ico (UA `box-research/1.0 +(research)`, 1 req/2s, status only). Expected 404; next cycle random nonce `dl.boxcloud.com/bhx-q7m2p-x9k4n` to confirm no default handler.
+impact: recon-grade; if both known keys and a random nonce all 404, the unsigned surface is closed — the remaining token/signed-URL surface is unreachable without a real signature.
+testability: PASSIVE
+[NEXT] PROBE: GET https://dl.boxcloud.com/favicon.ico (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — second known-asset key after robots.txt→404; 404 ⇒ signed-only routing, then a random nonce path next cycle to close the surface; non-404 ⇒ allowlist-layer model returns.
