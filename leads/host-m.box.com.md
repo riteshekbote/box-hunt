@@ -338,3 +338,4 @@ testability: PASSIVE
 [NEXT] PROBE: 4-request sweep, every URL distinct from all prior emissions, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /FAVICON.ICO (case-folding on second live object), 2) OPTIONS /favicon.ico (Allow/method surface), 3) GET /zzz-nonexistent-7b4e2 (3rd fresh nonce — default-handler discriminator), 4) GET /robots.txt/./robots.txt (dot-segment inside trailing-slash: 206 proves the normalizer collapses dot segments before exact-key lookup and that the /robots.txt/ 404 is a pure exact-key miss). Record status + content-length each; first 4xx/429/403 -> log and stop probing this host for the cycle.
 ## 2026-08-16 07:32:49 UTC m.box.com (ling3)
 ## 2026-08-16 07:56:15 UTC m.box.com (ling3)
+## 2026-08-16 08:19:15 UTC m.box.com (ling3)
