@@ -359,3 +359,4 @@ verify_steps: bare GET https://cloud.app.box.com/favicon.ico/ , UA box-research,
 impact: completes the key-space model every future probe is interpreted against; informational/low, no attacker data exposure.
 testability: PASSIVE
 [NEXT] PROBE: 3-request favicon sweep reusing only in-batch key shapes, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (generalize trailing-slash model to 2nd live key), 2) GET /favicon%2Eico (uniformity of single-decode normalization across keys, expect 206), 3) GET /favicon.ico/../favicon.ico (dot-collapse across keys, expect 206). Record status+content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.
+## 2026-08-16 11:38:51 UTC m.box.com (ling3)
