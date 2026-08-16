@@ -413,3 +413,39 @@ testability: PASSIVE
 ## 2026-08-16 22:25:43 UTC m.box.com (ling3)
 ## 2026-08-16 22:44:04 UTC m.box.com (ling3)
 ## 2026-08-16 22:57:54 UTC m.box.com (ling3)
+## 2026-08-16 23:17:14 UTC m.box.com (bigpickle)
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: `robots.txt?probe=9f3k7`=206 confirms query-parameter passthrough does not break object-key lookup on pinned assets; combined with earlier evidence, this pins the 206 layer to an exact-key object store fronted by a Range-compatible edge.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: No favicon.ico probe has been executed on cloud.app.box.com yet; the critical discriminator (trailing-slash on 2nd live key) remains pending.
+[HYP] Trailing-slash exact-key-miss is key-wide (favicon generalization)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 72
+reasoning: `/robots.txt/`=404 vs `/robots.txt/../robots.txt`=206 pins exact-key lookup on one live key; arbitrary nonce path=404 rules out wildcard 206 default handler; `robots.txt?probe=9f3k7`=206 confirms query-param passthrough; the only unprobed discriminator is whether a second live key (`favicon.ico`) exhibits the same trailing-slash miss or behaves differently, which would break the key-wide model.
+verify_steps: bare GET https://cloud.app.box.com/favicon.ico/ , UA box-research/1.0 +(research), 1 req/2s.
+impact: completes the normalization model every future probe on this host is interpreted against; informational/low, no attacker data exposure.
+testability: PASSIVE
+[HYP] Dot-segment root-escape clamping at the object layer
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 45
+reasoning: `robots.txt/../robots.txt`=206 shows `..` collapses mid-path; a LEADING `../` at root is unprobed: a compliant normalizer clamps `/../robots.txt` to `/robots.txt` (206) while a raw object front 404s on key `../robots.txt`; `/%2e%2e/robots.txt` then pins decode-before-collapse ordering (decode first = 206) vs non-decoded path-position %2e (404).
+verify_steps: bare GET https://cloud.app.box.com/../robots.txt then GET https://cloud.app.box.com/%2e%2e/robots.txt, UA box-research/1.0 +(research), 1 req/2s.
+impact: surfaces a normalization inconsistency at the root-escape/clamp boundary that could split cache keys if an upstream edge normalizer diverges; informational unless that divergence is shown.
+testability: PASSIVE
+[HYP] Method/CORS surface on the 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 48
+reasoning: The 206 layer on pinned assets (robots.txt) responds to GET; HEAD and OPTIONS have not been probed on cloud.app.box.com; if the asset edge reflects `Access-Control-Allow-Origin` from an attacker Origin on OPTIONS or exposes `Authorization` on GET to cross-origin scripts, this becomes a credential-exfil vector on embedded preview content.
+verify_steps: bare OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example`, then bare GET with same Origin; record all Access-Control-* headers; 1 req/2s.
+impact: cross-origin credential exfiltration on embedded preview content; high severity if Authorization/Cookie is reflected.
+testability: PASSIVE
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 42
+reasoning: cloud.app.box.com serves embedded content views with a distinct frontend origin; the CORS policy has not been probed; if the origin reflects attacker Origin or exposes credentials to cross-origin scripts, this enables account data theft via a malicious page embedding Box preview content.
+verify_steps: OPTIONS https://cloud.app.box.com/ with `Origin: https://attacker.com`, then GET with same Origin; record all CORS headers; 1 req/2s.
+impact: cross-origin account data theft via embedded Box preview; critical if credentials are exposed.
+testability: PASSIVE
+[NEXT] PROBE: 3-request sweep on cloud.app.box.com, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (trailing-slash miss on 2nd live key — expect 404 under key-wide model, 206 under per-key model), 2) GET /../robots.txt (root-escape clamp — expect 206 if normalizer clamps at root), 3) GET /%2e%2e/robots.txt (decode-before-collapse ordering — expect 206). Record status + content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.

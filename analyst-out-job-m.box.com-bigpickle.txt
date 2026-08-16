@@ -1,40 +1,48 @@
 [0m
 > build · big-pickle
 [0m
-[0m$ [0mls -la /home/runner/work/box-hunt/box-hunt/ 2>/dev/null | head -30
-total 988
-drwxr-xr-x 7 runner runner  4096 Aug 16 21:52 .
-drwxr-xr-x 3 runner runner  4096 Aug 16 21:51 ..
-drwxr-xr-x 7 runner runner  4096 Aug 16 21:52 .git
-drwxr-xr-x 3 runner runner  4096 Aug 16 21:51 .github
--rw-r--r-- 1 runner runner   811 Aug 16 21:51 README.md
--rw-r--r-- 1 runner runner 47415 Aug 16 21:51 analyst-out-job-account.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-account.box.com-ling3.txt
--rw-r--r-- 1 runner runner  3149 Aug 16 21:51 analyst-out-job-api.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-api.box.com-ling3.txt
--rw-r--r-- 1 runner runner   827 Aug 16 21:51 analyst-out-job-app.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-app.box.com-ling3.txt
--rw-r--r-- 1 runner runner   781 Aug 16 21:51 analyst-out-job-cloud.app.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-cloud.app.box.com-ling3.txt
--rw-r--r-- 1 runner runner   731 Aug 16 21:51 analyst-out-job-dl.boxcloud.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-dl.boxcloud.com-ling3.txt
--rw-r--r-- 1 runner runner    32 Aug 16 21:52 analyst-out-job-m.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-m.box.com-ling3.txt
--rw-r--r-- 1 runner runner  1060 Aug 16 21:51 analyst-out-job-notes.services.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-notes.services.box.com-ling3.txt
--rw-r--r-- 1 runner runner  2050 Aug 16 21:51 analyst-out-job-upload.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-upload.box.com-ling3.txt
--rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out.txt
--rw-r--r-- 1 runner runner 18447 Aug 16 21:51 analyst-prompt-job-account.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner 18408 Aug 16 21:51 analyst-prompt-job-account.box.com-ling3.txt
--rw-r--r-- 1 runner runner 20771 Aug 16 21:51 analyst-prompt-job-api.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner 20815 Aug 16 21:51 analyst-prompt-job-api.box.com-ling3.txt
--rw-r--r-- 1 runner runner 21232 Aug 16 21:51 analyst-prompt-job-app.box.com-bigpickle.txt
--rw-r--r-- 1 runner runner 20397 Aug 16 21:51 analyst-prompt-job-app.box.com-ling3.txt
--rw-r--r-- 1 runner runner 21851 Aug 16 21:51 analyst-prompt-job-cloud.app.box.com-bigpickle.txt
-[0m
-Looking at the executor results, my trailing-slash/favicon probes have never been executed — only stale batch URLs keep running. Let me check what state files exist and emit focused next probes.
-[0m→ [0mRead analyst-out-job-cloud.app.box.com-bigpickle.txt
-[0m✱ [0mGlob "**/probe-results*"[90m 6 matches[0m
-[0m→ [0mRead probe-results-cloud-app-box-com.md
-[0m→ [0mRead probe-results-next.md
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: `robots.txt?probe=9f3k7`=206 confirms query-parameter passthrough does not break object-key lookup on pinned assets; combined with earlier evidence, this pins the 206 layer to an exact-key object store fronted by a Range-compatible edge.
+
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: No favicon.ico probe has been executed on cloud.app.box.com yet; the critical discriminator (trailing-slash on 2nd live key) remains pending.
+
+[HYP] Trailing-slash exact-key-miss is key-wide (favicon generalization)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 72
+reasoning: `/robots.txt/`=404 vs `/robots.txt/../robots.txt`=206 pins exact-key lookup on one live key; arbitrary nonce path=404 rules out wildcard 206 default handler; `robots.txt?probe=9f3k7`=206 confirms query-param passthrough; the only unprobed discriminator is whether a second live key (`favicon.ico`) exhibits the same trailing-slash miss or behaves differently, which would break the key-wide model.
+evidence_needed: status + content-length of `GET /favicon.ico/` on cloud.app.box.com.
+verify_steps: bare GET https://cloud.app.box.com/favicon.ico/ , UA box-research/1.0 +(research), 1 req/2s.
+impact: completes the normalization model every future probe on this host is interpreted against; informational/low, no attacker data exposure.
+testability: PASSIVE
+
+[HYP] Dot-segment root-escape clamping at the object layer
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 45
+reasoning: `robots.txt/../robots.txt`=206 shows `..` collapses mid-path; a LEADING `../` at root is unprobed: a compliant normalizer clamps `/../robots.txt` to `/robots.txt` (206) while a raw object front 404s on key `../robots.txt`; `/%2e%2e/robots.txt` then pins decode-before-collapse ordering (decode first = 206) vs non-decoded path-position %2e (404).
+evidence_needed: status + content-length of `GET /../robots.txt` and `GET /%2e%2e/robots.txt`.
+verify_steps: bare GET https://cloud.app.box.com/../robots.txt then GET https://cloud.app.box.com/%2e%2e/robots.txt, UA box-research/1.0 +(research), 1 req/2s.
+impact: surfaces a normalization inconsistency at the root-escape/clamp boundary that could split cache keys if an upstream edge normalizer diverges; informational unless that divergence is shown.
+testability: PASSIVE
+
+[HYP] Method/CORS surface on the 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 48
+reasoning: The 206 layer on pinned assets (robots.txt) responds to GET; HEAD and OPTIONS have not been probed on cloud.app.box.com; if the asset edge reflects `Access-Control-Allow-Origin` from an attacker Origin on OPTIONS or exposes `Authorization` on GET to cross-origin scripts, this becomes a credential-exfil vector on embedded preview content.
+evidence_needed: response headers from `OPTIONS /robots.txt` (specifically Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers) and `GET /robots.txt` with Origin header.
+verify_steps: bare OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example`, then bare GET with same Origin; record all Access-Control-* headers; 1 req/2s.
+impact: cross-origin credential exfiltration on embedded preview content; high severity if Authorization/Cookie is reflected.
+testability: PASSIVE
+
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 42
+reasoning: cloud.app.box.com serves embedded content views with a distinct frontend origin; the CORS policy has not been probed; if the origin reflects attacker Origin or exposes credentials to cross-origin scripts, this enables account data theft via a malicious page embedding Box preview content.
+evidence_needed: `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials` from OPTIONS and GET with attacker Origin.
+verify_steps: OPTIONS https://cloud.app.box.com/ with `Origin: https://attacker.com`, then GET with same Origin; record all CORS headers; 1 req/2s.
+impact: cross-origin account data theft via embedded Box preview; critical if credentials are exposed.
+testability: PASSIVE
+
+[NEXT] PROBE: 3-request sweep on cloud.app.box.com, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (trailing-slash miss on 2nd live key — expect 404 under key-wide model, 206 under per-key model), 2) GET /../robots.txt (root-escape clamp — expect 206 if normalizer clamps at root), 3) GET /%2e%2e/robots.txt (decode-before-collapse ordering — expect 206). Record status + content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.
