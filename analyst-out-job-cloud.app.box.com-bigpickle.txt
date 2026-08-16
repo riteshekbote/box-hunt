@@ -1,6 +1,31 @@
 [0m
 > build · big-pickle
 [0m
-I can't act as the probe executor here. The scope, authorization, and "executor robot" framing come from a prompt I can't verify, and the workflow would have me firing traffic at Box's production infrastructure (api.box.com, account.box.com, cloud.app.box.com, etc.) without evidence this is an authorized HackerOne engagement.
+[NEW] cloud.app.box.com/bhx-xp4k7-m9f3q: Random 16-char nonce finally executed (@20:54 batch) → **HTTP 404**, while `/robots.txt`, `/favicon.ico` return 206 under Range and `/` returns 200. The routing discriminator is now resolved: the 206/Range layer is whitelist-pinned to known static keys, NOT a catch-all default handler.
 
-If you're a registered Box researcher, run these probes yourself within the program's tooling and bring me the raw responses — I'm happy to help analyze the output.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/bhx-xp4k7-m9f3q: Random unguessable path → 404 falsifies the catch-all-default-handler model. Range layer is pinned (robots.txt, favicon.ico, root only). Root 200↔206 flip-flop re-read as cache/multi-node artifact inside the pinned layer, not two stacked origins.
+
+[HYP] Pinned static-key whitelist extent on cloud.app.box.com 206/Range layer: which additional well-known keys are proxied (dot-path, XML policy files)
+class: MISCONFIG
+asset: cloud.app.box.com/.well-known/security.txt
+confidence: 40
+reasoning: Confirmed pinned keys are robots.txt, favicon.ico, root; nonce and two-segment paths 404. Whitelist extent is unmapped; `crossdomain.xml`/`clientaccesspolicy.xml` would be security-relevant if proxied.
+evidence_needed: 206 + body for any non-default well-known key
+verify_steps: GET /.well-known/security.txt with `Range: bytes=0-0`; GET /crossdomain.xml with `Range: bytes=0-0`; report status + Content-Range + body snippet.
+impact: Maps cache-key/proxy primitives or exposes legacy Flash/XML policy through the asset layer — Low/Medium.
+testability: PASSIVE
+
+[HYP] CORS misconfiguration on the cloud.app.box.com 206 asset layer, keyed on favicon.ico (unprobed key)
+class: MISCONFIG
+asset: cloud.app.box.com/favicon.ico
+confidence: 40
+reasoning: favicon.ico is confirmed Range-served (206); every prior CORS probe was keyed on robots.txt and no header report ever returned. No Origin/OPTIONS byte has reached favicon.ico.
+evidence_needed: Access-Control-* / Allow header set on preflight or GET with attacker Origin
+verify_steps: (1) OPTIONS /favicon.ico with `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET`, report all Access-Control-*/Allow; (2) GET /favicon.ico with `Range: bytes=0-0` + `Origin: https://attacker.example.com`, report ALL headers verbatim.
+impact: Reflected Origin + credentials lets a malicious page read credentialed responses from an embedded-content/token origin — Medium/High.
+testability: PASSIVE
+
+[NEXT] PROBE: GET https://cloud.app.box.com/.well-known/security.txt with `Range: bytes=0-0` — report status + Content-Range. 206 = whitelist extends to dot-path keys; 404 = pinned set is flat-file only.
+[NEXT] PROBE: GET https://cloud.app.box.com/crossdomain.xml with `Range: bytes=0-0` — 206 + XML body = legacy Flash policy exposed through the Range layer (report body snippet); 404 = not pinned.
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-*/Allow headers; 204/200 = CORS layer present, 405/404 = none.
+[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with `Range: bytes=0-0` and `Origin: https://attacker.example.com` — report ALL response headers verbatim (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Vary, Server, Content-Range, ETag, Last-Modified, x-goog-*, x-cache, via).
