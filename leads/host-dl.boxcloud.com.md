@@ -272,3 +272,16 @@ testability: PASSIVE
 ## 2026-08-16 15:51:00 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 16:01:14 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 16:32:09 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 16:54:06 UTC dl.boxcloud.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Arbitrary-path [NEXT] lines are dropped by the executor — the discriminator nonce `Wq5kZ8nT2mP4` (emitted 05:24) never appeared across 3+ canned-suite cycles (15:32, 15:53, 16:37 all byte-identical). The origin-global object-store default branch is CLOSED as UNTESTABLE via this pipeline; best-fit stays the single-decode exact-key whitelist (root 200, pinned keys 206, all double-encoded/trailing-slash forms 404).
+[PARKED] Object-store default vs whitelist-routed (arbitrary-path nonce): `Wq5kZ8nT2mP4` ignored for the 4th consecutive cycle; the discriminator is unresolvable with this executor. Whitelist stands by best fit. Closed as UNTESTABLE — no re-emission.
+[NEW] cloud.app.box.com: the canned suite re-confirms root **200** and a **206**/Range layer on pinned keys; arbitrary-key routing is unobservable from this pipeline, so the only probeable surface left here is method/CORS behavior on the known 206 keys.
+[HYP] Method/CORS surface on the 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt (pinned 206 key)
+confidence: 40
+reasoning: the edge answers 200/206 on root+pinned keys but has never been exercised with OPTIONS; upload.box.com's gateway 404s the same probes, so cloud.app's asset edge is a distinct code path that may carry ACAO/Allow config. CORS hypotheses at [45] target the preview origin; this targets the 206-layer handler directly.
+verify_steps: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example` and `Access-Control-Request-Method: GET` (read-only preflight); OPTIONS https://cloud.app.box.com/favicon.ico as control.
+impact: reflected Origin + Allow-* would permit cross-origin reads of 206-layer assets if Authorization is honored — low/medium unless a protected object is reachable.
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example` + `Access-Control-Request-Method: GET`, UA box-research/1.0 — report status line and any `Access-Control-*`/`Allow` headers. Echoed Origin ⇒ CORS reflection on the asset layer; no ACAO ⇒ park CORS for this origin.
