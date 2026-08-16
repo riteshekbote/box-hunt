@@ -327,3 +327,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET `https://upload.box.com/` (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only; record Location on 3xx, do not follow). If flat 404, mark upload.box.com GET surface EXHAUSTED and pivot the next cycle's surface.
 ## 2026-08-16 05:49:26 UTC upload.box.com (ling3)
 ## 2026-08-16 06:14:37 UTC upload.box.com (ling3)
+## 2026-08-16 06:59:53 UTC upload.box.com (ling3)
