@@ -362,3 +362,4 @@ testability: PASSIVE
 [PARKED] upload.box.com origin-root default handler: `GET https://upload.box.com/` never absorbed despite being keyed at 05:24; off-battery roots are structurally unexecutable; parked.
 [PARKED] upload.box.com Range/partial-content layer: moot on a flat-404 origin across 6+ runs; closed.
 [NEXT] PROBE: GET https://upload.box.com/robots.txt?probe=bhx-k2m8p (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Final battery-absorbable variant; if flat 404, declare upload.box.com GET surface EXHAUSTED and pivot next cycle — ranked tail shows highest-value unmeasured items are the dl.boxcloud.com/cloud.app.box.com CORS + object-store-routing hypotheses ([45]), which this pipeline's GET battery can actually execute.
+## 2026-08-16 10:17:31 UTC upload.box.com (ling3)
