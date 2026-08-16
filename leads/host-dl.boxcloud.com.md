@@ -285,3 +285,4 @@ verify_steps: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https:/
 impact: reflected Origin + Allow-* would permit cross-origin reads of 206-layer assets if Authorization is honored — low/medium unless a protected object is reachable.
 testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example` + `Access-Control-Request-Method: GET`, UA box-research/1.0 — report status line and any `Access-Control-*`/`Allow` headers. Echoed Origin ⇒ CORS reflection on the asset layer; no ACAO ⇒ park CORS for this origin.
+## 2026-08-16 17:08:32 UTC dl.boxcloud.com (ling3)
