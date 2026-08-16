@@ -433,3 +433,13 @@ verify_steps: GET https://cloud.app.box.com/bhx-p3n7r/robots.txt (UA box-researc
 impact: basename keying would multiply the addressable asset surface and open a collision/re-routing angle; full-path keying closes the surface entirely.
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/bhx-p3n7r/robots.txt (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — resolves the final whitelist axis; 404 declares cloud.app.box.com GET path surface EXHAUSTED.
+## 2026-08-16 18:31:29 UTC upload.box.com (bigpickle)
+[HYP] Whitelist match granularity — exact-name vs prefix/glob on cloud.app.box.com object store
+class: MISCONFIG
+asset: cloud.app.box.com/robots (GET)
+confidence: 35
+reasoning: Whitelist is now characterized on 4 axes (case-sensitive; %-decode + dot-segment normalizing; query-agnostic; trailing-slash breaks). The final unmeasured axis is match granularity: exact pinned name vs prefix/basename-glob. Unknown paths (random nonce) and directory-suffixed assets (robots.txt/) already 404, and root alone 200s, so /robots discriminates prefix matching (206 = glob) from exact matching (404 = pinned list).
+verify_steps: GET https://cloud.app.box.com/robots (UA box-research/1.0 +(research), 1 req/2s, status only). 206 → prefix/basename-glob match (surface enlarged); 404 → exact pinned names.
+impact: recon-grade; completes the matcher fingerprint. A glob/prefix match would widen the addressable asset set, but severity stays informational without the content-channel access this battery lacks.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/robots (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Distinct from the in-flight basename probe `bhx-p3n7r/robots.txt` (emitted 18:00:30, result not yet returned to context) — resolves prefix-vs-exact matching, the last unmeasured whitelist axis. Expected 404; on 404, declare cloud.app.box.com GET path surface EXHAUSTED and pivot next cycle to the PARKED dl.boxcloud.com CORS items once the battery gains Origin:/header control.

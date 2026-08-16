@@ -1,28 +1,13 @@
 [0m
 > build · big-pickle
 [0m
-Analysis of latest evidence (17:52:04 executor run): `ROBOTS.TXT → 404` closes the case axis — the 206 layer is a case-sensitive pinned matcher. Two handler behaviors are now fully characterized (app edge at root → 200; object store whitelist → 206 for pinned assets only, 404 otherwise). One matcher axis remains unmeasured before I declare the surface exhausted.
-
-[CONFIRMED] Case-sensitive pinned asset whitelist on cloud.app.box.com
+[HYP] Whitelist match granularity — exact-name vs prefix/glob on cloud.app.box.com object store
 class: MISCONFIG
-asset: cloud.app.box.com/ROBOTS.TXT (GET)
-confidence: 85
-reasoning: Uppercase `ROBOTS.TXT` returned HTTP 404 in the 17:52:04 run while `robots.txt`, `favicon.ico`, and every %-encoded / dot-segment / query / leading-slash variant returned 206. Matcher is case-sensitive after %-decode and dot-segment normalization.
-evidence_needed: single uppercase-form observation; one re-probe would firm this but is not required for characterization.
-verify_steps: GET https://cloud.app.box.com/ROBOTS.TXT (status only); observed 404.
-impact: no case-key collision or mixed-case re-routing exposure; the whitelist is exact-case pinned.
+asset: cloud.app.box.com/robots (GET)
+confidence: 35
+reasoning: Whitelist is now characterized on 4 axes (case-sensitive; %-decode + dot-segment normalizing; query-agnostic; trailing-slash breaks). The final unmeasured axis is match granularity: exact pinned name vs prefix/basename-glob. Unknown paths (random nonce) and directory-suffixed assets (robots.txt/) already 404, and root alone 200s, so /robots discriminates prefix matching (206 = glob) from exact matching (404 = pinned list).
+evidence_needed: status of GET /robots
+verify_steps: GET https://cloud.app.box.com/robots (UA box-research/1.0 +(research), 1 req/2s, status only). 206 → prefix/basename-glob match (surface enlarged); 404 → exact pinned names.
+impact: recon-grade; completes the matcher fingerprint. A glob/prefix match would widen the addressable asset set, but severity stays informational without the content-channel access this battery lacks.
 testability: PASSIVE
-
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: case axis measured — uppercase form → 404 proves a case-sensitive pinned matcher. Whitelist now characterized on 4 axes (case-sensitive; %-decode + dot-segment normalizing; query-agnostic; trailing-slash breaks). One axis remains: basename-vs-full-path keying. Note: the dl.boxcloud.com/cloud.app.box.com CORS + Method items in the ranked tail stay PARKED — they require header/method control the URL-only battery cannot send.
-
-[HYP] Basename-vs-full-path keying of the 206 asset whitelist
-class: MISCONFIG
-asset: cloud.app.box.com/bhx-p3n7r/robots.txt (GET)
-confidence: 30
-reasoning: All measured axes (encoding, case, dot-segments, query, trailing slash) are consistent with both a full-path pinned list and a basename-keyed map — indistinguishable without a directory-prefix probe. This is the last unmeasured matcher axis on this surface.
-evidence_needed: a single directory-prefixed form of a known-whitelisted filename.
-verify_steps: GET https://cloud.app.box.com/bhx-p3n7r/robots.txt (UA box-research/1.0 +(research), 1 req/2s, status only). 206 → basename-keyed: every URL suffixing a whitelisted filename serves asset content (broader object surface, path-collision angle). 404 → full-path whitelist: cloud.app.box.com path surface EXHAUSTED, pivot to the parked CORS items once pipeline gains header/method support.
-impact: basename keying would multiply the addressable asset surface and open a collision/re-routing angle; full-path keying closes the surface entirely.
-testability: PASSIVE
-
-[NEXT] PROBE: GET https://cloud.app.box.com/bhx-p3n7r/robots.txt (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — resolves the final whitelist axis; 404 declares cloud.app.box.com GET path surface EXHAUSTED.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Distinct from the in-flight basename probe `bhx-p3n7r/robots.txt` (emitted 18:00:30, result not yet returned to context) — resolves prefix-vs-exact matching, the last unmeasured whitelist axis. Expected 404; on 404, declare cloud.app.box.com GET path surface EXHAUSTED and pivot next cycle to the PARKED dl.boxcloud.com CORS items once the battery gains Origin:/header control.
