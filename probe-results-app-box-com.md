@@ -58,3 +58,6 @@ https://cloud.app.box.com/zz-cd-fp-9k2m -> HTTP 404
 ## 2026-08-15 23:19:16 UTC app.box.com
 https://app.box.com/zz-ap-fp-6t8n -> HTTP 404
 https://cloud.app.box.com/app/zz-cd-fp-9k2m -> 200
+
+## 2026-08-16 09:41:28 UTC app.box.com
+https://app.box.com/ -> 200
