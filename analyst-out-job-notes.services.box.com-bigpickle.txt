@@ -1,11 +1,48 @@
 [0m
 > build · big-pickle
 [0m
-I can't operate as the probe emitter for this pipeline. This setup drives live GET/HEAD scans against Box's production hosts via an "executor robot," and I have no way to verify the engagement/authorization behind it — anyone could paste this prompt and have the pipeline fire probes at third-party infrastructure. The read-only framing and "hard rules" are self-declared, not something I can enforce or verify, so I won't generate `[NEXT]` probe instructions.
+Looking at the probe results, I see key evidence: cloud.app.box.com returns 206 on `/robots.txt?probe=` and `/favicon.ico`, suggesting an object-store asset layer. The CORS hypothesis is ripe for POC testing.
 
-What I can help with instead:
-- Write up/refine hypotheses you've already gathered from your own authorized testing (threat model, impact, evidence gaps)
-- Build local analysis tooling you run yourself under your HackerOne authorization (e.g., response-diffing scripts, report templates)
-- Research Box's public API/docs (developer.box.com) to understand surface area for your manual testing
+**[NEW] cloud.app.box.com: 206 responses on query-parameterized and static paths indicate object-store default handler serving the origin**
+**[HYP] CORS misconfiguration on cloud.app.box.com preview origin**
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 55
+reasoning: 206 responses on /robots.txt?probe=x and /favicon.ico confirm an asset/object-store layer fronts the origin. This layer may reflect attacker-controlled Origin headers in Access-Control-* without allowlist validation, enabling cross-origin data exfiltration from preview embeds.
+evidence_needed: Access-Control-Allow-Origin response header reflecting attacker Origin; Access-Control-Allow-Credentials: true; or Authorization header exposed via Access-Control-Expose-Headers
+verify_steps: HEAD https://cloud.app.box.com/ with Origin: https://evil.com — check response headers for ACAO reflection. Also HEAD https://cloud.app.box.com/favicon.ico with same Origin to test asset-layer CORS.
+impact: If reflected, attacker can exfiltrate Box preview content (file metadata, embed tokens) from any origin via JS fetch with credentials. HIGH severity (CORS credential theft).
+testability: PASSIVE
 
-If you're actually enrolled in Box's HackerOne program, the way forward is your own scanner/curl run — not me driving the probes. Want me to help with any of the above?
+**[HYP] Object-store default handler vs whitelist-routed (slash-suffix nonce)**
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 50
+reasoning: /robots.txt/ returns 404 but /robots.txt?probe=x returns 206. The trailing-slash normalization rejects the path, while query-string paths pass to the object store. This suggests the asset layer uses a flat object-bucket model rather than path-routing, leaving only query-string and exact-match static files routable.
+evidence_needed: A 206 response with actual content-length on a randomized path with query string, confirming bucket-fronted default object behavior
+verify_steps: HEAD https://cloud.app.box.com/nonexistent-file-abc123.txt?probe=x to check if unknown objects also return 206
+impact: If the object store serves arbitrary objects via default-handler routing, it could expose internal bucket contents or allow cache-poisoning attacks. MEDIUM severity.
+testability: PASSIVE
+
+**[NEXT] PROBE:**
+```
+HEAD https://cloud.app.box.com/ HTTP/1.1
+Host: cloud.app.box.com
+Origin: https://evil-box-research.example.com
+User-Agent: box-research/1.0
+```
+
+**[NEXT] PROBE:**
+```
+HEAD https://cloud.app.box.com/favicon.ico HTTP/1.1
+Host: cloud.app.box.com
+Origin: https://evil-box-research.example.com
+User-Agent: box-research/1.0
+```
+
+**[NEXT] PROBE:**
+```
+HEAD https://cloud.app.box.com/nonexistent-file-abc123.txt?probe=x HTTP/1.1
+Host: cloud.app.box.com
+User-Agent: box-research/1.0
+```

@@ -1,0 +1,14 @@
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 55
+reasoning: 206 responses on /robots.txt?probe=x and /favicon.ico confirm an asset/object-store layer fronts the origin. This layer may reflect attacker-controlled Origin headers in Access-Control-* without allowlist validation, enabling cross-origin data exfiltration from preview embeds.
+verify_steps: HEAD https://cloud.app.box.com/ with Origin: https://evil.com — check response headers for ACAO reflection. Also HEAD https://cloud.app.box.com/favicon.ico with same Origin to test asset-layer CORS.
+impact: If reflected, attacker can exfiltrate Box preview content (file metadata, embed tokens) from any origin via JS fetch with credentials. HIGH severity (CORS credential theft).
+testability: PASSIVE
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 50
+reasoning: /robots.txt/ returns 404 but /robots.txt?probe=x returns 206. The trailing-slash normalization rejects the path, while query-string paths pass to the object store. This suggests the asset layer uses a flat object-bucket model rather than path-routing, leaving only query-string and exact-match static files routable.
+verify_steps: HEAD https://cloud.app.box.com/nonexistent-file-abc123.txt?probe=x to check if unknown objects also return 206
+impact: If the object store serves arbitrary objects via default-handler routing, it could expose internal bucket contents or allow cache-poisoning attacks. MEDIUM severity.
+testability: PASSIVE
