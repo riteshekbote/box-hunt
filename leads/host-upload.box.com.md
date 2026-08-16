@@ -295,3 +295,16 @@ testability: PASSIVE
 [PARKED] upload.box.com non-404 route surface: all GET/HEAD-measurable paths are flat 404; the remaining route space is POST-only (forbidden by rule 1). Parked; no further GET surface exists on this host.
 [NEXT] PROBE: OPTIONS https://upload.box.com/api/2.0/files/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s), status only; record Allow + Access-Control-Allow-* if present; stop on first 401/403/429.
 ## 2026-08-16 03:07:54 UTC upload.box.com (ling3)
+## 2026-08-16 03:56:29 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com preflight gap: latest executor tail (2026-08-16 03:09:35 UTC) carries zero OPTIONS rows for `/api/2.0/files/content` — the 02:02 [NEXT] OPTIONS probe produced no result row; the CORS/method surface on the upload API edge remains unmeasured and stands UNCONFIRMED (not rejected).
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com: flat-404 fingerprint is stable — the executor battery re-ran identically at 23:52, 01:54, 03:09 (same 14 rows, no drift); every GET-measured route is flat 404 with no 3xx normalization, so the GET channel is exhausted and only method/header channels remain.
+[HYP] upload.box.com HEAD-method surface on the upload API route
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content (HEAD)
+confidence: 25
+reasoning: GET on this route and every other measured path is flat 404; HEAD is the one read-only method the battery has never exercised. A method-aware app edge typically answers HEAD differently (200/204 or distinct headers) from a flat object/bucket front (identical 404).
+verify_steps: 1) HEAD https://upload.box.com/api/2.0/files/content (UA box-research/1.0 +(research), 1 req/2s, status only). 2) If 200/204, record Content-Length/Content-Type/Allow. 3) Do not follow 3xx; stop on first 401/403/429.
+impact: recon-grade; a method-aware HEAD would reopen the upload edge for preflight/CORS analysis; a flat 404 closes the origin's externally observable surface entirely.
+testability: PASSIVE
+[PARKED] upload.box.com OPTIONS preflight on `/api/2.0/files/content`: emitted 02:02 but absent from the 03:09 tail — the executor appears GET/HEAD-only; if HEAD returns non-404, re-emit OPTIONS re-keyed on the live route; otherwise the CORS/method channel is closed on this host.
+[NEXT] PROBE: HEAD https://upload.box.com/api/2.0/files/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only); record Allow/Content-Length on any 200/204; stop on first 401/403/429. If this returns flat 404, mark upload.box.com surface EXHAUSTED and key the next host's surface.
