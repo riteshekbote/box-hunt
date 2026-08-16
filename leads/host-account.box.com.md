@@ -410,3 +410,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/probe_9a1b2c3d4e with UA "box-research/1.0 +(research)"; record status only — decisive whitelist-vs-default-handler test for the [45] hypothesis; 206 = 206/Range object layer answers arbitrary keys (whole-origin fronting, key-space risk), 404 = pinned-key whitelist (robots.txt/favicon.ico only).
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — case axis never probed; 206 = case-insensitive key match (canonical keys lowercased), 404 = exact-case whitelist.
 [NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — plausible-asset guess; 206 = key list spans real app assets, 404 = fronting limited to probe-file pairs.
+## 2026-08-16 00:25:09 UTC account.box.com (ling3)
