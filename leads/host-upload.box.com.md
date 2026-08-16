@@ -325,3 +325,4 @@ testability: PASSIVE
 [PARKED] upload.box.com HEAD on `/api/2.0/files/content`: UNCONFIRMED (no HEAD row in 04:46 battery); parked, not a no-op repeat.
 [PARKED] upload.box.com Range/partial-content layer: moot on a flat-404 origin; closed.
 [NEXT] PROBE: GET `https://upload.box.com/` (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only; record Location on 3xx, do not follow). If flat 404, mark upload.box.com GET surface EXHAUSTED and pivot the next cycle's surface.
+## 2026-08-16 05:49:26 UTC upload.box.com (ling3)
