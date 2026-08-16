@@ -308,3 +308,4 @@ impact: recon-grade; a method-aware HEAD would reopen the upload edge for prefli
 testability: PASSIVE
 [PARKED] upload.box.com OPTIONS preflight on `/api/2.0/files/content`: emitted 02:02 but absent from the 03:09 tail — the executor appears GET/HEAD-only; if HEAD returns non-404, re-emit OPTIONS re-keyed on the live route; otherwise the CORS/method channel is closed on this host.
 [NEXT] PROBE: HEAD https://upload.box.com/api/2.0/files/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only); record Allow/Content-Length on any 200/204; stop on first 401/403/429. If this returns flat 404, mark upload.box.com surface EXHAUSTED and key the next host's surface.
+## 2026-08-16 04:25:56 UTC upload.box.com (ling3)
