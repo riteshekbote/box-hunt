@@ -347,3 +347,18 @@ testability: PASSIVE
 [PARKED] upload.box.com HEAD/OPTIONS method surface: executor GET-only; parked pending method support (unchanged).
 [NEXT] PROBE: GET https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). If flat 404, mark upload.box.com GET channel EXHAUSTED and pivot next cycle to the only remaining battery path variant (robots.txt?probe=) for a single confirm run before closing the host's surface.
 ## 2026-08-16 09:40:43 UTC upload.box.com (ling3)
+## 2026-08-16 09:57:42 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com query-string invariance CONFIRMED: `GET /api/2.0/files/content?probe=bhx-9f3k7` was absorbed into the battery and returned HTTP 404 in both 09:37 and 09:55 runs — byte-identical to the bare path. The flat-404 front is query-agnostic on the pinned API route, closing the final untested GET discriminator I keyed at 08:50.
+[CONFIRMED] upload.box.com query-string invariance on the pinned upload route
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 (GET)
+confidence: 75
+reasoning: Query probe executed twice (09:37, 09:55) → HTTP 404, same as bare path. Combined with flat 404 across `/robots.txt`, `/robots.txt/`, `/api/2.0/files/content` (and prior no-drift runs), the front answers the GET status channel uniformly: no path, query, or trailing-slash variance anywhere on this origin. This is the query-agnostic flat-404 fingerprint of an object/bucket-style front, not an app edge.
+verify_steps: GET https://upload.box.com/api/2.0/files/content?probe=<nonce> (UA box-research/1.0 +(research), 1 req/2s, status only); compare to bare-path 404; do not follow 3xx; stop on first 401/403/429.
+impact: recon-grade baseline — upload.box.com has zero measurable GET surface; no attacker-reachable status/CORS channel exists through read-only methods. No severity.
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com: executor capability model final — the 08:50 [NEXT] WAS absorbed (unlike root/HEAD/OPTIONS), proving the battery accepts new GET path-variants on known battery paths but rejects non-GET methods and off-battery roots. Remaining unmeasured: one path-variant (`/robots.txt?probe=`); all method/root channels are structurally closed.
+[PARKED] upload.box.com HEAD/OPTIONS method surface: executor battery is GET-only across 5+ consecutive runs; OPTIONS/HEAD rows never appear; parked pending pipeline method support (not a no-op repeat).
+[PARKED] upload.box.com origin-root default handler: `GET https://upload.box.com/` never absorbed despite being keyed at 05:24; off-battery roots are structurally unexecutable; parked.
+[PARKED] upload.box.com Range/partial-content layer: moot on a flat-404 origin across 6+ runs; closed.
+[NEXT] PROBE: GET https://upload.box.com/robots.txt?probe=bhx-k2m8p (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Final battery-absorbable variant; if flat 404, declare upload.box.com GET surface EXHAUSTED and pivot next cycle — ranked tail shows highest-value unmeasured items are the dl.boxcloud.com/cloud.app.box.com CORS + object-store-routing hypotheses ([45]), which this pipeline's GET battery can actually execute.
