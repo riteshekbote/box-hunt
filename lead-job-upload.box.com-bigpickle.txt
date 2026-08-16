@@ -1,10 +1,11 @@
-[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/robots.txt: `GET /robots.txt` → 404 (executor batch 21:31:17), matching root 404. Eliminates the allowlist-edge model — no pinned static layer mirrors cloud.app.box.com. Leading model: strict signed-URL-only routing where every unsigned path is rejected at the edge.
-[HYP] Signed-only routing confirmation on dl.boxcloud.com download edge
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/favicon.ico: `GET /favicon.ico` → 404 (executor 22:53:40 batch), completing the known-key set — root `/`, `/robots.txt`, `/favicon.ico` all 404. No allowlist edge on static keys; no pinned asset layer mirrors cloud.app.box.com's 206 handler. Signed-only routing model holds for the object surface.
+[NEW] dl.boxcloud.com/api/2.0/files/1/content: historical executor probe (2026-08-14) returned HTTP 401 — the ONLY non-404 on this origin in the record. Distinct from the blanket-404 static paths, proving the edge routes by path class: API/content paths hit a signature/auth gate (401 challenge), everything unsigned 404s. This is the actual token/signed-URL surface.
+[HYP] dl.boxcloud.com signed-URL gate classification — 401 vs 404 path-class routing
 class: MISCONFIG
-asset: dl.boxcloud.com/favicon.ico (GET)
-confidence: 55
-reasoning: Root (404) and robots.txt (404) both reject unsigned paths. Two models remain: (a) full-origin signed-URL gate (any unsigned path 404s), or (b) selective 404s for only high-profile keys. favicon.ico — the second known-asset key — discriminates: 404 strengthens (a); any 200/206 revives the object-surface model.
-verify_steps: GET https://dl.boxcloud.com/favicon.ico (UA `box-research/1.0 +(research)`, 1 req/2s, status only). Expected 404; next cycle random nonce `dl.boxcloud.com/bhx-q7m2p-x9k4n` to confirm no default handler.
-impact: recon-grade; if both known keys and a random nonce all 404, the unsigned surface is closed — the remaining token/signed-URL surface is unreachable without a real signature.
+asset: dl.boxcloud.com/api/2.0/files/{id}/content (GET)
+confidence: 60
+reasoning: Static keys (/, robots.txt, favicon.ico) all 404 while /api/2.0/files/1/content returned 401 — the edge discriminates by path prefix, not a blanket reject. The 401 proves a challenge layer exists on API content paths; whether it keys on path-shape only or on signed-URL validity is unresolved. A random nonce on the same path-shape discriminates: 401 → shape-based gate (enumerability of signed-URL structure), 404 → signature presence required (dead end without a real signature).
+verify_steps: GET https://dl.boxcloud.com/bhx-q7m2p-x9k4n (UA box-research/1.0 +(research), 1 req/2s, status only) — closes unsigned object surface; expected 404. Then GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (next cycle) — expected 401 to confirm shape-based gating.
+impact: recon-grade. If the api path-shape 401s regardless of content, signed-URL structure is confirmed enumerable but access still requires a valid signature — unreachable without credentials, so surface is AUTH_HELPED, not exploitable from this read-only pipeline.
 testability: PASSIVE
-[NEXT] PROBE: GET https://dl.boxcloud.com/favicon.ico (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — second known-asset key after robots.txt→404; 404 ⇒ signed-only routing, then a random nonce path next cycle to close the surface; non-404 ⇒ allowlist-layer model returns.
+[NEXT] PROBE: GET https://dl.boxcloud.com/bhx-q7m2p-x9k4n (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — final random-nonce control on the object surface; 404 confirms blanket 404 for unsigned non-api paths and closes that surface, pivoting next cycle to the api-path 401 shape gate.
