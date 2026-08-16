@@ -456,3 +456,4 @@ verify_steps: GET https://dl.boxcloud.com/ (UA box-research/1.0 +(research), 1 r
 impact: recon-grade; establishes whether dl.boxcloud.com has a similar 206 asset layer to cloud.app.box.com or a distinct routing architecture.
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/ (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Establishes root handler class on the download CDN — first probe on this host, RECON phase.
+## 2026-08-16 19:18:03 UTC upload.box.com (ling3)
