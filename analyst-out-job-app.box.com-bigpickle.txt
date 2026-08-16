@@ -1,16 +1,16 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] app.box.com: executor output is a stuck fixed batch — probe-results-next.md tails for 07:57/08:42/09:37 UTC are byte-identical and contain only cloud+upload rows, so every queued app-origin probe (robots.txt, /robots.txt/, zz-ap-fp-6t8n, security.txt, /all, /files, favicon.ico, OPTIONS) remains unexecuted; app-origin evidence is still zero at this cycle boundary.
+[NEW] app.box.com: executor returned its cloud+upload-only batch a third consecutive cycle (09:55/10:35/10:55 UTC, near-byte-identical), and app-origin evidence remains zero — every queued app probe (/, /robots.txt, /robots.txt/, zz-ap-fp-6t8n, security.txt, /all, /files, favicon.ico, OPTIONS) has now gone unexecuted for 16 consecutive cycles; no app-origin row has ever appeared in probe-results-next.md.
 
-[HYP] App-origin origin-root default-handler state
+[HYP] App-origin API-layer presence via unauthenticated events endpoint
 class: MISCONFIG
-asset: app.box.com/
-confidence: 35
-reasoning: cloud.app.box.com returns 200 at root (SPA shell) while serving every single-encode asset key via 206 from a Range-capable object-store normalizer; app.box.com's root is unmeasured and is the cheapest open discriminator between a full web-shell origin and a bare object-store edge fronting the primary origin. Prior app probes remain queued but the executor has returned no app-origin row for consecutive cycles.
-evidence_needed: status, Content-Type, Server, first 200 chars of GET https://app.box.com/
-verify_steps: GET https://app.box.com/ with UA box-research/1.0 — record status, Content-Type, Server, first 200 chars (200 text/html = SPA shell; 206+Content-Range = bare object-store edge; 404 = pinned allowlist)
-impact: delivery-topology map for the primary origin; decides whether the cloud object-store parity findings port to app (info/low, config-signal)
+asset: app.box.com/api/2.0/events
+confidence: 40
+reasoning: upload.box.com/api/2.0/files/content -> 404 proves that gateway does not route the API layer; whether app.box.com front-ends api.box.com paths is unmeasured (app evidence = 0). A GET on the unauthenticated events path on the app origin discriminates API-fronting vs pure SPA/router edge in one request.
+verify_steps: GET https://app.box.com/api/2.0/events with UA box-research/1.0 — record status, Content-Type, WWW-Authenticate if present, first 200 chars (401/400 = API layer reachable through app origin, AUTH surface present; 404 = app serves only the web shell)
+impact: delivery-topology + auth-surface map for the primary origin; 401/400 would re-key an AUTH hypothesis against app.box.com (info/low, config-signal)
 testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/api/2.0/events with UA box-research/1.0 — record status, Content-Type, WWW-Authenticate, first 200 chars (401/400 = API reachable via app origin; 404 = pure SPA/router edge; first-ever app-origin data point either way).
 
-[NEXT] PROBE: GET https://app.box.com/ with UA box-research/1.0 — record status, Content-Type, Server, first 200 chars (200 text/html = SPA shell; 206+Content-Range = bare object-store edge fronting the origin).
+[LEARN] ACCEPTED MISCONFIG @ app.box.com: the executor's probe-results-next.md is a fixed cloud+upload batch (three consecutive byte-similar cycles), so app-origin probes are being dropped before execution rather than returning evidence; repeated identical [NEXT] lines are documented no-ops and will not be re-emitted — the events-endpoint probe is a fresh, never-queued key to break the stuck batch.

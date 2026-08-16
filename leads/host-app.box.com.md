@@ -372,3 +372,15 @@ testability: PASSIVE
 ## 2026-08-16 10:17:28 UTC app.box.com (ling3)
 ## 2026-08-16 10:43:07 UTC app.box.com (ling3)
 ## 2026-08-16 10:59:20 UTC app.box.com (ling3)
+## 2026-08-16 11:19:51 UTC app.box.com (bigpickle)
+[NEW] app.box.com: executor returned its cloud+upload-only batch a third consecutive cycle (09:55/10:35/10:55 UTC, near-byte-identical), and app-origin evidence remains zero — every queued app probe (/, /robots.txt, /robots.txt/, zz-ap-fp-6t8n, security.txt, /all, /files, favicon.ico, OPTIONS) has now gone unexecuted for 16 consecutive cycles; no app-origin row has ever appeared in probe-results-next.md.
+[HYP] App-origin API-layer presence via unauthenticated events endpoint
+class: MISCONFIG
+asset: app.box.com/api/2.0/events
+confidence: 40
+reasoning: upload.box.com/api/2.0/files/content -> 404 proves that gateway does not route the API layer; whether app.box.com front-ends api.box.com paths is unmeasured (app evidence = 0). A GET on the unauthenticated events path on the app origin discriminates API-fronting vs pure SPA/router edge in one request.
+verify_steps: GET https://app.box.com/api/2.0/events with UA box-research/1.0 — record status, Content-Type, WWW-Authenticate if present, first 200 chars (401/400 = API layer reachable through app origin, AUTH surface present; 404 = app serves only the web shell)
+impact: delivery-topology + auth-surface map for the primary origin; 401/400 would re-key an AUTH hypothesis against app.box.com (info/low, config-signal)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/api/2.0/events with UA box-research/1.0 — record status, Content-Type, WWW-Authenticate, first 200 chars (401/400 = API reachable via app origin; 404 = pure SPA/router edge; first-ever app-origin data point either way).
+[LEARN] ACCEPTED MISCONFIG @ app.box.com: the executor's probe-results-next.md is a fixed cloud+upload batch (three consecutive byte-similar cycles), so app-origin probes are being dropped before execution rather than returning evidence; repeated identical [NEXT] lines are documented no-ops and will not be re-emitted — the events-endpoint probe is a fresh, never-queued key to break the stuck batch.

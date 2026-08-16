@@ -61,3 +61,6 @@ https://cloud.app.box.com/app/zz-cd-fp-9k2m -> 200
 
 ## 2026-08-16 09:41:28 UTC app.box.com
 https://app.box.com/ -> 200
+
+## 2026-08-16 11:19:53 UTC app.box.com
+https://app.box.com/api/2.0/events -> HTTP 401
