@@ -503,3 +503,15 @@ impact: recon-grade. If the api path-shape 401s regardless of content, signed-UR
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/bhx-q7m2p-x9k4n (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — final random-nonce control on the object surface; 404 confirms blanket 404 for unsigned non-api paths and closes that surface, pivoting next cycle to the api-path 401 shape gate.
 ## 2026-08-16 23:16:30 UTC upload.box.com (ling3)
+## 2026-08-16 23:36:10 UTC upload.box.com (bigpickle)
+[NEW] dl.boxcloud.com unsigned object surface closed: `GET /bhx-q7m2p-x9k4n` → 404 (executor latest batch). With `/` , `/robots.txt`, `/favicon.ico` already 404, every unsigned static/nonce path rejects — signed-URL-only routing confirmed for the object layer. Only non-404 on this origin remains the historical `/api/2.0/files/1/content` → 401, now the sole open discriminator.
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/bhx-q7m2p-x9k4n: random nonce → 404, matching the known-key set (/, robots.txt, favicon.ico). Unsigned object surface is fully closed; no allowlist edge exists on the CDN front. Pivot to the api-path 401 gate.
+[HYP] dl.boxcloud.com api content path-shape gate — random-id content probe
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/{id}/content (GET)
+confidence: 60
+reasoning: Historical probe `/api/2.0/files/1/content` → 401 while every object-path probe 404s, so the edge routes by path class. A random unguessable id discriminates the two remaining models: shape-based auth gate (401 regardless of id) vs signature-presence gate (404 for unsigned/nonexistent ids).
+verify_steps: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (UA `box-research/1.0 +(research)`, 1 req/2s, status only).
+impact: recon-grade. 401-on-nonce ⇒ signed-URL structure is enumerable but content requires a valid signature — surface is AUTH_HELPED (no unsigned data exposure, unreachable from this read-only pipeline) and host gets PARKED. 404 ⇒ signature-presence gate, same parking outcome.
+testability: PASSIVE
+[NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — random-id content path after object surface closed; 401 ⇒ shape-based gate (AUTH_HELPED → PARK), 404 ⇒ signature-gated (surface EXHAUSTED → new surface next cycle).
