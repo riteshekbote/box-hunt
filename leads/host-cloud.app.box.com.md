@@ -350,3 +350,4 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with headers `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-* and Allow headers; 204/200 = CORS layer, 405/404 = none.
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with header `Range: bytes=0-0` — 206 = case-insensitive normalizer; 404 = case-sensitive object-store key (completes the encode/case matrix).
 ## 2026-08-16 12:58:34 UTC cloud.app.box.com (ling3)
+## 2026-08-16 13:30:19 UTC cloud.app.box.com (ling3)
