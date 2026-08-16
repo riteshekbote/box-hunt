@@ -35,27 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-16 05:24:26 UTC"
+  "last_advance": "2026-08-16 16:54:06 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-15 17:34:39 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 17:52:10 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 18:00:35 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 18:34:57 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 18:59:28 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 19:21:17 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 19:40:41 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 19:54:03 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 20:07:52 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 20:34:47 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 20:53:22 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 21:08:12 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 21:32:38 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 21:48:33 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 21:59:31 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 22:22:13 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 22:42:59 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 22:58:25 UTC dl.boxcloud.com (ling3)
-## 2026-08-15 23:18:35 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 23:37:57 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 23:53:14 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 00:25:10 UTC dl.boxcloud.com (ling3)
@@ -97,13 +78,33 @@
 ## 2026-08-16 15:51:00 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 16:01:14 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 16:32:09 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 16:54:06 UTC dl.boxcloud.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Arbitrary-path [NEXT] lines are dropped by the executor — the discriminator nonce `Wq5kZ8nT2mP4` (emitted 05:24) never appeared across 3+ canned-suite cycles (15:32, 15:53, 16:37 all byte-identical). The origin-global object-store default branch is CLOSED as UNTESTABLE via this pipeline; best-fit stays the single-decode exact-key whitelist (root 200, pinned keys 206, all double-encoded/trailing-slash forms 404).
+[PARKED] Object-store default vs whitelist-routed (arbitrary-path nonce): `Wq5kZ8nT2mP4` ignored for the 4th consecutive cycle; the discriminator is unresolvable with this executor. Whitelist stands by best fit. Closed as UNTESTABLE — no re-emission.
+[NEW] cloud.app.box.com: the canned suite re-confirms root **200** and a **206**/Range layer on pinned keys; arbitrary-key routing is unobservable from this pipeline, so the only probeable surface left here is method/CORS behavior on the known 206 keys.
+[HYP] Method/CORS surface on the 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt (pinned 206 key)
+confidence: 40
+reasoning: the edge answers 200/206 on root+pinned keys but has never been exercised with OPTIONS; upload.box.com's gateway 404s the same probes, so cloud.app's asset edge is a distinct code path that may carry ACAO/Allow config. CORS hypotheses at [45] target the preview origin; this targets the 206-layer handler directly.
+verify_steps: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example` and `Access-Control-Request-Method: GET` (read-only preflight); OPTIONS https://cloud.app.box.com/favicon.ico as control.
+impact: reflected Origin + Allow-* would permit cross-origin reads of 206-layer assets if Authorization is honored — low/medium unless a protected object is reachable.
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example` + `Access-Control-Request-Method: GET`, UA box-research/1.0 — report status line and any `Access-Control-*`/`Allow` headers. Echoed Origin ⇒ CORS reflection on the asset layer; no ACAO ⇒ park CORS for this origin.
+## 2026-08-16 17:08:32 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 17:31:26 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 17:48:35 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 17:59:36 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 18:30:49 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 18:57:26 UTC dl.boxcloud.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-- [40] cloud.app.box.com/: upload.box.com query-string invariance on the pinned upload route (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
 
-## RANKED 2026-08-16 15:32:38 UTC
+## RANKED 2026-08-16 17:30:28 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
@@ -111,12 +112,12 @@
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com query-string invariance on the pinned upload route (from host-upload.box.com.md)
 
-## RANKED 2026-08-16 15:53:55 UTC
+## RANKED 2026-08-16 17:52:04 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
@@ -124,12 +125,12 @@
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com query-string invariance on the pinned upload route (from host-upload.box.com.md)
 
-## RANKED 2026-08-16 16:37:50 UTC
+## RANKED 2026-08-16 18:42:58 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
@@ -137,7 +138,6 @@
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com query-string invariance on the pinned upload route (from host-upload.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
@@ -145,6 +145,7 @@ https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
 https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
 https://cloud.app.box.com/favicon.ico -> 206 (len ?)
@@ -152,15 +153,15 @@ https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
 https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
 https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 
-## 2026-08-16 15:32:38 UTC (executor)
+## 2026-08-16 17:30:28 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
 https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
 https://cloud.app.box.com/favicon.ico -> 206 (len ?)
@@ -168,38 +169,37 @@ https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
 https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
 https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 
-## 2026-08-16 15:53:55 UTC (executor)
+## 2026-08-16 17:52:04 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
 https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
 https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
 https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
 https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
-https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 
-## 2026-08-16 16:37:49 UTC (executor)
+## 2026-08-16 18:42:58 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
 https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/ -> HTTP 404
 https://cloud.app.box.com/favicon.ico -> 206 (len ?)
 https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
-https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 === LATEST SPEC FILE (tail, if any) ===
 no-spec
