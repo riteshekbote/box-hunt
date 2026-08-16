@@ -467,3 +467,4 @@ verify_steps: `curl -sD- https://cloud.app.box.com/_assets/nonexistent` — conf
 impact: Information disclosure. Bucket name and metadata aid attacker reconnaissance. No direct exploitation but reduces attack surface complexity.
 testability: PASSIVE
 ## 2026-08-16 19:18:02 UTC account.box.com (ling3)
+## 2026-08-16 19:37:38 UTC account.box.com (ling3)
