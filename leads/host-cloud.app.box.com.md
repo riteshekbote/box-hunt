@@ -427,3 +427,4 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with headers `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET` — report status + all Access-Control-*/Allow. 204/200 = CORS layer present; 405/404 = none.
 [NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — report status + content-type + first 500 chars. 200 + ListBucketResult XML = public bucket listing; 200 + HTML = app root; 400/403 = GCS bucket present but private.
 ## 2026-08-16 23:16:29 UTC cloud.app.box.com (ling3)
+## 2026-08-16 23:35:39 UTC cloud.app.box.com (ling3)
