@@ -502,3 +502,4 @@ verify_steps: GET https://dl.boxcloud.com/bhx-q7m2p-x9k4n (UA box-research/1.0 +
 impact: recon-grade. If the api path-shape 401s regardless of content, signed-URL structure is confirmed enumerable but access still requires a valid signature — unreachable without credentials, so surface is AUTH_HELPED, not exploitable from this read-only pipeline.
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/bhx-q7m2p-x9k4n (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — final random-nonce control on the object surface; 404 confirms blanket 404 for unsigned non-api paths and closes that surface, pivoting next cycle to the api-path 401 shape gate.
+## 2026-08-16 23:16:30 UTC upload.box.com (ling3)
