@@ -463,3 +463,15 @@ testability: PASSIVE
 ## 2026-08-16 20:24:37 UTC upload.box.com (ling3)
 ## 2026-08-16 20:43:34 UTC upload.box.com (ling3)
 ## 2026-08-16 20:58:39 UTC upload.box.com (ling3)
+## 2026-08-16 21:19:14 UTC upload.box.com (bigpickle)
+[NEW] dl.boxcloud.com: RECON root probe complete — `GET /` → 404. Host has no default object-store/range handler at root (contrast `cloud.app.box.com/` 200/206). Advancing to SURFACE: distinguishing an unsigned allowlist edge from signed-URL-only routing.
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/: first host response logged per rule 5 — `GET https://dl.boxcloud.com/` → 404 (observed in executor batch 19:50:22 UTC onward, stable across runs). Eliminates the "whole-origin 206 layer" model for this CDN; leading model is signed-URL-only routing where unsigned paths are rejected at the edge.
+[HYP] dl.boxcloud.com unsigned-path handler fingerprint via robots.txt
+class: MISCONFIG
+asset: dl.boxcloud.com/robots.txt (GET)
+confidence: 30
+reasoning: Root 404 excludes a default handler, leaving two models: (a) app-edge allowlist that serves known keys like robots.txt/favicon.ico, mirroring cloud.app.box.com's pinned 206 layer, or (b) strict signed-URL-only edge that 404s every unsigned path. robots.txt is the highest-yield known key to discriminate them on this origin.
+verify_steps: GET https://dl.boxcloud.com/robots.txt (UA `box-research/1.0 +(research)`, 1 req/2s, status only). 200/206 → allowlist edge exists; 404 → signed-only routing, then confirm with GET https://dl.boxcloud.com/favicon.ico and a random nonce path (both expected 404).
+impact: recon-grade; establishes whether the download CDN exposes any unsigned-addressable asset surface. If signed-only, the token/signed-URL surface is AUTH_HELPED (needs a real signature the read-only pipeline cannot obtain) and the host gets PARKED.
+testability: PASSIVE
+[NEXT] PROBE: GET https://dl.boxcloud.com/robots.txt (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — first known-asset key on the download CDN after root → 404; 200/206 ⇒ allowlist edge, 404 ⇒ signed-only routing (favicon.ico + random nonce follow next cycle to confirm).
