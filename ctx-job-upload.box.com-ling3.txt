@@ -35,23 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-16 05:24:44 UTC"
+  "last_advance": "2026-08-16 09:13:16 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: cloud.app proved its 206 layer is normalization-sensitive (`/robots.txt/ -> 404`, `%72obots.txt -> 206`). upload.box.com now answers robots.txt with 404; if it shares the app-edge/object-store family, the trailing-slash variant should show a distinct status (301/308 redirect or 404) vs bare. On a status-only channel, redirect-vs-flat is the only body-independent discriminator left.
-verify_steps: 1) GET https://upload.box.com/robots.txt/ (status only, UA box-research/1.0 +(research), 1 req/2s). 2) If a 3xx appears, note it and do not follow (rule 6). Stop on first 401/403/429.
-impact: recon-grade origin-family fingerprint (app-edge vs object-store front) guiding whether upload CORS/preflight analysis is worthwhile on this host.
-testability: PASSIVE
-[PARKED] upload.box.com Range/partial-content layer on root: root and OPTIONS paths still produce no rows on the status channel; the Range discriminator is only actionable on a path the battery demonstrably runs (now robots.txt), so it rides along on the trailing-slash probe next cycle if a 2xx/3xx surfaces.
-[NEXT] PROBE: GET https://upload.box.com/robots.txt/ (trailing slash), status only, UA `box-research/1.0 +(research)`, 1 req/2s. Compare against known bare-path 404. Stop on first 401/403/429.
-## 2026-08-15 23:37:56 UTC upload.box.com (ling3)
-## 2026-08-15 23:53:14 UTC upload.box.com (ling3)
-## 2026-08-16 00:25:12 UTC upload.box.com (ling3)
-## 2026-08-16 02:02:17 UTC upload.box.com (bigpickle)
-[NEW] upload.box.com/robots.txt/ -> HTTP 404: trailing-slash variant returns the identical flat 404 as the bare path; no 3xx normalization anywhere on the origin.
-[LEARN] REJECTED MISCONFIG @ upload.box.com/robots.txt/: trailing-slash vs bare-path discriminator — both `/robots.txt` and `/robots.txt/` emit flat 404 with no 301/308, so the gateway is NOT a path-normalizing app edge. Contrast with cloud.app's 206/Range layer (which is slash-sensitive): upload.box.com is characterized as a flat-404 gateway; the object-store/206 family is not present on this host.
-[HYP] upload.box.com upload-API method/CORS surface via OPTIONS preflight
-class: MISCONFIG
-asset: upload.box.com/api/2.0/files/content
 confidence: 30
 reasoning: Every GET-measurable path on this origin is flat 404, yet `/api/2.0/files/content` is the pinned upload route (POST-only by design). OPTIONS is the only read-only method that can reveal the API edge's Allow list and Access-Control-Allow-* headers without sending a body.
 verify_steps: 1) OPTIONS https://upload.box.com/api/2.0/files/content (UA box-research/1.0 +(research), 1 req/2s, status only). 2) If 200/204, record Allow + ACAO/ACAH headers. 3) Do not follow any 3xx. Stop on first 401/403/429.
@@ -97,20 +82,22 @@ testability: PASSIVE
 ## 2026-08-16 07:32:49 UTC upload.box.com (ling3)
 ## 2026-08-16 07:56:15 UTC upload.box.com (ling3)
 ## 2026-08-16 08:19:14 UTC upload.box.com (ling3)
+## 2026-08-16 08:50:32 UTC upload.box.com (ling3)
+## 2026-08-16 09:13:11 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com battery is fixed and [NEXT]-blind: three consecutive runs (07:40, 07:57, 08:42) are byte-identical 14-row GET sets; the 05:24 `GET https://upload.box.com/` [NEXT] produced no row in any run — the executor only executes battery-keyed paths, so root is unmeasurable and the origin root remains the only unprobed GET signal.
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com: executor capability model corrected again — battery is a *fixed* GET-only set, not GET/HEAD and not [NEXT]-driven; no drift across 3 consecutive runs; non-battery paths (root, HEAD, OPTIONS) are structurally unexecutable on this pipeline.
+[HYP] upload.box.com query-string invariance on the pinned upload route
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content?probe=<nonce> (GET)
+confidence: 25
+reasoning: Battery shows bare `/api/2.0/files/content` as flat 404; the object/bucket-style flat-404 front is expected to be query-agnostic. Query-string variance is the only GET discriminator never exercised on this origin and the only one battery-executable.
+verify_steps: 1) GET https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 (UA box-research/1.0 +(research), 1 req/2s, status only). 2) Compare to bare-path 404; do not follow 3xx; stop on first 401/403/429.
+impact: recon-grade; closes the final untested GET channel on upload.box.com; a divergent status reopens the origin for path/CORS analysis.
+testability: PASSIVE
+[PARKED] upload.box.com origin-root default handler: `GET https://upload.box.com/` unexecutable — fixed battery omits root across 3 runs; parked (not a no-op repeat).
+[PARKED] upload.box.com HEAD/OPTIONS method surface: executor GET-only; parked pending method support (unchanged).
+[NEXT] PROBE: GET https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). If flat 404, mark upload.box.com GET channel EXHAUSTED and pivot next cycle to the only remaining battery path variant (robots.txt?probe=) for a single confirm run before closing the host's surface.
 === RANKED HYPOTHESES (tail) ===
-- [40] cloud.app.box.com/: upload.box.com origin-root default-handler state (from host-upload.box.com.md)
-
-## RANKED 2026-08-16 07:40:19 UTC
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-- [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com origin-root default-handler state (from host-upload.box.com.md)
 
 ## RANKED 2026-08-16 07:57:58 UTC
@@ -138,25 +125,22 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com origin-root default-handler state (from host-upload.box.com.md)
+
+## RANKED 2026-08-16 09:37:34 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com query-string invariance on the pinned upload route (from host-upload.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/ -> HTTP 404
-https://cloud.app.box.com/favicon.ico -> 206 (len ?)
-https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
-https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
-https://cloud.app.box.com//robots.txt -> 206 (len ?)
-https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
-https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
-https://cloud.app.box.com/robots%252Etxt -> HTTP 404
-
-## 2026-08-16 07:40:19 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
@@ -201,5 +185,21 @@ https://cloud.app.box.com//robots.txt -> 206 (len ?)
 https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
 https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 https://cloud.app.box.com/robots%252Etxt -> HTTP 404
+
+## 2026-08-16 09:37:34 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://cloud.app.box.com/robots.txt?probe=9f3k7 -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/ -> HTTP 404
+https://cloud.app.box.com/favicon.ico -> 206 (len ?)
+https://cloud.app.box.com/robots.txt/../robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%72obots.txt -> 206 (len ?)
+https://cloud.app.box.com/robots%2Etxt -> 206 (len ?)
+https://cloud.app.box.com//robots.txt -> 206 (len ?)
+https://cloud.app.box.com/%2Frobots.txt -> 206 (len ?)
+https://cloud.app.box.com/%252Frobots.txt -> HTTP 404
 === LATEST SPEC FILE (tail, if any) ===
 no-spec

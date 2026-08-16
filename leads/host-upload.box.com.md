@@ -346,3 +346,4 @@ testability: PASSIVE
 [PARKED] upload.box.com origin-root default handler: `GET https://upload.box.com/` unexecutable — fixed battery omits root across 3 runs; parked (not a no-op repeat).
 [PARKED] upload.box.com HEAD/OPTIONS method surface: executor GET-only; parked pending method support (unchanged).
 [NEXT] PROBE: GET https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). If flat 404, mark upload.box.com GET channel EXHAUSTED and pivot next cycle to the only remaining battery path variant (robots.txt?probe=) for a single confirm run before closing the host's surface.
+## 2026-08-16 09:40:43 UTC upload.box.com (ling3)
