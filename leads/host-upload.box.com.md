@@ -475,3 +475,4 @@ verify_steps: GET https://dl.boxcloud.com/robots.txt (UA `box-research/1.0 +(res
 impact: recon-grade; establishes whether the download CDN exposes any unsigned-addressable asset surface. If signed-only, the token/signed-URL surface is AUTH_HELPED (needs a real signature the read-only pipeline cannot obtain) and the host gets PARKED.
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/robots.txt (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — first known-asset key on the download CDN after root → 404; 200/206 ⇒ allowlist edge, 404 ⇒ signed-only routing (favicon.ico + random nonce follow next cycle to confirm).
+## 2026-08-16 21:37:31 UTC upload.box.com (ling3)
