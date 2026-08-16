@@ -316,3 +316,4 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — 204/200 + ACAO headers = CORS layer; 405/404 = none. Report all Access-Control-*/Allow headers.
 [NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with `Origin: https://attacker.example.com` — report ALL response headers (ACAO, ACAC, Vary, Server, Content-Range, ETag, x-goog-*, x-cache, via). Re-queue of top-priority CORS evidence; must not be dropped again.
 ## 2026-08-16 08:19:14 UTC cloud.app.box.com (ling3)
+## 2026-08-16 08:50:32 UTC cloud.app.box.com (ling3)
