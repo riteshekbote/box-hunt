@@ -284,3 +284,4 @@ verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1)
 impact: If arbitrary keys reach the 206 Range layer, the object-store edge may serve non-whitelisted keys when the backend flips, widening any future key-discovery surface. Low-medium unless a body leak surfaces.
 testability: PASSIVE
 [NEXT] PROBE (fresh nonce bh-r8m4k-tx71p; prior bh-u7xq2-* emission was unexecuted, not failed): 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) GET https://cloud.app.box.com/bh-r8m4k-tx71p — control, record status; (2) GET https://cloud.app.box.com/bh-r8m4k-tx71p with header `Range: bytes=0-0` — record status + Content-Range/Accept-Ranges + content-type; (3) GET https://cloud.app.box.com/robots.txt with header `Range: bytes=0-0` — positive control, record status. 404s informative; stop host on first 403/429.
+## 2026-08-16 07:56:18 UTC api.box.com (ling3)
