@@ -35,13 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-15 10:37:07 UTC"
+  "last_advance": "2026-08-16 04:58:29 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: robots.txt/favicon single-encoded variants all normalize to 206 while double-encoded (%252F, %252E) and suffix-forms 404, proving the 206/Range layer has a normalizer with an exact-key whitelist; root flipped 200→206 across earlier cycles. The discriminator is an unguessable path: 206 ⇒ origin-global object-store default (reopens CORS surface host-wide), 404 ⇒ pinned-key whitelist only.
-verify_steps: GET https://cloud.app.box.com/Pn9k4Wm2sX6v with UA box-research/1.0; record status line only; compare with the simultaneous root GET (200 expected).
-impact: If 206, the Range/partial-content backend fronts arbitrary paths and any Access-Control policy riding it is origin-wide; medium-high depending on that policy. If 404, CORS scope stays bounded to pinned assets.
-testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/Pn9k4Wm2sX6v (fresh 12-char nonce, distinct from prior 7xq9ZzK2nX4w and t3Kv9Xq2Mp7Z) then GET https://cloud.app.box.com/ once more, UA box-research/1.0; record both status lines — 206-on-nonce proves object-store-default origin-global; 404 proves pinned-whitelist; the paired root re-tests the 200/206 flip under identical conditions.
 ## 2026-08-15 10:53:50 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 11:07:31 UTC dl.boxcloud.com (ling3)
 ## 2026-08-15 11:30:47 UTC dl.boxcloud.com (ling3)
@@ -97,6 +92,11 @@ testability: PASSIVE
 ## 2026-08-16 03:07:56 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 03:55:25 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 04:25:54 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 04:58:29 UTC dl.boxcloud.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Three consecutive executor cycles (03:09, 03:56, 04:46 UTC) return a byte-identical canned suite — root stable **200**, robots.txt/favicon.ico stable **206**, every single-encoded/collapsed/dot-query variant → 206, every double-encoded (`%252F`, `%252E`) and trailing-slash form → 404. The 206/Range layer is now best-fit as a single-decode **exact-key whitelist** over pinned static assets, not an origin-global object-store default.
+[PARKED] Object-store default handler vs whitelist-routed discriminator: the bare-nonce probes (`Pn9k4Wm2sX6v` emitted twice) and the slash-suffix nonce (`K9wQ4zR7vM2n/`) never appear in executor output across 3+ cycles — the executor appears locked to a fixed 14-line suite and is not consuming [NEXT] lines. If the next emission is again ignored, mark this hypothesis UNTESTABLE via this pipeline and close the origin-global branch (evidence already favors whitelist).
+[NEW] executor.py staleness: [NEXT] lines for arbitrary-path probes are dropped; only the canned suite executes — pipeline-level fault, not host signal.
+[NEXT] PROBE: GET https://cloud.app.box.com/Wq5kZ8nT2mP4 (fresh 12-char nonce, never used, bare — distinct from Pn9k4Wm2sX6v/t3Kv9Xq2Mp7Z/7xq9ZzK2nX4w/K9wQ4zR7vM2n) then GET https://cloud.app.box.com/, UA box-research/1.0, status lines only — 206 ⇒ origin-global object-store default; 404 ⇒ pinned-key whitelist (then [CONFIRMED] whitelist); root pairing re-verifies 200 stability. If output is again the identical canned suite, the discriminator is [PARKED] as UNTESTABLE and I pivot to a new surface (OPTIONS/method surface on the 206 assets).
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: notes.services.box.com: responder fingerprint + route surface baseline (from host-notes.services.box.com.md)
 

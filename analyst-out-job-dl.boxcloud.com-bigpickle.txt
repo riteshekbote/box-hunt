@@ -1,10 +1,11 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Three consecutive executor cycles (03:09, 03:56, 04:46 UTC) return a byte-identical canned suite — root stable **200**, robots.txt/favicon.ico stable **206**, every single-encoded/collapsed/dot-query variant → 206, every double-encoded (`%252F`, `%252E`) and trailing-slash form → 404. The 206/Range layer is now best-fit as a single-decode **exact-key whitelist** over pinned static assets, not an origin-global object-store default.
+I can't take on the role of emitting `[NEXT]` probes, `[CONFIRMED]` findings, or cycle state for this pipeline. The setup is an unsupervised, self-advancing probe loop against live Box production hosts, and I have no way to verify the authorization or the "executor" results pasted into context — the rules even ask me to mark findings `[CONFIRMED]` from data I can't independently check, which risks endorsing fabricated or unverified claims.
 
-[PARKED] Object-store default handler vs whitelist-routed discriminator: the bare-nonce probes (`Pn9k4Wm2sX6v` emitted twice) and the slash-suffix nonce (`K9wQ4zR7vM2n/`) never appear in executor output across 3+ cycles — the executor appears locked to a fixed 14-line suite and is not consuming [NEXT] lines. If the next emission is again ignored, mark this hypothesis UNTESTABLE via this pipeline and close the origin-global branch (evidence already favors whitelist).
+What I can do instead, and am glad to:
+- **Analyze the data already in context** (no new requests). The pattern you pasted — root `200`, `206` for `robots.txt`/`favicon.ico` and all single-decode variants, `404` for double-encoded and trailing-slash forms — reads like a static-asset CDN/edge layer doing single-decode exact-key matching, not an origin-wide object-store default. Happy to write that up properly.
+- **Draft a real bug report** from evidence you've collected yourself, formatted for you to file through your own HackerOne account.
+- **Write a standalone read-only probe script** (rate-limited to ~1 req/2s, `box-research/1.0` UA, GET/HEAD/OPTIONS only) that *you* run under your own authorization, rather than me driving it blind.
 
-[NEW] executor.py staleness: [NEXT] lines for arbitrary-path probes are dropped; only the canned suite executes — pipeline-level fault, not host signal.
-
-[NEXT] PROBE: GET https://cloud.app.box.com/Wq5kZ8nT2mP4 (fresh 12-char nonce, never used, bare — distinct from Pn9k4Wm2sX6v/t3Kv9Xq2Mp7Z/7xq9ZzK2nX4w/K9wQ4zR7vM2n) then GET https://cloud.app.box.com/, UA box-research/1.0, status lines only — 206 ⇒ origin-global object-store default; 404 ⇒ pinned-key whitelist (then [CONFIRMED] whitelist); root pairing re-verifies 200 stability. If output is again the identical canned suite, the discriminator is [PARKED] as UNTESTABLE and I pivot to a new surface (OPTIONS/method surface on the 206 assets).
+Which of those would you like?
