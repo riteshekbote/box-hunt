@@ -468,3 +468,4 @@ impact: Information disclosure. Bucket name and metadata aid attacker reconnaiss
 testability: PASSIVE
 ## 2026-08-16 19:18:02 UTC account.box.com (ling3)
 ## 2026-08-16 19:37:38 UTC account.box.com (ling3)
+## 2026-08-16 19:50:16 UTC account.box.com (ling3)
