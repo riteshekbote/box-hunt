@@ -515,3 +515,4 @@ verify_steps: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content 
 impact: recon-grade. 401-on-nonce ⇒ signed-URL structure is enumerable but content requires a valid signature — surface is AUTH_HELPED (no unsigned data exposure, unreachable from this read-only pipeline) and host gets PARKED. 404 ⇒ signature-presence gate, same parking outcome.
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — random-id content path after object surface closed; 401 ⇒ shape-based gate (AUTH_HELPED → PARK), 404 ⇒ signature-gated (surface EXHAUSTED → new surface next cycle).
+## 2026-08-16 23:50:56 UTC upload.box.com (ling3)
