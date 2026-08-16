@@ -414,3 +414,22 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: object store is whitelist-routed — random nonce → 404 across 2 runs eliminates the arbitrary-object-read hypothesis [45]; matcher normalizes %-decoding and dot-segments pre-lookup. Remaining unmeasured axis: case.
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). 206 → case-insensitive whitelist (surface fully characterized); 404 → case-sensitive, declare cloud.app.box.com GET surface EXHAUSTED and pivot next cycle to the dl.boxcloud.com CORS/asset-layer items in the ranked tail.
 ## 2026-08-16 17:48:49 UTC upload.box.com (ling3)
+## 2026-08-16 18:00:30 UTC upload.box.com (bigpickle)
+[CONFIRMED] Case-sensitive pinned asset whitelist on cloud.app.box.com
+class: MISCONFIG
+asset: cloud.app.box.com/ROBOTS.TXT (GET)
+confidence: 85
+reasoning: Uppercase `ROBOTS.TXT` returned HTTP 404 in the 17:52:04 run while `robots.txt`, `favicon.ico`, and every %-encoded / dot-segment / query / leading-slash variant returned 206. Matcher is case-sensitive after %-decode and dot-segment normalization.
+verify_steps: GET https://cloud.app.box.com/ROBOTS.TXT (status only); observed 404.
+impact: no case-key collision or mixed-case re-routing exposure; the whitelist is exact-case pinned.
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: case axis measured — uppercase form → 404 proves a case-sensitive pinned matcher. Whitelist now characterized on 4 axes (case-sensitive; %-decode + dot-segment normalizing; query-agnostic; trailing-slash breaks). One axis remains: basename-vs-full-path keying. Note: the dl.boxcloud.com/cloud.app.box.com CORS + Method items in the ranked tail stay PARKED — they require header/method control the URL-only battery cannot send.
+[HYP] Basename-vs-full-path keying of the 206 asset whitelist
+class: MISCONFIG
+asset: cloud.app.box.com/bhx-p3n7r/robots.txt (GET)
+confidence: 30
+reasoning: All measured axes (encoding, case, dot-segments, query, trailing slash) are consistent with both a full-path pinned list and a basename-keyed map — indistinguishable without a directory-prefix probe. This is the last unmeasured matcher axis on this surface.
+verify_steps: GET https://cloud.app.box.com/bhx-p3n7r/robots.txt (UA box-research/1.0 +(research), 1 req/2s, status only). 206 → basename-keyed: every URL suffixing a whitelisted filename serves asset content (broader object surface, path-collision angle). 404 → full-path whitelist: cloud.app.box.com path surface EXHAUSTED, pivot to the parked CORS items once pipeline gains header/method support.
+impact: basename keying would multiply the addressable asset surface and open a collision/re-routing angle; full-path keying closes the surface entirely.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/bhx-p3n7r/robots.txt (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — resolves the final whitelist axis; 404 declares cloud.app.box.com GET path surface EXHAUSTED.
