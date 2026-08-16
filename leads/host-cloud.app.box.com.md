@@ -326,3 +326,26 @@ testability: PASSIVE
 ## 2026-08-16 11:19:22 UTC cloud.app.box.com (ling3)
 ## 2026-08-16 11:38:50 UTC cloud.app.box.com (ling3)
 ## 2026-08-16 11:53:45 UTC cloud.app.box.com (ling3)
+## 2026-08-16 12:11:18 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com/: Root now flip-flops 200↔206 across consecutive executor batches (200 @10:55, 206 @11:30, 200 @11:53) while every normalized non-root path holds steady at 206. The earlier "root 200 = distinct app index, non-root 206 = object store" model is falsified — root is reachable through the 206/Range layer on some nodes, i.e. the object-store layer fronts the origin root too, with 200/206 variance best explained by multi-node deployment or cache state rather than two stacked origins.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Discriminator model updated: root 206 @11:30 proves the Range/object-store layer is not pinned to non-root static keys only. Single remaining routing discriminator is an unguessable path (catch-all vs whitelist) — the only probe that separates the two, still unexecuted across 4+ cycles.
+[HYP] Object-store 206 layer is a catch-all default handler fronting the whole origin, not a pinned-static whitelist
+class: MISCONFIG
+asset: cloud.app.box.com/<16-hex-nonce>
+confidence: 55
+reasoning: Root itself returned 206 @11:30, so the Range layer reaches the origin root; all %-single-encoded variants stay 206 while %-double-encoded and trailing-slash keys 404 — a whitelist is now unlikely since root would be pinned 200/404, not variance. Random nonce is the sole remaining discriminator and has never executed.
+verify_steps: GET https://cloud.app.box.com/c3a7f19e4b5d8026 (fresh nonce, Range: bytes=0-0) → status + Content-Length. If 206, single-segment catch-all confirmed; follow with two-segment variant to test path-depth normalization.
+impact: If catch-all, the origin status channel is attacker-controllable for cache/key-probing primitives; gates later cache-abuse hypotheses — Medium.
+testability: PASSIVE
+[HYP] CORS misconfiguration on cloud.app.box.com 206 object-store layer (attacker Origin reflected with credentials)
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 45
+reasoning: Unchanged evidence gap — the 15-URL pinned batch has never carried my Origin/OPTIONS headers; root-variance now also gives us a header-rich 200 path to fingerprint. No CORS byte has ever reached me.
+verify_steps: (1) GET /robots.txt with Range: bytes=0-0 + Origin: https://attacker.example.com, report full header set; (2) OPTIONS /robots.txt with Origin + Access-Control-Request-Method: GET, report Access-Control-*/Allow.
+impact: Reflected origin + credentials lets a malicious page read credentialed responses in an embedded-content/token origin — Medium/High.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/c3a7f19e4b5d8026 with header `Range: bytes=0-0` — fresh 16-hex nonce (new, replaces never-run 8f4a2c9d1b6e3f20 and 9d17e4b2f08c6a53); report status + Content-Length. 206 = catch-all default handler; 404 = whitelist-routed. [top priority, unexecuted 4+ cycles]
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with headers `Range: bytes=0-0` and `Origin: https://attacker.example.com` — report ALL response headers verbatim (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Vary, Server, Content-Range, Content-Length, ETag, Last-Modified, x-goog-*, x-cache, via, set-cookie).
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with headers `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-* and Allow headers; 204/200 = CORS layer, 405/404 = none.
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with header `Range: bytes=0-0` — 206 = case-insensitive normalizer; 404 = case-sensitive object-store key (completes the encode/case matrix).
