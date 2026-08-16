@@ -304,3 +304,4 @@ testability: PASSIVE
 [NEXT] PROBE (new surface, executor-pinned shape, ~10:05 UTC): 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/robots.txt;bhx-51 (2) https://cloud.app.box.com/robots.txt/bhx-52 (3) https://cloud.app.box.com/robots%3Fprobe=bhx-53 — record status + content-type verbatim into probe-results-next.md. 404s informative; stop host on first 403/429.
 ## 2026-08-16 10:43:02 UTC api.box.com (ling3)
 ## 2026-08-16 10:59:01 UTC api.box.com (ling3)
+## 2026-08-16 11:19:21 UTC api.box.com (ling3)
