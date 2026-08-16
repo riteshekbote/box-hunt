@@ -387,3 +387,16 @@ testability: PASSIVE
 ## 2026-08-16 11:38:52 UTC app.box.com (ling3)
 ## 2026-08-16 11:54:04 UTC app.box.com (ling3)
 ## 2026-08-16 12:10:47 UTC app.box.com (ling3)
+## 2026-08-16 12:59:30 UTC app.box.com (bigpickle)
+[NEW] app.box.com: still zero app-origin evidence — the 12:57 executor batch is near-byte-identical to the two prior cycles and again contains only the fixed cloud+upload rows (no app row has ever appeared in probe-results-next.md). Adjacent evidence did change on the sibling origin: cloud.app.box.com/ moved 206 -> 200, proving the origin root is a distinct SPA/index handler and NOT the Range-capable object-store layer that answers every single-encode asset key.
+[HYP] App-origin root handler type via Range-header GET
+class: MISCONFIG
+asset: app.box.com/
+confidence: 50
+reasoning: cloud.app.box.com/ now returns 200 (SPA shell) while every asset key (robots.txt, favicon.ico, %72obots.txt, etc.) returns 206+Content-Range from a Range-capable normalizer — root and object-store are separate handlers on that origin. Whether app.box.com/ serves a shell, a bare object-store root, or a pinned allowlist is unmeasured (app evidence = 0). A Range-header GET on the app root splits that space in one request.
+verify_steps: GET https://app.box.com/ with headers "Range: bytes=0-0" and "User-Agent: box-research/1.0 (research)" — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes (206+Content-Range = Range-capable object-store fronts the primary-origin root; 200 = SPA shell; 404/403 = pinned allowlist)
+impact: delivery-topology map for the primary origin; decides whether the cloud object-store parity findings port to app, incl. whether arbitrary keys can shadow real content on the main origin (info/low, config-signal)
+testability: PASSIVE
+[NEXT] PROBE: GET https://app.box.com/ with Range: bytes=0-0 and UA box-research/1.0 — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes (206+Content-Range = object-store fronting at app root; 200 = SPA shell; 4xx = pinned).
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: cloud.app.box.com/ root returned 206 at 11:30 but 200 at 11:53 and 12:57 — the "206/Range layer fronts the origin root" claim is falsified by direct evidence; the root is an SPA/index handler, and the Range-capable object-store normalizer answers only non-root asset keys.
+[LEARN] ACCEPTED MISCONFIG @ app.box.com: executor probe-results-next.md is a fixed cloud+upload batch (near-identical at 09:55/10:35/10:55/11:30/11:53/12:57 UTC) — queued app probes are dropped before execution; re-emitting the same [NEXT] is a documented no-op, so a fresh Range-keyed root probe is used to attempt breaking the stuck batch this cycle.
