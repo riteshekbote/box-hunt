@@ -290,3 +290,15 @@ testability: PASSIVE
 ## 2026-08-16 09:12:32 UTC api.box.com (ling3)
 ## 2026-08-16 09:40:43 UTC api.box.com (ling3)
 ## 2026-08-16 09:57:05 UTC api.box.com (ling3)
+## 2026-08-16 10:18:18 UTC api.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Single-decode normalization layer confirmed across 4 byte-identical executor cycles — leading slashes collapse (`//robots.txt`, `%2Frobots.txt` -> 206), dot segments collapse (`robots.txt/../robots.txt` -> 206), query ignored (`?probe=9f3k7` -> 206); but trailing slash (`robots.txt/` -> 404) and double-encoding (`%252Frobots.txt`, `robots%252Etxt` -> 404) fail. Matcher is exact-key after one decode + normalization; not prefix, not fuzzy.
+[PARKED] Range-width discriminator on fresh nonce (bh-r8m4k-tx71p): emitted twice (bh-u7xq2-*, bh-r8m4k-tx71p), never executed across 4 executor cycles — channel replays the pinned set. No observation = no evidence; parked pending executor pickup, not failed.
+[HYP] Pinned-key matcher exactness: tokenizer vs strict whole-string match
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt (+ variants)
+confidence: 55
+reasoning: Leading-slash and dot-segment collapse to 206 while trailing-slash gives 404 proves the canonical key is matched after normalization. The untested boundary: `;` path-params (Java-servlet static handlers strip them), `/sub` prefix children, and encoded `?` would distinguish a tokenizing file handler from a strict exact-key object store. These are the pinned-set's own shape, so executor-pickup probability is highest here.
+verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) GET https://cloud.app.box.com/robots.txt;bhx-51 (2) GET https://cloud.app.box.com/robots.txt/bhx-52 (3) GET https://cloud.app.box.com/robots%3Fprobe=bhx-53 — record status + content-type verbatim. 404 informative; stop host on first 403/429.
+impact: A `;`-tokenized or prefix-matched key that normalizes onto another pinned object = cache-key collision / wrong-object risk at the edge (object-store serves a key that differs from the request path). Low unless a body leak surfaces.
+testability: PASSIVE
+[NEXT] PROBE (new surface, executor-pinned shape, ~10:05 UTC): 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/robots.txt;bhx-51 (2) https://cloud.app.box.com/robots.txt/bhx-52 (3) https://cloud.app.box.com/robots%3Fprobe=bhx-53 — record status + content-type verbatim into probe-results-next.md. 404s informative; stop host on first 403/429.

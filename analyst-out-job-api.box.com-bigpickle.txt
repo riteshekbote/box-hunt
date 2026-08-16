@@ -1,16 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Executor results are byte-identical across 3 cycles (05:38/05:59/06:55) and now prove a single-decode normalization layer: `%72obots.txt`, `robots%2Etxt`, `//robots.txt`, `%2Frobots.txt`, `robots.txt/../robots.txt`, and `?probe=` variants all return 206; only `%252Frobots.txt`/`robots%252Etxt` (double-encoded) and `/robots.txt/` (trailing slash) return 404. The 206/Range layer single-decodes, collapses dot segments and leading slashes, then matches canonical pinned keys. My arbitrary-path Range probe (bh-u7xq2-*) still never executed — the executor replays the pinned set — so the origin-wide-vs-whitelist discriminator remains open; re-keyed on a fresh nonce.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Single-decode normalization layer confirmed across 4 byte-identical executor cycles — leading slashes collapse (`//robots.txt`, `%2Frobots.txt` -> 206), dot segments collapse (`robots.txt/../robots.txt` -> 206), query ignored (`?probe=9f3k7` -> 206); but trailing slash (`robots.txt/` -> 404) and double-encoding (`%252Frobots.txt`, `robots%252Etxt` -> 404) fail. Matcher is exact-key after one decode + normalization; not prefix, not fuzzy.
 
-[HYP] Range-layer width via Range header on fresh nonce (origin-wide 206 layer vs pinned-whitelist only)
+[PARKED] Range-width discriminator on fresh nonce (bh-r8m4k-tx71p): emitted twice (bh-u7xq2-*, bh-r8m4k-tx71p), never executed across 4 executor cycles — channel replays the pinned set. No observation = no evidence; parked pending executor pickup, not failed.
+
+[HYP] Pinned-key matcher exactness: tokenizer vs strict whole-string match
 class: MISCONFIG
-asset: cloud.app.box.com/ (root + pinned key + fresh unguessable path)
-confidence: 50
-reasoning: Pinned keys return 206 under single-decode normalization; arbitrary unguessable paths return 404 SPA without Range. The only untested state is whether a Range header on an arbitrary path hits the 206 layer (origin-wide) or falls through to 404 (pinned-only). Prior emission of this discriminator was never executed, so it is unprobed, not failed.
-evidence_needed: Status + Content-Range/Accept-Ranges on GET arbitrary path with `Range: bytes=0-0`; same path without Range as control; pinned key with Range as positive control.
-verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) GET https://cloud.app.box.com/bh-r8m4k-tx71p (control, expect 404 SPA) (2) GET https://cloud.app.box.com/bh-r8m4k-tx71p with header `Range: bytes=0-0` (206/Content-Range => origin-wide; 404 => pinned-only) (3) GET https://cloud.app.box.com/robots.txt with header `Range: bytes=0-0` (positive control, expect 206). Record status + content-type + Content-Range/Accept-Ranges verbatim. 404 informative; stop host on first 403/429.
-impact: If arbitrary keys reach the 206 Range layer, the object-store edge may serve non-whitelisted keys when the backend flips, widening any future key-discovery surface. Low-medium unless a body leak surfaces.
+asset: cloud.app.box.com/robots.txt (+ variants)
+confidence: 55
+reasoning: Leading-slash and dot-segment collapse to 206 while trailing-slash gives 404 proves the canonical key is matched after normalization. The untested boundary: `;` path-params (Java-servlet static handlers strip them), `/sub` prefix children, and encoded `?` would distinguish a tokenizing file handler from a strict exact-key object store. These are the pinned-set's own shape, so executor-pickup probability is highest here.
+evidence_needed: status of `robots.txt;x`, `robots.txt/sub`, `robots%3Fprobe` — 206 means normalizer strips ;/prefix (tokenizer); 404 means strict exact match.
+verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) GET https://cloud.app.box.com/robots.txt;bhx-51 (2) GET https://cloud.app.box.com/robots.txt/bhx-52 (3) GET https://cloud.app.box.com/robots%3Fprobe=bhx-53 — record status + content-type verbatim. 404 informative; stop host on first 403/429.
+impact: A `;`-tokenized or prefix-matched key that normalizes onto another pinned object = cache-key collision / wrong-object risk at the edge (object-store serves a key that differs from the request path). Low unless a body leak surfaces.
 testability: PASSIVE
 
-[NEXT] PROBE (fresh nonce bh-r8m4k-tx71p; prior bh-u7xq2-* emission was unexecuted, not failed): 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) GET https://cloud.app.box.com/bh-r8m4k-tx71p — control, record status; (2) GET https://cloud.app.box.com/bh-r8m4k-tx71p with header `Range: bytes=0-0` — record status + Content-Range/Accept-Ranges + content-type; (3) GET https://cloud.app.box.com/robots.txt with header `Range: bytes=0-0` — positive control, record status. 404s informative; stop host on first 403/429.
+[NEXT] PROBE (new surface, executor-pinned shape, ~10:05 UTC): 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) https://cloud.app.box.com/robots.txt;bhx-51 (2) https://cloud.app.box.com/robots.txt/bhx-52 (3) https://cloud.app.box.com/robots%3Fprobe=bhx-53 — record status + content-type verbatim into probe-results-next.md. 404s informative; stop host on first 403/429.
