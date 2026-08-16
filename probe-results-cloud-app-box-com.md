@@ -42,3 +42,8 @@ https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
 https://cloud.app.box.com/robots.txt -> 206
 https://cloud.app.box.com/8f4a2c9d1b6e3f20 -> HTTP 404
 https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+
+## 2026-08-16 07:57:06 UTC cloud.app.box.com
+https://cloud.app.box.com/9d17e4b2f08c6a53 -> HTTP 404
+https://cloud.app.box.com/9d17e4b2f08c6a53/9d17e4b2f08c6a53 -> HTTP 404
+https://cloud.app.box.com/robots.txt -> 206

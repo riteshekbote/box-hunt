@@ -291,3 +291,27 @@ testability: PASSIVE
 ## 2026-08-16 06:14:36 UTC cloud.app.box.com (ling3)
 ## 2026-08-16 06:59:53 UTC cloud.app.box.com (ling3)
 ## 2026-08-16 07:32:48 UTC cloud.app.box.com (ling3)
+## 2026-08-16 07:56:59 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com/: Executor batch is pinned on the same 15 URLs (05:59/06:55/07:40 runs identical); my nonce/uppercase/CORS queue from 22:43-23:53 still never executed. Status-only evidence unchanged — routing catch-all and CORS posture remain open, and header capture never reaches me.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt: Single-decode normalization is now stable across 10+ cycles (all %-variants 206, double-encoded 404). Closed loop — no new discriminator remains on the encode axis; the only open axes are routing (nonce path) and method/CORS behavior.
+[HYP] Object-store 206 layer is a catch-all default handler fronting the entire origin, not a pinned-static whitelist
+class: MISCONFIG
+asset: cloud.app.box.com/<16-hex-nonce>
+confidence: 45
+reasoning: Every normalized name we tried (robots.txt, favicon.ico, encodings, `..`-traversal, query-suffixed) returns 206; only double-encoded and trailing-slash keys 404. That is indistinguishable from a whitelist of real static objects until an unguessable path is tested — the one probe that separates the two models, and it has never run.
+verify_steps: (1) GET /9d17e4b2f08c6a53; (2) GET /9d17e4b2f08c6a53/9d17e4b2f08c6a53; (3) HEAD /robots.txt; (4) OPTIONS /robots.txt.
+impact: If catch-all, the origin's status channel is fully under attacker control for cache/key-probing primitives; alone informational, but it gates every later cache-abuse hypothesis — Medium.
+testability: PASSIVE
+[HYP] CORS misconfiguration on cloud.app.box.com 206 object-store layer (attacker Origin reflected with credentials)
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 45
+reasoning: Unauthenticated 206-on-any-normalized-path is the classic GCS-bucket-front signature that frequently ships permissive `Access-Control-Allow-Origin` reflection. No CORS probe has ever executed; this remains an evidence gap, not a resolved question.
+verify_steps: (1) GET /robots.txt with `Origin: https://attacker.example.com`; (2) OPTIONS /robots.txt with `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET`. Executor MUST return full header set.
+impact: Reflected origin + credentials would let a malicious page read credentialed responses in an embedded-content/token origin — Medium/High.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/9d17e4b2f08c6a53 — fresh 16-hex nonce, no Range/query: report status + Content-Length. 206 = true catch-all default handler; 404 = whitelist-routed. [NEW nonce, differs from queued 8f4a2c9d...]
+[NEXT] PROBE: GET https://cloud.app.box.com/9d17e4b2f08c6a53/9d17e4b2f08c6a53 — multi-segment nonce: tests whether catch-all normalization survives path depth.
+[NEXT] PROBE: HEAD https://cloud.app.box.com/robots.txt — 206 = same object layer serves HEAD; 200/405 = distinct app edge for methods.
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — 204/200 + ACAO headers = CORS layer; 405/404 = none. Report all Access-Control-*/Allow headers.
+[NEXT] PROBE: GET https://cloud.app.box.com/robots.txt with `Origin: https://attacker.example.com` — report ALL response headers (ACAO, ACAC, Vary, Server, Content-Range, ETag, x-goog-*, x-cache, via). Re-queue of top-priority CORS evidence; must not be dropped again.
