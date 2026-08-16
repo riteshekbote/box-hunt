@@ -324,3 +324,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root left the 206/Range layer (206 at 11:30:59 -> 200 at 11:53:09/12:57:16) while pinned static keys held 206 — the Range layer is per-key static-asset matching, not origin-wide. With 4 byte-identical normalization cycles plus this root flip, exact-key-after-single-decode is the best-supported model; arbitrary-path discrimination is the only open branch and remains parked under the executor constraint.
 [NEXT] PROBE (second-key replication on executor-pinned shape): 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) GET https://cloud.app.box.com/favicon.ico;bhx-61 (2) GET https://cloud.app.box.com/favicon.ico/bhx-62 (3) GET https://cloud.app.box.com/favicon.ico?probe=bhx-63 — record status + content-type verbatim into probe-results-next.md. 404s informative; stop host on first 403/429.
 ## 2026-08-16 13:54:11 UTC api.box.com (ling3)
+## 2026-08-16 14:10:51 UTC api.box.com (ling3)
