@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-16 09:57:48 UTC"
 }=== MY LAST LEADS (tail) ===
-impact: recon-grade; a method-aware HEAD would reopen the upload edge for preflight/CORS analysis; a flat 404 closes the origin's externally observable surface entirely.
 testability: PASSIVE
 [PARKED] upload.box.com OPTIONS preflight on `/api/2.0/files/content`: emitted 02:02 but absent from the 03:09 tail — the executor appears GET/HEAD-only; if HEAD returns non-404, re-emit OPTIONS re-keyed on the live route; otherwise the CORS/method channel is closed on this host.
 [NEXT] PROBE: HEAD https://upload.box.com/api/2.0/files/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only); record Allow/Content-Length on any 200/204; stop on first 401/403/429. If this returns flat 404, mark upload.box.com surface EXHAUSTED and key the next host's surface.
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://upload.box.com/robots.txt?probe=bhx-k2m8p (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Final battery-absorbable variant; if flat 404, declare upload.box.com GET surface EXHAUSTED and pivot next cycle — ranked tail shows highest-value unmeasured items are the dl.boxcloud.com/cloud.app.box.com CORS + object-store-routing hypotheses ([45]), which this pipeline's GET battery can actually execute.
 ## 2026-08-16 10:17:31 UTC upload.box.com (ling3)
 ## 2026-08-16 10:43:21 UTC upload.box.com (bigpickle)
+## 2026-08-16 10:58:59 UTC upload.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com query-string invariance on the pinned upload route (from host-upload.box.com.md)
 
