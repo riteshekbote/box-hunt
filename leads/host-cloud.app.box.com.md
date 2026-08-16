@@ -351,3 +351,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with header `Range: bytes=0-0` — 206 = case-insensitive normalizer; 404 = case-sensitive object-store key (completes the encode/case matrix).
 ## 2026-08-16 12:58:34 UTC cloud.app.box.com (ling3)
 ## 2026-08-16 13:30:19 UTC cloud.app.box.com (ling3)
+## 2026-08-16 13:54:22 UTC cloud.app.box.com (bigpickle)
