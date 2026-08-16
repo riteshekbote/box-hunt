@@ -346,3 +346,16 @@ testability: PASSIVE
 ## 2026-08-16 10:17:30 UTC m.box.com (ling3)
 ## 2026-08-16 10:43:03 UTC m.box.com (ling3)
 ## 2026-08-16 10:59:12 UTC m.box.com (ling3)
+## 2026-08-16 11:20:08 UTC m.box.com (bigpickle)
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization model reconfirmed on the 5th consecutive byte-identical executor batch (10:55 == 10:35 == 09:55): single-decode + query-strip + `//`/dot-segment collapse, exact-key lookup, trailing-slash = miss (`/robots.txt/`→404 vs `/robots.txt/../robots.txt`→206), double-encode = miss (`%252F`→404). `favicon.ico` is now a second independently-confirmed live 206 object; the model is no longer robots-specific.
+[NEW] cloud.app.box.com/: executor batch is static except nonce rotation — only `upload.box.com` probe nonce mutated (bhx-9f3k7→bhx-k2m8p at 10:35), URL set unchanged across 3+ cycles. All non-batch-shaped [NEXT] probes (nonces 2f7a9/8c41b/7b4e2, case-folds, OPTIONS/HEAD, `/robots.txt/./robots.txt`) were never executed.
+[PARKED] Object-store default-handler + case-folding + method-surface discriminators: all require non-batch URLs and none were ever executed across three emitted sweeps; no observation exists to evaluate. Parked until the executor accepts batch-shaped URLs for these branches.
+[HYP] Trailing-slash exact-key-miss generalizes across live keys (key-wide model)
+class: OTHER
+asset: cloud.app.box.com/
+confidence: 60
+reasoning: `/robots.txt/`=404 with `/robots.txt/../robots.txt`=206 pins the 404 to exact-key miss on one key, not a global normalize-to-slash rule; `/favicon.ico/` tests the same predicate on the second confirmed live object, and a 206 there would reveal per-key or default-handler behavior instead of a uniform key-wide model.
+verify_steps: bare GET https://cloud.app.box.com/favicon.ico/ , UA box-research, 1 req/2s.
+impact: completes the key-space model every future probe is interpreted against; informational/low, no attacker data exposure.
+testability: PASSIVE
+[NEXT] PROBE: 3-request favicon sweep reusing only in-batch key shapes, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (generalize trailing-slash model to 2nd live key), 2) GET /favicon%2Eico (uniformity of single-decode normalization across keys, expect 206), 3) GET /favicon.ico/../favicon.ico (dot-collapse across keys, expect 206). Record status+content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.

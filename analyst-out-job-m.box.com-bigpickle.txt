@@ -1,38 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: executor default batch byte-identical for the 5th consecutive cycle (06:55:38) — both prior [NEXT] sweeps (18:35 8-request, 23:19 4-request) remain unexecuted; only in-batch variants accrue evidence, so new probes must reuse in-batch shapes (`/favicon.ico`, dot-segment, nonce-in-path) to have any chance of execution.
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization model reconfirmed on the 5th consecutive byte-identical executor batch (10:55 == 10:35 == 09:55): single-decode + query-strip + `//`/dot-segment collapse, exact-key lookup, trailing-slash = miss (`/robots.txt/`→404 vs `/robots.txt/../robots.txt`→206), double-encode = miss (`%252F`→404). `favicon.ico` is now a second independently-confirmed live 206 object; the model is no longer robots-specific.
 
-[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: normalization model 5x byte-identical — single-decode + query-strip + dot-segment collapse (`/robots.txt/../robots.txt`=206, `//robots.txt`=206) with exact-key miss on trailing-slash (`/robots.txt/`=404) and double-encode miss (`%252F`/`robots%252Etxt`=404). Untested branches remain: case-folding, HEAD/OPTIONS method surface, random-nonce default handler.
+[NEW] cloud.app.box.com/: executor batch is static except nonce rotation — only `upload.box.com` probe nonce mutated (bhx-9f3k7→bhx-k2m8p at 10:35), URL set unchanged across 3+ cycles. All non-batch-shaped [NEXT] probes (nonces 2f7a9/8c41b/7b4e2, case-folds, OPTIONS/HEAD, `/robots.txt/./robots.txt`) were never executed.
 
-[HYP] Object-store key case-sensitivity (second live object)
+[PARKED] Object-store default-handler + case-folding + method-surface discriminators: all require non-batch URLs and none were ever executed across three emitted sweeps; no observation exists to evaluate. Parked until the executor accepts batch-shaped URLs for these branches.
+
+[HYP] Trailing-slash exact-key-miss generalizes across live keys (key-wide model)
 class: OTHER
 asset: cloud.app.box.com/
-confidence: 55
-reasoning: all case probes emitted to date (ROBOTS.TXT, Robots.txt) were never executed; only exact-case keys are confirmed 206. GET /FAVICON.ICO tests case-folding on a second independently-verified live object, so a 404 cannot be explained away by robots-specific routing.
-evidence_needed: status of GET /FAVICON.ICO
-verify_steps: bare GET /FAVICON.ICO, UA box-research, 1 req/2s
-impact: pins exact-case vs case-insensitive object-key model for future sweeps; informational/low absent auth data.
+confidence: 60
+reasoning: `/robots.txt/`=404 with `/robots.txt/../robots.txt`=206 pins the 404 to exact-key miss on one key, not a global normalize-to-slash rule; `/favicon.ico/` tests the same predicate on the second confirmed live object, and a 206 there would reveal per-key or default-handler behavior instead of a uniform key-wide model.
+evidence_needed: status of GET /favicon.ico/ — 404 confirms key-wide exact-key model; 206 reveals default/fallback serving on slash-suffixed keys.
+verify_steps: bare GET https://cloud.app.box.com/favicon.ico/ , UA box-research, 1 req/2s.
+impact: completes the key-space model every future probe is interpreted against; informational/low, no attacker data exposure.
 testability: PASSIVE
 
-[HYP] Range/206 layer method surface (HEAD/OPTIONS differential)
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 50
-reasoning: GET 206 on pinned objects plus 200 on root prove a Range front for GET only; HEAD/OPTIONS on a confirmed-live object was never emitted. HEAD 206/OPTIONS 200 with Allow:GET,HEAD,OPTIONS fingerprints a standard object-store front; HEAD 404/OPTIONS 405 implies a GET-specific custom handler.
-evidence_needed: HEAD and OPTIONS responses on /favicon.ico
-verify_steps: HEAD /favicon.ico then OPTIONS /favicon.ico, UA box-research, 1 req/2s
-impact: fingerprints the serving layer and informs which methods future sweeps can rely on; informational.
-testability: PASSIVE
-
-[HYP] Object-store default handler vs whitelist-routed (3rd fresh nonce)
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 50
-reasoning: two prior nonces (2f7a9, 8c41b) were emitted but never executed; root=200 vs pinned=206 still leaves arbitrary-path routing unresolved. GET on a random unguessable key decides whether the 206/Range layer fronts the whole origin (206 => default handler / existence oracle) or only pinned keys (404 => whitelist).
-evidence_needed: status of GET /zzz-nonexistent-7b4e2
-verify_steps: bare GET /zzz-nonexistent-7b4e2, UA box-research, 1 req/2s
-impact: if 206 on arbitrary paths, existence oracle across the object key space; informational/low absent auth data.
-testability: PASSIVE
-
-[NEXT] PROBE: 4-request sweep, every URL distinct from all prior emissions, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /FAVICON.ICO (case-folding on second live object), 2) OPTIONS /favicon.ico (Allow/method surface), 3) GET /zzz-nonexistent-7b4e2 (3rd fresh nonce — default-handler discriminator), 4) GET /robots.txt/./robots.txt (dot-segment inside trailing-slash: 206 proves the normalizer collapses dot segments before exact-key lookup and that the /robots.txt/ 404 is a pure exact-key miss). Record status + content-length each; first 4xx/429/403 -> log and stop probing this host for the cycle.
+[NEXT] PROBE: 3-request favicon sweep reusing only in-batch key shapes, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (generalize trailing-slash model to 2nd live key), 2) GET /favicon%2Eico (uniformity of single-decode normalization across keys, expect 206), 3) GET /favicon.ico/../favicon.ico (dot-collapse across keys, expect 206). Record status+content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.
