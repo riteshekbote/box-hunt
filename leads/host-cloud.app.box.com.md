@@ -401,3 +401,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/crossdomain.xml with `Range: bytes=0-0` — 206 + XML body = legacy Flash policy exposed through the Range layer (report body snippet); 404 = not pinned.
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-*/Allow headers; 204/200 = CORS layer present, 405/404 = none.
 [NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with `Range: bytes=0-0` and `Origin: https://attacker.example.com` — report ALL response headers verbatim (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Vary, Server, Content-Range, ETag, Last-Modified, x-goog-*, x-cache, via).
+## 2026-08-16 22:43:54 UTC cloud.app.box.com (ling3)
