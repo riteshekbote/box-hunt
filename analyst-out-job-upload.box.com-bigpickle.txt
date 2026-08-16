@@ -1,13 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-[HYP] Whitelist match granularity — exact-name vs prefix/glob on cloud.app.box.com object store
+[LEARN] EXHAUSTED cloud.app.box.com GET path surface: full-path keying confirmed (bhx-p3n7r/robots.txt → 404), prefix/glob rejected (robots → 404). Whitelist now fully characterized: case-sensitive, %-decode+dot-segment-normalizing, query-agnostic, full-path-pinned, exact-name-matched. Surface closed for GET probes without header control.
+
+[PARKED] cloud.app.box.com CORS/method items: all remaining ranked hypotheses require Origin:/method control the URL-only executor battery cannot send. Parked pending pipeline header support — not a no-op repeat.
+
+[NEW] dl.boxcloud.com: untouched host — file download CDN, signed URLs, file access, token leakage surface. Starting RECON.
+
+[HYP] dl.boxcloud.com root handler fingerprint
 class: MISCONFIG
-asset: cloud.app.box.com/robots (GET)
-confidence: 35
-reasoning: Whitelist is now characterized on 4 axes (case-sensitive; %-decode + dot-segment normalizing; query-agnostic; trailing-slash breaks). The final unmeasured axis is match granularity: exact pinned name vs prefix/basename-glob. Unknown paths (random nonce) and directory-suffixed assets (robots.txt/) already 404, and root alone 200s, so /robots discriminates prefix matching (206 = glob) from exact matching (404 = pinned list).
-evidence_needed: status of GET /robots
-verify_steps: GET https://cloud.app.box.com/robots (UA box-research/1.0 +(research), 1 req/2s, status only). 206 → prefix/basename-glob match (surface enlarged); 404 → exact pinned names.
-impact: recon-grade; completes the matcher fingerprint. A glob/prefix match would widen the addressable asset set, but severity stays informational without the content-channel access this battery lacks.
+asset: dl.boxcloud.com/ (GET)
+confidence: 25
+reasoning: dl.boxcloud.com is the download CDN for Box — serves signed URLs for file downloads. Unknown whether root returns a default page (app edge), 404 (no bucket fronting), or 206 (object-store-like). Initial GET establishes the handler class and constrains all downstream hypotheses.
+evidence_needed: HTTP status + response body fingerprint (HTML error page, JSON, empty, redirect)
+verify_steps: GET https://dl.boxcloud.com/ (UA box-research/1.0 +(research), 1 req/2s, status only). Then GET https://dl.boxcloud.com/robots.txt and GET https://dl.boxcloud.com/favicon.ico to compare handler behavior against known-asset and unknown-path probes.
+impact: recon-grade; establishes whether dl.boxcloud.com has a similar 206 asset layer to cloud.app.box.com or a distinct routing architecture.
 testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/robots (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Distinct from the in-flight basename probe `bhx-p3n7r/robots.txt` (emitted 18:00:30, result not yet returned to context) — resolves prefix-vs-exact matching, the last unmeasured whitelist axis. Expected 404; on 404, declare cloud.app.box.com GET path surface EXHAUSTED and pivot next cycle to the PARKED dl.boxcloud.com CORS items once the battery gains Origin:/header control.
+
+[NEXT] PROBE: GET https://dl.boxcloud.com/ (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Establishes root handler class on the download CDN — first probe on this host, RECON phase.
