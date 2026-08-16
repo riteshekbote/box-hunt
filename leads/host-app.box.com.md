@@ -386,3 +386,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ app.box.com: the executor's probe-results-next.md is a fixed cloud+upload batch (three consecutive byte-similar cycles), so app-origin probes are being dropped before execution rather than returning evidence; repeated identical [NEXT] lines are documented no-ops and will not be re-emitted — the events-endpoint probe is a fresh, never-queued key to break the stuck batch.
 ## 2026-08-16 11:38:52 UTC app.box.com (ling3)
 ## 2026-08-16 11:54:04 UTC app.box.com (ling3)
+## 2026-08-16 12:10:47 UTC app.box.com (ling3)
