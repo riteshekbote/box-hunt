@@ -368,3 +368,4 @@ verify_steps: GET https://app.box.com/ with UA box-research/1.0 — record statu
 impact: delivery-topology map for the primary origin; decides whether the cloud object-store parity findings port to app (info/low, config-signal)
 testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/ with UA box-research/1.0 — record status, Content-Type, Server, first 200 chars (200 text/html = SPA shell; 206+Content-Range = bare object-store edge fronting the origin).
+## 2026-08-16 09:57:16 UTC app.box.com (ling3)
