@@ -280,3 +280,4 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with headers `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-* and Allow headers. [NOT EXECUTED in last 3 cycles — priority]
 [NEXT] PROBE: GET https://cloud.app.box.com/8f4a2c9d1b6e3f20 with `Range: bytes=0-0` — report status + Content-Range + Content-Length; if 206, compare its Content-Length against robots.txt's to test real-object vs synthesized-default-body semantics.
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with `Range: bytes=0-0` — report status (206 = case-insensitive normalizer; 404 = case-sensitive object-store key).
+## 2026-08-16 00:25:10 UTC cloud.app.box.com (ling3)
