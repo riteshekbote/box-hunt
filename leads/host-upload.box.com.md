@@ -488,3 +488,4 @@ impact: recon-grade; if both known keys and a random nonce all 404, the unsigned
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/favicon.ico (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — second known-asset key after robots.txt→404; 404 ⇒ signed-only routing, then a random nonce path next cycle to close the surface; non-404 ⇒ allowlist-layer model returns.
 ## 2026-08-16 22:00:39 UTC upload.box.com (ling3)
+## 2026-08-16 22:25:43 UTC upload.box.com (ling3)
