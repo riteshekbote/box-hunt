@@ -294,3 +294,4 @@ testability: PASSIVE
 [PARKED] upload.box.com Range/partial-content layer: moot on a flat-404 origin — Range yields nothing beyond 404 for every measured path; closed unless a 2xx surface appears.
 [PARKED] upload.box.com non-404 route surface: all GET/HEAD-measurable paths are flat 404; the remaining route space is POST-only (forbidden by rule 1). Parked; no further GET surface exists on this host.
 [NEXT] PROBE: OPTIONS https://upload.box.com/api/2.0/files/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s), status only; record Allow + Access-Control-Allow-* if present; stop on first 401/403/429.
+## 2026-08-16 03:07:54 UTC upload.box.com (ling3)
