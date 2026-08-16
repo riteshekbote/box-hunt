@@ -57,3 +57,9 @@ https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
 https://cloud.app.box.com/.well-known/security.txt -> HTTP 404
 https://cloud.app.box.com/crossdomain.xml -> 206
 https://cloud.app.box.com/favicon.ico -> 206
+
+## 2026-08-16 22:58:47 UTC cloud.app.box.com
+https://cloud.app.box.com/?list-type=2 -> 200
+https://cloud.app.box.com/favicon.ico -> 206
+https://cloud.app.box.com/.well-known/security.txt -> HTTP 404
+https://cloud.app.box.com/crossdomain.xml -> 206

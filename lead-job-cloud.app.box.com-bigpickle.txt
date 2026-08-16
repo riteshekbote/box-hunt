@@ -1,22 +1,23 @@
-[NEW] cloud.app.box.com/bhx-xp4k7-m9f3q: Random 16-char nonce finally executed (@20:54 batch) → **HTTP 404**, while `/robots.txt`, `/favicon.ico` return 206 under Range and `/` returns 200. The routing discriminator is now resolved: the 206/Range layer is whitelist-pinned to known static keys, NOT a catch-all default handler.
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/bhx-xp4k7-m9f3q: Random unguessable path → 404 falsifies the catch-all-default-handler model. Range layer is pinned (robots.txt, favicon.ico, root only). Root 200↔206 flip-flop re-read as cache/multi-node artifact inside the pinned layer, not two stacked origins.
-[HYP] Pinned static-key whitelist extent on cloud.app.box.com 206/Range layer: which additional well-known keys are proxied (dot-path, XML policy files)
+[NEW] cloud.app.box.com: Executor confirms `ROBOTS.TXT`→404, `robots.txt/`→404, `robots.txt?probe=`→206, `/robots`→404 — the 206/Range layer does exact case-sensitive key matching, ignores query strings, and rejects trailing-slash keys (object-store semantics, not a normalizing app server).
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Case/canonicalization matrix now complete — only `robots.txt`, `favicon.ico`, `/` are Range-served; ROBOTS.TXT, slash-suffix, and nonce paths 404. The 206 layer is a pinned, exact-key object front. The last two stacked-origin models are dead; remaining surface is CORS behavior on pinned keys and the extent of the pinned set.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/?list-type=2: no data yet — one probe below will discriminate object-store bucket-listing vs app-root before I invest confidence.
+[HYP] GCS-style object-store bucket-listing surface on the cloud.app.box.com static front
 class: MISCONFIG
-asset: cloud.app.box.com/.well-known/security.txt
-confidence: 40
-reasoning: Confirmed pinned keys are robots.txt, favicon.ico, root; nonce and two-segment paths 404. Whitelist extent is unmapped; `crossdomain.xml`/`clientaccesspolicy.xml` would be security-relevant if proxied.
-verify_steps: GET /.well-known/security.txt with `Range: bytes=0-0`; GET /crossdomain.xml with `Range: bytes=0-0`; report status + Content-Range + body snippet.
-impact: Maps cache-key/proxy primitives or exposes legacy Flash/XML policy through the asset layer — Low/Medium.
+asset: cloud.app.box.com/
+confidence: 20
+reasoning: The pinned 206/Range layer behaves like an object-store front (exact-key, query-agnostic, partial-content). If that front is GCS, the bucket may answer XML list requests; app roots would ignore `?list-type=2` and return HTML/200 as usual.
+verify_steps: GET https://cloud.app.box.com/?list-type=2 — report status + content-type + first 500 chars. 200 + `ListBucketResult` XML = public bucket listing; 200 + HTML = app root; 400/403 = GCS bucket present but private.
+impact: Public bucket listing = full object inventory of the embedded-content origin; private-bucket error also fingerprints the backend — Low/High if public.
 testability: PASSIVE
-[HYP] CORS misconfiguration on the cloud.app.box.com 206 asset layer, keyed on favicon.ico (unprobed key)
+[HYP] CORS layer presence on the confirmed Range-served asset key
 class: MISCONFIG
 asset: cloud.app.box.com/favicon.ico
 confidence: 40
-reasoning: favicon.ico is confirmed Range-served (206); every prior CORS probe was keyed on robots.txt and no header report ever returned. No Origin/OPTIONS byte has reached favicon.ico.
-verify_steps: (1) OPTIONS /favicon.ico with `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET`, report all Access-Control-*/Allow; (2) GET /favicon.ico with `Range: bytes=0-0` + `Origin: https://attacker.example.com`, report ALL headers verbatim.
-impact: Reflected Origin + credentials lets a malicious page read credentialed responses from an embedded-content/token origin — Medium/High.
+reasoning: favicon.ico is a confirmed pinned 206 key and the only origin/OPTIONS byte never sent to it; every prior CORS probe keyed on robots.txt returned no header data and no status discriminator was recorded.
+verify_steps: OPTIONS https://cloud.app.box.com/favicon.ico with `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET` — report status + Access-Control-*/Allow. 204/200 = CORS layer; 405/404 = none.
+impact: If the CORS layer reflects attacker Origin with credentials on a Range-served asset, a malicious page could read those responses — Medium.
 testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/.well-known/security.txt with `Range: bytes=0-0` — report status + Content-Range. 206 = whitelist extends to dot-path keys; 404 = pinned set is flat-file only.
-[NEXT] PROBE: GET https://cloud.app.box.com/crossdomain.xml with `Range: bytes=0-0` — 206 + XML body = legacy Flash policy exposed through the Range layer (report body snippet); 404 = not pinned.
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-*/Allow headers; 204/200 = CORS layer present, 405/404 = none.
-[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with `Range: bytes=0-0` and `Origin: https://attacker.example.com` — report ALL response headers verbatim (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Vary, Server, Content-Range, ETag, Last-Modified, x-goog-*, x-cache, via).
+[NEXT] PROBE: GET https://cloud.app.box.com/.well-known/security.txt with header `Range: bytes=0-0` — report status + Content-Range + first 300 chars. 206 = dot-path keys in pinned set; 404 = flat-file pinning only.
+[NEXT] PROBE: GET https://cloud.app.box.com/crossdomain.xml with header `Range: bytes=0-0` — report status + first 300 chars. 206 + XML policy = legacy Flash policy exposed via Range layer; 404 = not pinned.
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with headers `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET` — report status + all Access-Control-*/Allow. 204/200 = CORS layer present; 405/404 = none.
+[NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — report status + content-type + first 500 chars. 200 + ListBucketResult XML = public bucket listing; 200 + HTML = app root; 400/403 = GCS bucket present but private.
