@@ -316,3 +316,24 @@ testability: PASSIVE
 ## 2026-08-16 22:43:52 UTC notes.services.box.com (ling3)
 ## 2026-08-16 22:57:54 UTC notes.services.box.com (ling3)
 ## 2026-08-16 23:16:29 UTC notes.services.box.com (ling3)
+## 2026-08-16 23:35:51 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com: query-string presence flips routing — `robots.txt?probe=9f3k7` returns 206 (Partial Content) while bare `/robots.txt`, `/ROBOTS.TXT`, `/robots` and random bare paths (`bhx-*`) all return 404; the 206 asset layer is reachable on query-parameterized paths only.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt: bare path 404 vs `?probe=` 206 confirms a dual-layer front where the Partial-Content handler answers query-parameterized requests — bare unknown paths do not reach it.
+[HYP] CORS misconfiguration on cloud.app.box.com 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt?probe=<x>
+confidence: 55
+reasoning: The 206/Partial-Content asset layer is now confirmed reachable (robots.txt?probe -> 206). Cache/asset edges commonly reflect attacker `Origin` in Access-Control-Allow-Origin or expose Authorization; if reflected with Allow-Credentials, preview embed assets can be read cross-origin.
+verify_steps: HEAD https://cloud.app.box.com/robots.txt?probe=bhx-cors1 with `Origin: https://evil.example` and `Range: bytes=0-63`; inspect Access-Control-* + Content-Range in response.
+impact: cross-origin read of preview asset bytes / embed tokens via credentialed fetch — HIGH.
+testability: PASSIVE
+[HYP] Object-store default handler vs whitelist-routed (query-keyed)
+class: MISCONFIG
+asset: cloud.app.box.com/<random>.txt?probe=<x>
+confidence: 60
+reasoning: Bare random paths return 404 yet `robots.txt?probe=` returns 206, isolating the query string as the routing trigger. If a random path + query string also returns 206, the 206 layer serves unknown objects (default/wildcard handler) rather than only pinned static assets.
+verify_steps: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — compare against the observed 404 for the same path without a query.
+impact: default-handler serving on unguessable paths signals flat object-store fronting — cache-poisoning / internal-asset exposure primitive — MEDIUM.
+testability: PASSIVE
+[NEXT] PROBE: HEAD https://cloud.app.box.com/robots.txt?probe=bhx-cors1 with headers `Origin: https://evil.example` and `Range: bytes=0-63` — check ACAO/ACAC/Content-Range reflection on the 206 asset layer.
+[NEXT] PROBE: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — determine default-handler vs whitelist behavior for query-keyed unknown paths.

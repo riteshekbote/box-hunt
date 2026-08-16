@@ -1,48 +1,29 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the probe results, I see key evidence: cloud.app.box.com returns 206 on `/robots.txt?probe=` and `/favicon.ico`, suggesting an object-store asset layer. The CORS hypothesis is ripe for POC testing.
+[NEW] cloud.app.box.com: query-string presence flips routing — `robots.txt?probe=9f3k7` returns 206 (Partial Content) while bare `/robots.txt`, `/ROBOTS.TXT`, `/robots` and random bare paths (`bhx-*`) all return 404; the 206 asset layer is reachable on query-parameterized paths only.
 
-**[NEW] cloud.app.box.com: 206 responses on query-parameterized and static paths indicate object-store default handler serving the origin**
-**[HYP] CORS misconfiguration on cloud.app.box.com preview origin**
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt: bare path 404 vs `?probe=` 206 confirms a dual-layer front where the Partial-Content handler answers query-parameterized requests — bare unknown paths do not reach it.
+
+[HYP] CORS misconfiguration on cloud.app.box.com 206 asset layer
 class: MISCONFIG
-asset: cloud.app.box.com
+asset: cloud.app.box.com/robots.txt?probe=<x>
 confidence: 55
-reasoning: 206 responses on /robots.txt?probe=x and /favicon.ico confirm an asset/object-store layer fronts the origin. This layer may reflect attacker-controlled Origin headers in Access-Control-* without allowlist validation, enabling cross-origin data exfiltration from preview embeds.
-evidence_needed: Access-Control-Allow-Origin response header reflecting attacker Origin; Access-Control-Allow-Credentials: true; or Authorization header exposed via Access-Control-Expose-Headers
-verify_steps: HEAD https://cloud.app.box.com/ with Origin: https://evil.com — check response headers for ACAO reflection. Also HEAD https://cloud.app.box.com/favicon.ico with same Origin to test asset-layer CORS.
-impact: If reflected, attacker can exfiltrate Box preview content (file metadata, embed tokens) from any origin via JS fetch with credentials. HIGH severity (CORS credential theft).
+reasoning: The 206/Partial-Content asset layer is now confirmed reachable (robots.txt?probe -> 206). Cache/asset edges commonly reflect attacker `Origin` in Access-Control-Allow-Origin or expose Authorization; if reflected with Allow-Credentials, preview embed assets can be read cross-origin.
+evidence_needed: ACAO/ACAC/Content-Range headers when a query-parameterized 206 path is sent with an attacker Origin and Range.
+verify_steps: HEAD https://cloud.app.box.com/robots.txt?probe=bhx-cors1 with `Origin: https://evil.example` and `Range: bytes=0-63`; inspect Access-Control-* + Content-Range in response.
+impact: cross-origin read of preview asset bytes / embed tokens via credentialed fetch — HIGH.
 testability: PASSIVE
 
-**[HYP] Object-store default handler vs whitelist-routed (slash-suffix nonce)**
+[HYP] Object-store default handler vs whitelist-routed (query-keyed)
 class: MISCONFIG
-asset: cloud.app.box.com
-confidence: 50
-reasoning: /robots.txt/ returns 404 but /robots.txt?probe=x returns 206. The trailing-slash normalization rejects the path, while query-string paths pass to the object store. This suggests the asset layer uses a flat object-bucket model rather than path-routing, leaving only query-string and exact-match static files routable.
-evidence_needed: A 206 response with actual content-length on a randomized path with query string, confirming bucket-fronted default object behavior
-verify_steps: HEAD https://cloud.app.box.com/nonexistent-file-abc123.txt?probe=x to check if unknown objects also return 206
-impact: If the object store serves arbitrary objects via default-handler routing, it could expose internal bucket contents or allow cache-poisoning attacks. MEDIUM severity.
+asset: cloud.app.box.com/<random>.txt?probe=<x>
+confidence: 60
+reasoning: Bare random paths return 404 yet `robots.txt?probe=` returns 206, isolating the query string as the routing trigger. If a random path + query string also returns 206, the 206 layer serves unknown objects (default/wildcard handler) rather than only pinned static assets.
+evidence_needed: 206 on an unknown path when a query string is present.
+verify_steps: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — compare against the observed 404 for the same path without a query.
+impact: default-handler serving on unguessable paths signals flat object-store fronting — cache-poisoning / internal-asset exposure primitive — MEDIUM.
 testability: PASSIVE
 
-**[NEXT] PROBE:**
-```
-HEAD https://cloud.app.box.com/ HTTP/1.1
-Host: cloud.app.box.com
-Origin: https://evil-box-research.example.com
-User-Agent: box-research/1.0
-```
-
-**[NEXT] PROBE:**
-```
-HEAD https://cloud.app.box.com/favicon.ico HTTP/1.1
-Host: cloud.app.box.com
-Origin: https://evil-box-research.example.com
-User-Agent: box-research/1.0
-```
-
-**[NEXT] PROBE:**
-```
-HEAD https://cloud.app.box.com/nonexistent-file-abc123.txt?probe=x HTTP/1.1
-Host: cloud.app.box.com
-User-Agent: box-research/1.0
-```
+[NEXT] PROBE: HEAD https://cloud.app.box.com/robots.txt?probe=bhx-cors1 with headers `Origin: https://evil.example` and `Range: bytes=0-63` — check ACAO/ACAC/Content-Range reflection on the 206 asset layer.
+[NEXT] PROBE: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — determine default-handler vs whitelist behavior for query-keyed unknown paths.
