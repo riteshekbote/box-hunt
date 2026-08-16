@@ -287,3 +287,4 @@ testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example` + `Access-Control-Request-Method: GET`, UA box-research/1.0 — report status line and any `Access-Control-*`/`Allow` headers. Echoed Origin ⇒ CORS reflection on the asset layer; no ACAO ⇒ park CORS for this origin.
 ## 2026-08-16 17:08:32 UTC dl.boxcloud.com (ling3)
 ## 2026-08-16 17:31:26 UTC dl.boxcloud.com (ling3)
+## 2026-08-16 17:48:35 UTC dl.boxcloud.com (ling3)
