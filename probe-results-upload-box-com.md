@@ -18,3 +18,6 @@ https://upload.box.com/api/2.0/files/content -> HTTP 404
 
 ## 2026-08-16 03:56:31 UTC upload.box.com
 https://upload.box.com/api/2.0/files/content -> HTTP 404
+
+## 2026-08-16 05:24:44 UTC upload.box.com
+https://upload.box.com/` -> HTTP 404

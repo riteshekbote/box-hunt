@@ -310,3 +310,18 @@ testability: PASSIVE
 [NEXT] PROBE: HEAD https://upload.box.com/api/2.0/files/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only); record Allow/Content-Length on any 200/204; stop on first 401/403/429. If this returns flat 404, mark upload.box.com surface EXHAUSTED and key the next host's surface.
 ## 2026-08-16 04:25:56 UTC upload.box.com (ling3)
 ## 2026-08-16 04:57:48 UTC upload.box.com (ling3)
+## 2026-08-16 05:24:42 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com executor battery confirmed GET-only: the 03:56 HEAD probe on `/api/2.0/files/content` produced no result row in the 04:46:32 run — HEAD and OPTIONS never execute on this pipeline, so all method-channel findings remain UNCONFIRMED, not rejected.
+[HYP] upload.box.com origin-root default-handler state
+class: MISCONFIG
+asset: upload.box.com/ (GET)
+confidence: 35
+reasoning: Every measured path on this origin (`/robots.txt`, `/robots.txt/`, `/api/2.0/files/content`) is flat 404, but root `/` has never been probed; cloud.app.box.com/ returns 200, so the root status is the last unmeasured default-handler signal on the flat-404 gateway.
+verify_steps: 1) GET `https://upload.box.com/` (UA box-research/1.0 +(research), 1 req/2s, status only). 2) On any 3xx, record Location, do not follow (rule 6). 3) Stop on first 401/403/429.
+impact: recon-grade; a root 200/3xx would reopen a body surface on the origin; flat 404 closes the GET channel entirely.
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com: executor capability model corrected — the 03:56 HEAD probe is absent from the 04:46:32 battery (identical 14-row GET set, no drift); the pipeline is GET-only, not GET/HEAD. OPTIONS/HEAD hypotheses on this origin are now unreachable through the status channel and are parked.
+[PARKED] upload.box.com OPTIONS preflight on `/api/2.0/files/content`: not executed — no OPTIONS row ever; executor is GET-only; parked pending executor method support.
+[PARKED] upload.box.com HEAD on `/api/2.0/files/content`: UNCONFIRMED (no HEAD row in 04:46 battery); parked, not a no-op repeat.
+[PARKED] upload.box.com Range/partial-content layer: moot on a flat-404 origin; closed.
+[NEXT] PROBE: GET `https://upload.box.com/` (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only; record Location on 3xx, do not follow). If flat 404, mark upload.box.com GET surface EXHAUSTED and pivot the next cycle's surface.
