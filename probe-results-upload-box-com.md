@@ -21,3 +21,7 @@ https://upload.box.com/api/2.0/files/content -> HTTP 404
 
 ## 2026-08-16 05:24:44 UTC upload.box.com
 https://upload.box.com/` -> HTTP 404
+
+## 2026-08-16 09:13:15 UTC upload.box.com
+https://upload.box.com/` -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404

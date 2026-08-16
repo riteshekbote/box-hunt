@@ -332,3 +332,17 @@ testability: PASSIVE
 ## 2026-08-16 07:56:15 UTC upload.box.com (ling3)
 ## 2026-08-16 08:19:14 UTC upload.box.com (ling3)
 ## 2026-08-16 08:50:32 UTC upload.box.com (ling3)
+## 2026-08-16 09:13:11 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com battery is fixed and [NEXT]-blind: three consecutive runs (07:40, 07:57, 08:42) are byte-identical 14-row GET sets; the 05:24 `GET https://upload.box.com/` [NEXT] produced no row in any run — the executor only executes battery-keyed paths, so root is unmeasurable and the origin root remains the only unprobed GET signal.
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com: executor capability model corrected again — battery is a *fixed* GET-only set, not GET/HEAD and not [NEXT]-driven; no drift across 3 consecutive runs; non-battery paths (root, HEAD, OPTIONS) are structurally unexecutable on this pipeline.
+[HYP] upload.box.com query-string invariance on the pinned upload route
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content?probe=<nonce> (GET)
+confidence: 25
+reasoning: Battery shows bare `/api/2.0/files/content` as flat 404; the object/bucket-style flat-404 front is expected to be query-agnostic. Query-string variance is the only GET discriminator never exercised on this origin and the only one battery-executable.
+verify_steps: 1) GET https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 (UA box-research/1.0 +(research), 1 req/2s, status only). 2) Compare to bare-path 404; do not follow 3xx; stop on first 401/403/429.
+impact: recon-grade; closes the final untested GET channel on upload.box.com; a divergent status reopens the origin for path/CORS analysis.
+testability: PASSIVE
+[PARKED] upload.box.com origin-root default handler: `GET https://upload.box.com/` unexecutable — fixed battery omits root across 3 runs; parked (not a no-op repeat).
+[PARKED] upload.box.com HEAD/OPTIONS method surface: executor GET-only; parked pending method support (unchanged).
+[NEXT] PROBE: GET https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). If flat 404, mark upload.box.com GET channel EXHAUSTED and pivot next cycle to the only remaining battery path variant (robots.txt?probe=) for a single confirm run before closing the host's surface.
