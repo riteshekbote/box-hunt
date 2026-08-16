@@ -1,28 +1,40 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: first executed arbitrary-key probe — `/bhx-xp4k7-m9f3q` = HTTP 404, resolving the wildcard-default-handler question (no blanket 206 for non-live paths).
-
-[HYP] Trailing-slash exact-key-miss is key-wide (favicon generalization)
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 65
-reasoning: `/robots.txt/`=404 vs `/robots.txt/../robots.txt`=206 pins exact-key lookup on one key; this cycle's nonce `/bhx-xp4k7-m9f3q`=404 rules out a wildcard 206 default handler, leaving per-key routing as the only confound; favicon.ico is a confirmed live 206 object, so `/favicon.ico/` discriminates per-key routing (206) from a uniform key-wide exact-key model (404).
-evidence_needed: status of GET /favicon.ico/
-verify_steps: bare GET https://cloud.app.box.com/favicon.ico/ , UA box-research/1.0 +(research), 1 req/2s
-impact: completes the normalization model every future probe on this host is interpreted against; informational/low, no attacker data exposure.
-testability: PASSIVE
-
-[HYP] Dot-segment root-escape clamping at the object layer
-class: OTHER
-asset: cloud.app.box.com/
-confidence: 40
-reasoning: `robots.txt/../robots.txt`=206 shows `..` collapses mid-path; unprobed is a LEADING `..`: a compliant normalizer clamps `/../robots.txt` to `/robots.txt` (206) while a raw object front 404s on key `../robots.txt`; `/%2e%2e/robots.txt` then pins decode-before-collapse ordering (decodes to `../` then clamps = 206) vs non-decoded path-position `%2e` (404).
-evidence_needed: status of GET /../robots.txt and GET /%2e%2e/robots.txt
-verify_steps: bare GET https://cloud.app.box.com/../robots.txt then GET https://cloud.app.box.com/%2e%2e/robots.txt, UA box-research/1.0 +(research), 1 req/2s
-impact: surfaces a normalization inconsistency at the root-escape/clamp boundary that could split cache keys if an upstream edge normalizer diverges; informational unless that divergence is shown.
-testability: PASSIVE
-
-[LEARN] ACCEPTED OTHER @ cloud.app.box.com/: `/bhx-xp4k7-m9f3q`=404 executed — no wildcard 206 default handler exists; combined with root=200 and pinned-asset 206, arbitrary paths are exact-key misses. A default handler that 404s missing keys is not strictly excluded, so the trailing-slash favicon test remains the sole open discriminator.
-
-[NEXT] PROBE: 3-request sweep on cloud.app.box.com, every URL distinct from all prior emissions, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (trailing-slash miss on 2nd live key — expect 404 under key-wide model), 2) GET /../robots.txt (root-escape clamp — expect 206), 3) GET /%2e%2e/robots.txt (decode-before-collapse ordering — expect 206). Record status + content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.
+[0m$ [0mls -la /home/runner/work/box-hunt/box-hunt/ 2>/dev/null | head -30
+total 988
+drwxr-xr-x 7 runner runner  4096 Aug 16 21:52 .
+drwxr-xr-x 3 runner runner  4096 Aug 16 21:51 ..
+drwxr-xr-x 7 runner runner  4096 Aug 16 21:52 .git
+drwxr-xr-x 3 runner runner  4096 Aug 16 21:51 .github
+-rw-r--r-- 1 runner runner   811 Aug 16 21:51 README.md
+-rw-r--r-- 1 runner runner 47415 Aug 16 21:51 analyst-out-job-account.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-account.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  3149 Aug 16 21:51 analyst-out-job-api.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-api.box.com-ling3.txt
+-rw-r--r-- 1 runner runner   827 Aug 16 21:51 analyst-out-job-app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner   781 Aug 16 21:51 analyst-out-job-cloud.app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-cloud.app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner   731 Aug 16 21:51 analyst-out-job-dl.boxcloud.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-dl.boxcloud.com-ling3.txt
+-rw-r--r-- 1 runner runner    32 Aug 16 21:52 analyst-out-job-m.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-m.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  1060 Aug 16 21:51 analyst-out-job-notes.services.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-notes.services.box.com-ling3.txt
+-rw-r--r-- 1 runner runner  2050 Aug 16 21:51 analyst-out-job-upload.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out-job-upload.box.com-ling3.txt
+-rw-r--r-- 1 runner runner   166 Aug 16 21:51 analyst-out.txt
+-rw-r--r-- 1 runner runner 18447 Aug 16 21:51 analyst-prompt-job-account.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 18408 Aug 16 21:51 analyst-prompt-job-account.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 20771 Aug 16 21:51 analyst-prompt-job-api.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 20815 Aug 16 21:51 analyst-prompt-job-api.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 21232 Aug 16 21:51 analyst-prompt-job-app.box.com-bigpickle.txt
+-rw-r--r-- 1 runner runner 20397 Aug 16 21:51 analyst-prompt-job-app.box.com-ling3.txt
+-rw-r--r-- 1 runner runner 21851 Aug 16 21:51 analyst-prompt-job-cloud.app.box.com-bigpickle.txt
+[0m
+Looking at the executor results, my trailing-slash/favicon probes have never been executed — only stale batch URLs keep running. Let me check what state files exist and emit focused next probes.
+[0m→ [0mRead analyst-out-job-cloud.app.box.com-bigpickle.txt
+[0m✱ [0mGlob "**/probe-results*"[90m 6 matches[0m
+[0m→ [0mRead probe-results-cloud-app-box-com.md
+[0m→ [0mRead probe-results-next.md
