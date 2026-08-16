@@ -397,3 +397,4 @@ testability: PASSIVE
 [NEXT] PROBE: 3-request sweep on cloud.app.box.com, every URL distinct from all prior emissions, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (trailing-slash miss on 2nd live key — expect 404 under key-wide model), 2) GET /../robots.txt (root-escape clamp — expect 206), 3) GET /%2e%2e/robots.txt (decode-before-collapse ordering — expect 206). Record status + content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.
 ## 2026-08-16 17:48:35 UTC m.box.com (ling3)
 ## 2026-08-16 17:59:36 UTC m.box.com (ling3)
+## 2026-08-16 18:30:48 UTC m.box.com (ling3)
