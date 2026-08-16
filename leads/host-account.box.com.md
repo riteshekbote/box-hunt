@@ -411,3 +411,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT with UA "box-research/1.0 +(research)"; record status only — case axis never probed; 206 = case-insensitive key match (canonical keys lowercased), 404 = exact-case whitelist.
 [NEXT] PROBE: GET https://cloud.app.box.com/index.html with UA "box-research/1.0 +(research)"; record status only — plausible-asset guess; 206 = key list spans real app assets, 404 = fronting limited to probe-file pairs.
 ## 2026-08-16 00:25:09 UTC account.box.com (ling3)
+## 2026-08-16 02:01:47 UTC account.box.com (ling3)
