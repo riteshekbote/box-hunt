@@ -279,3 +279,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://upload.box.com/robots.txt/ (trailing slash), status only, UA `box-research/1.0 +(research)`, 1 req/2s. Compare against known bare-path 404. Stop on first 401/403/429.
 ## 2026-08-15 23:37:56 UTC upload.box.com (ling3)
 ## 2026-08-15 23:53:14 UTC upload.box.com (ling3)
+## 2026-08-16 00:25:12 UTC upload.box.com (ling3)
