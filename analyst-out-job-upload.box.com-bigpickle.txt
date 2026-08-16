@@ -1,18 +1,28 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ upload.box.com: GET surface EXHAUSTED. `robots.txt?probe=bhx-k2m8p` returned HTTP 404 — flat-404 front is query-agnostic, path-agnostic, and method-agnostic across 14+ battery rows and 3 absorbed probe variants. No measurable GET status/CORS channel exists. upload.box.com is closed for this pipeline.
-
-[NEW] cloud.app.box.com: object-store 206 cluster — `/robots.txt` variants (query, encoding, traversal, double-slash) all return 206; `/robots.txt/` returns 404; `favicon.ico` returns 206; root returns 200. Two-handler topology confirmed: app edge at root, object store for static assets.
-
-[HYP] Object-store default handler vs whitelist-routed on cloud.app.box.com — random unguessable path discriminator
+[CONFIRMED] Object-store default handler REJECTED — cloud.app.box.com object store is whitelist-routed
 class: MISCONFIG
-asset: cloud.app.box.com/<random-nonce> (GET)
-confidence: 45
-reasoning: cloud.app.box.com serves 206 for `robots.txt` (and all URL-encoding/aversal/query variants) plus `favicon.ico`, but 404 for the directory form `robots.txt/` and 200 for root. This proves two handlers exist: an app edge (root → 200) and an object store (static assets → 206). The critical unresolved question is whether the object store is a catch-all default handler (any unknown path → 206 from the bucket) or a whitelist (only known asset names → 206, unknown → 404/redirect). A completely random unguessable path resolves this: 206 = default handler = any file in the bucket is directly reachable; 404/302 = whitelist-routed.
-evidence_needed: HTTP status of GET cloud.app.box.com/<random-nonce> — 206 proves default-handler; 404/302 proves whitelist.
-verify_steps: 1) GET https://cloud.app.box.com/bhx-xp4k7-m9f3q (UA box-research/1.0 +(research), 1 req/2s, status only). 2) If 206 → object store is default handler (bucket exposes all objects). 3) If 404 → whitelist-routed, pivot to enumerate asset names via encoding variants. 4) If 302 → redirect handler, follow redirect origin (must be in-scope).
-impact: If default handler confirmed, every object in the cloud.app.box.com bucket is directly addressable by path — this is a significant information exposure class (private files, internal assets). Confidence depends on what the 206 body contains. Severity: medium-high if sensitive assets exist.
+asset: cloud.app.box.com/bhx-xp4k7-m9f3q (GET)
+confidence: 80
+reasoning: Random unguessable path returned HTTP 404 in two consecutive runs (16:56, 17:30) while `robots.txt`/`favicon.ico` and all encoding/traversal variants return 206 and root returns 200. The 206 Range layer is not a catch-all default handler: it matches a pinned asset whitelist. Percent-decoding (%72obots.txt, robots%2Etxt, %2Frobots.txt) and dot-segment collapse (robots.txt/../robots.txt, //robots.txt) are normalized before match — proven by 206 on all variants.
+evidence_needed: a 206 on any unknown non-whitelist path (none found in 3 runs of bhx-xp4k7-m9f3q).
+verify_steps: GET https://cloud.app.box.com/<random-nonce> (UA box-research/1.0 +(research), 1 req/2s, status only); observed 404 twice.
+impact: null — no unauthenticated arbitrary-path object read on cloud.app.box.com; prior medium-high severity estimate downgraded to informational.
 testability: PASSIVE
 
-[NEXT] PROBE: GET https://cloud.app.box.com/bhx-xp4k7-m9f3q (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Tests whether cloud.app.box.com's object store is a catch-all default handler (206) or whitelist-routed (404/302). This is the highest-value single GET probe remaining across all hosts — it resolves the top-ranked hypothesis [45].
+[HYP] Case-sensitivity of the 206 asset whitelist on cloud.app.box.com
+class: MISCONFIG
+asset: cloud.app.box.com/ROBOTS.TXT (GET)
+confidence: 40
+reasoning: Two whitelist-matcher axes are already proven normalizing (percent-encoding, dot-segments). The third axis — case — is unmeasured. Case-insensitive matching would multiply the effective whitelist surface (every pinned asset addressable in 2^N case forms) and raise the odds of case-key collision between distinct files.
+evidence_needed: 206 vs 404 on an upper-case variant of a known 206 asset.
+verify_steps: GET https://cloud.app.box.com/ROBOTS.TXT (UA box-research/1.0 +(research), 1 req/2s, status only); 206 → case-insensitive match, 404 → case-sensitive pinned matcher.
+impact: recon-grade; constrains the whitelist matcher and closes surface characterization on cloud.app.box.com; case-collision exposure only if a mixed-case key resolves to a different object.
+testability: PASSIVE
+
+[PARKED] cloud.app.box.com CORS hypotheses (preview-origin and dl.boxcloud.com download-edge): Access-Control-* reflection is only measurable by sending an attacker `Origin:` header; the executor battery has executed URL-only GET probes with no observed header control across all runs. Parked pending pipeline header support — not a no-op repeat.
+
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: object store is whitelist-routed — random nonce → 404 across 2 runs eliminates the arbitrary-object-read hypothesis [45]; matcher normalizes %-decoding and dot-segments pre-lookup. Remaining unmeasured axis: case.
+
+[NEXT] PROBE: GET https://cloud.app.box.com/ROBOTS.TXT (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). 206 → case-insensitive whitelist (surface fully characterized); 404 → case-sensitive, declare cloud.app.box.com GET surface EXHAUSTED and pivot next cycle to the dl.boxcloud.com CORS/asset-layer items in the ranked tail.
