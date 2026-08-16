@@ -466,3 +466,4 @@ reasoning: GCS 404 errors on `/_assets/` paths expose bucket name `box-prod-stat
 verify_steps: `curl -sD- https://cloud.app.box.com/_assets/nonexistent` — confirms GCS XML error with bucket name; `curl -sD- https://cloud.app.box.com/_assets/robots.txt` — confirms full metadata headers on 200.
 impact: Information disclosure. Bucket name and metadata aid attacker reconnaissance. No direct exploitation but reduces attack surface complexity.
 testability: PASSIVE
+## 2026-08-16 19:18:02 UTC account.box.com (ling3)
