@@ -280,3 +280,17 @@ testability: PASSIVE
 ## 2026-08-15 23:37:56 UTC upload.box.com (ling3)
 ## 2026-08-15 23:53:14 UTC upload.box.com (ling3)
 ## 2026-08-16 00:25:12 UTC upload.box.com (ling3)
+## 2026-08-16 02:02:17 UTC upload.box.com (bigpickle)
+[NEW] upload.box.com/robots.txt/ -> HTTP 404: trailing-slash variant returns the identical flat 404 as the bare path; no 3xx normalization anywhere on the origin.
+[LEARN] REJECTED MISCONFIG @ upload.box.com/robots.txt/: trailing-slash vs bare-path discriminator — both `/robots.txt` and `/robots.txt/` emit flat 404 with no 301/308, so the gateway is NOT a path-normalizing app edge. Contrast with cloud.app's 206/Range layer (which is slash-sensitive): upload.box.com is characterized as a flat-404 gateway; the object-store/206 family is not present on this host.
+[HYP] upload.box.com upload-API method/CORS surface via OPTIONS preflight
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content
+confidence: 30
+reasoning: Every GET-measurable path on this origin is flat 404, yet `/api/2.0/files/content` is the pinned upload route (POST-only by design). OPTIONS is the only read-only method that can reveal the API edge's Allow list and Access-Control-Allow-* headers without sending a body.
+verify_steps: 1) OPTIONS https://upload.box.com/api/2.0/files/content (UA box-research/1.0 +(research), 1 req/2s, status only). 2) If 200/204, record Allow + ACAO/ACAH headers. 3) Do not follow any 3xx. Stop on first 401/403/429.
+impact: recon-grade fingerprint of the upload gateway's method allowlist and any CORS reflection on the file-upload pipeline; a reflected ACAO here would open the upload flow to cross-origin attacker requests.
+testability: PASSIVE
+[PARKED] upload.box.com Range/partial-content layer: moot on a flat-404 origin — Range yields nothing beyond 404 for every measured path; closed unless a 2xx surface appears.
+[PARKED] upload.box.com non-404 route surface: all GET/HEAD-measurable paths are flat 404; the remaining route space is POST-only (forbidden by rule 1). Parked; no further GET surface exists on this host.
+[NEXT] PROBE: OPTIONS https://upload.box.com/api/2.0/files/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s), status only; record Allow + Access-Control-Allow-* if present; stop on first 401/403/429.
