@@ -392,3 +392,4 @@ verify_steps: 1) GET https://cloud.app.box.com/bhx-xp4k7-m9f3q (UA box-research/
 impact: If default handler confirmed, every object in the cloud.app.box.com bucket is directly addressable by path — this is a significant information exposure class (private files, internal assets). Confidence depends on what the 206 body contains. Severity: medium-high if sensitive assets exist.
 testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/bhx-xp4k7-m9f3q (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only). Tests whether cloud.app.box.com's object store is a catch-all default handler (206) or whitelist-routed (404/302). This is the highest-value single GET probe remaining across all hosts — it resolves the top-ranked hypothesis [45].
+## 2026-08-16 17:09:07 UTC upload.box.com (ling3)
