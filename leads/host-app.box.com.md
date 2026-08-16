@@ -384,3 +384,4 @@ impact: delivery-topology + auth-surface map for the primary origin; 401/400 wou
 testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/api/2.0/events with UA box-research/1.0 — record status, Content-Type, WWW-Authenticate, first 200 chars (401/400 = API reachable via app origin; 404 = pure SPA/router edge; first-ever app-origin data point either way).
 [LEARN] ACCEPTED MISCONFIG @ app.box.com: the executor's probe-results-next.md is a fixed cloud+upload batch (three consecutive byte-similar cycles), so app-origin probes are being dropped before execution rather than returning evidence; repeated identical [NEXT] lines are documented no-ops and will not be re-emitted — the events-endpoint probe is a fresh, never-queued key to break the stuck batch.
+## 2026-08-16 11:38:52 UTC app.box.com (ling3)
