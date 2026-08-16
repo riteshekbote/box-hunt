@@ -361,3 +361,4 @@ testability: PASSIVE
 [NEXT] PROBE: 3-request favicon sweep reusing only in-batch key shapes, UA "box-research/1.0 +(research)", 1 req/2s, in order: 1) GET /favicon.ico/ (generalize trailing-slash model to 2nd live key), 2) GET /favicon%2Eico (uniformity of single-decode normalization across keys, expect 206), 3) GET /favicon.ico/../favicon.ico (dot-collapse across keys, expect 206). Record status+content-length each; first 4xx/429/403 -> log and stop probing host for the cycle.
 ## 2026-08-16 11:38:51 UTC m.box.com (ling3)
 ## 2026-08-16 11:53:35 UTC m.box.com (ling3)
+## 2026-08-16 12:10:46 UTC m.box.com (ling3)
