@@ -1,29 +1,5 @@
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/*
-confidence: 98
-reasoning: 404 XML responses consistently expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. Verified again this cycle with identical results across multiple probes.
-verify_steps: `curl -s "https://cloud.app.box.com/_assets/nonexistent123.txt"`
-impact: Bucket name + metadata leakage aids recon. Severity: Low.
-testability: PASSIVE
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/package.json
-confidence: 98
-reasoning: `/_assets/package.json` (3168B) and `/_assets/Makefile.js` (6117B) return 200 with `access-control-allow-origin: *,*` and full GCS metadata headers. OPTIONS preflight also returns 200 with `allow-methods: GET`, `allow-origin: *,*`, `max-age: 3600`. Double-asterisk CORS is non-standard but functionally equivalent to `*`.
-verify_steps: `curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/_assets/package.json`
-impact: Any origin can read Box internal build config and git hostnames. Severity: Low-Medium.
-testability: PASSIVE
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 98
-reasoning: Root `/` returns 302 to `/login` with NO CORS headers (CDN/app edge). `/_assets/*` bypasses CDN and hits GCS directly with full `*,*` CORS. The divergence proves two distinct routing layers: authenticated app edge vs public GCS bucket.
-verify_steps: Compare `curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/` (302, no CORS) vs `curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/_assets/package.json` (200, `*,*` CORS)
-impact: Root correctly restricts CORS; _assets bypasses all CDN security controls. Severity: Low (informational).
-testability: PASSIVE
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/package.json, cloud.app.box.com/_assets/Makefile.js
-confidence: 95
-reasoning: package.json exposes internal git host `gitenterprise.inside-box.net`, internal packages (`asset-pipeline`, `node-box-config`, `karma-tmpl2html-preprocessor`). Makefile.js exposes build output paths (`/box/www/assets/webapp_assets`, `/box/www/assets/legacy_assets`), internal tooling (`./tools/console.php box_gen204_batch_record_from_console`), and Amsterdam app structure (files-app, login, integration).
-verify_steps: `curl -s https://cloud.app.box.com/_assets/package.json && curl -s https://cloud.app.box.com/_assets/Makefile.js`
-impact: Aids targeted attacks against internal Box infrastructure. Severity: Low-Medium.
-testability: PASSIVE
+[CONFIRMED] cloud.app.box.com/_assets/ bucket metadata leakage: 404 responses expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. Consistent across multiple cycles. Severity: Low.
+[CONFIRMED] cloud.app.box.com/_assets/package.json + Makefile.js: Both return 200 with `access-control-allow-origin: *,*`. package.json exposes internal git host `gitenterprise.inside-box.net` and internal packages. Makefile.js exposes build paths and Amsterdam app structure. Severity: Low-Medium.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/_assets/*: Two distinct routing layers confirmed — CDN/app edge (root, 302, no CORS) vs GCS bucket (/_assets/*, 200/404, full CORS). _assets bypasses all CDN security controls.
+[LEARN] REJECTED cloud.app.box.com/root CORS reflection: Root consistently returns 302 to /login with no CORS headers. Not exploitable without authentication.
 [NEXT] RECON: `curl -sD- https://notes.services.box.com/` (1 request, observe status, headers, redirect behavior)

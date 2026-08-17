@@ -613,3 +613,9 @@ testability: PASSIVE
 ## 2026-08-17 19:40:45 UTC account.box.com (ling3)
 ## 2026-08-17 19:57:35 UTC account.box.com (ling3)
 ## 2026-08-17 20:21:13 UTC account.box.com (ling3)
+## 2026-08-17 20:48:08 UTC account.box.com (bigpickle)
+[CONFIRMED] cloud.app.box.com/_assets/ bucket metadata leakage: 404 responses expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. Consistent across multiple cycles. Severity: Low.
+[CONFIRMED] cloud.app.box.com/_assets/package.json + Makefile.js: Both return 200 with `access-control-allow-origin: *,*`. package.json exposes internal git host `gitenterprise.inside-box.net` and internal packages. Makefile.js exposes build paths and Amsterdam app structure. Severity: Low-Medium.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/_assets/*: Two distinct routing layers confirmed — CDN/app edge (root, 302, no CORS) vs GCS bucket (/_assets/*, 200/404, full CORS). _assets bypasses all CDN security controls.
+[LEARN] REJECTED cloud.app.box.com/root CORS reflection: Root consistently returns 302 to /login with no CORS headers. Not exploitable without authentication.
+[NEXT] RECON: `curl -sD- https://notes.services.box.com/` (1 request, observe status, headers, redirect behavior)
