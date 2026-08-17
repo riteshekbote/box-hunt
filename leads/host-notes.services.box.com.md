@@ -433,3 +433,19 @@ testability: PASSIVE
 ## 2026-08-17 17:02:54 UTC notes.services.box.com (ling3)
 ## 2026-08-17 17:35:00 UTC notes.services.box.com (ling3)
 ## 2026-08-17 17:58:36 UTC notes.services.box.com (ling3)
+## 2026-08-17 18:37:47 UTC notes.services.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/root: root stable at 200 across 3 executor cycles; oscillation resolved.
+[LEARN] REJECTED default-handler hypothesis on cloud.app.box.com: 4 random paths all returned 404 (bhx-xp4k7-m9f3q, ROBOTS.TXT, bhx-p3n7r/robots.txt, robots). Without query parameter, no evidence of flat object-store fronting.
+[HYP] Object-store default handler vs whitelist-routed (query-param discriminator)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Prior evidence (cycles before this session) showed robots.txt?probe= → 206 while robots.txt → 404. Latest executor cycles show all bare paths (no query) return 404. The query parameter appears to be the routing trigger, not path existence. Unknown filename + query param untested.
+verify_steps: GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — if 206, query-param triggers handler; if 404, no pattern
+impact: If query-param triggers 206 on any path, the 206/Range layer is a default handler fronting object storage, enabling cache-poisoning and potential internal-asset exposure — MEDIUM
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — unknown filename + query param: tests if query triggers 206
+[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path + query to confirm pattern
+[NEXT] OPTIONS https://cloud.app.box.com/robots.txt?probe=opt1 — test if OPTIONS allowed on 206 layer
+[PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom Origin/Range headers; requires manual curl to verify ACAO/ACAC reflection — parked until manual probe.
+[PARKED] Root path 206 handler is header-dependent: root stable at 200 across 3+ cycles; Range header effect untestable via executor — parked for manual HEAD with Range.
