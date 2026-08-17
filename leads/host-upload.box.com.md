@@ -553,3 +553,26 @@ testability: PASSIVE
 ## 2026-08-17 15:02:39 UTC upload.box.com (ling3)
 ## 2026-08-17 15:31:15 UTC upload.box.com (ling3)
 ## 2026-08-17 15:51:21 UTC upload.box.com (ling3)
+## 2026-08-17 16:10:19 UTC upload.box.com (bigpickle)
+[LEARN] ACCEPTED: dl.boxcloud.com api content path-shape probe pending 8+ cycles without executor result — re-emitting as priority. Also ACCEPTED: cloud.app.box.com root returns 200 while every sub-path probes 404; origin is alive but routing behavior unknown.
+[HYP] cloud.app.box.com SPA catch-all vs bucket default-document
+class: MISCONFIG
+asset: cloud.app.box.com/ (GET)
+confidence: 50
+reasoning: Root `/` returns 200 while `/bhx-xp4k7-m9f3q`, `/ROBOTS.TXT`, `/robots`, `/robots.txt`, `/bhx-p3n7r/robots.txt` all 404. This rules out flat object-store default (which would 200 everything). A narrow whitelist or SPA catch-all with a manifest-gated router explains the pattern. OPTIONS preflight reveals whether CORS is open; response headers reveal server type and whether the 200 is a real app or a redirect-stub.
+verify_steps: `OPTIONS https://cloud.app.box.com/` with Origin: https://evil.com (CORS check). Then `GET https://cloud.app.box.com/api/2.0/` (API surface check).
+impact: recon-grade. If OPTIONS reflects attacker origin with credentials, CORS misconfig on embedded-preview origin could leak authenticated content. If API paths resolve without auth, potential IDOR surface.
+testability: PASSIVE
+[HYP] cloud.app.box.com CORS preflight reflection
+class: MISCONFIG
+asset: cloud.app.box.com (OPTIONS)
+confidence: 45
+reasoning: cloud.app.box.com serves embedded content previews — these are iframed by third-party sites and may need permissive CORS. A misconfigured Access-Control-Allow-Origin reflecting the request Origin with Allow-Credentials: true would let a malicious page read authenticated preview content cross-origin.
+verify_steps: `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.com`, `Access-Control-Request-Method: GET`.
+impact: If reflected with credentials — HIGH (cross-origin theft of embedded Box content). If reflected without credentials — MEDIUM. If not reflected — LOW.
+testability: PASSIVE
+[NEXT] PROBE (dl.boxcloud.com — close origin): GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (UA box-research/1.0 +(research), 1 req/2s, status only). The long-pending discriminator: 401 → shape-based gate AUTH_HELPED → PARK; 404 → signature gate → EXHAUSTED.
+[NEXT] PROBE (cloud.app.box.com — CORS + headers): OPTIONS https://cloud.app.box.com/ with `Origin: https://evil.com` and `Access-Control-Request-Method: GET` (UA box-research/1.0 +(research), status + response headers only). Checks whether the 200 root reflects CORS or restricts it.
+[NEXT] PROBE (cloud.app.box.com — API path surface): GET https://cloud.app.box.com/api/2.0/ (UA box-research/1.0 +(research), status only). If non-404, the preview origin fronts API routes without auth — significant surface.
+[NEXT] PROBE (notes.services.box.com — new surface): GET https://notes.services.box.com/ (UA box-research/1.0 +(research), status only). First contact with Box Notes backend; 200/404/302 classification.
+[NEXT] PROBE (m.box.com — new surface): GET https://m.box.com/ (UA box-research/1.0 +(research), status only). First contact with mobile web app; status + redirect chain classification.
