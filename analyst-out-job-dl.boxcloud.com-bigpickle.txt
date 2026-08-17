@@ -1,21 +1,20 @@
 [0m
 > build · big-pickle
 [0m
-[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{redirect_url}" -H "User-Agent: box-research/1.0" "https://dl.boxcloud.com/" 2>&1
-404
+[0m$ [0mcurl -s -o /dev/null -w "HTTP %{http_code}\nContent-Type: %{content_type}\nSize: %{size_download}\n" -D /tmp/cloud-root-headers.txt "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0 +(research)" -H "Range: bytes=0-0" 2>&1
+HTTP 302
+Content-Type: text/html; charset=utf-8
+Size: 0
 [0m
-Looking at the executor results for dl.boxcloud.com — all probes return 404. The CDN is blocking everything uniformly. Let me check if there's a different approach needed.
-[0m$ [0mcurl -s -D- -o /dev/null -H "User-Agent: box-research/1.0" "https://dl.boxcloud.com/robots.txt" 2>&1 | head -20
-HTTP/2 404 
-server: nginx
-date: Mon, 17 Aug 2026 05:02:56 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
+Looking at the state: dl.boxcloud.com and upload.box.com are fully EXHAUSTED (all 404s across every probe variant). The only live surface is cloud.app.box.com where the root intermittently returns 206. Let me run the pending CORS hypothesis and investigate the 206 behavior more closely.
+[0m$ [0mcurl -s -o /dev/null -w "HTTP %{http_code}\nContent-Type: %{content_type}\nSize: %{size_download}\n" -D /tmp/cloud-root-norange.txt "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0 +(research)" 2>&1
+HTTP 302
+Content-Type: text/html; charset=utf-8
+Size: 0
 [0m
-dl.boxcloud.com consistently returns 404 on all paths — it's a signed-URL-only CDN with no default handler. The top hypothesis for this host is the CORS surface on the download-edge API content handler. Let me test that.
-
-[NEXT] PROBE: curl -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header; no ACAO on 404 means CORS is not configured on the CDN edge.
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcat /tmp/cloud-root-headers.txt failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcat /tmp/cloud-root-norange.txt failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
