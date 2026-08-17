@@ -620,3 +620,4 @@ testability: PASSIVE
 [LEARN] REJECTED cloud.app.box.com/root CORS reflection: Root consistently returns 302 to /login with no CORS headers. Not exploitable without authentication.
 [NEXT] RECON: `curl -sD- https://notes.services.box.com/` (1 request, observe status, headers, redirect behavior)
 ## 2026-08-17 21:08:44 UTC account.box.com (ling3)
+## 2026-08-17 21:36:44 UTC account.box.com (ling3)
