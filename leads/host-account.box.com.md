@@ -609,3 +609,4 @@ verify_steps: `curl -s https://cloud.app.box.com/_assets/package.json && curl -s
 impact: Aids targeted attacks against internal Box infrastructure. Severity: Low-Medium.
 testability: PASSIVE
 [NEXT] RECON: `curl -sD- https://notes.services.box.com/` (1 request, observe status, headers, redirect behavior)
+## 2026-08-17 19:11:49 UTC account.box.com (ling3)
