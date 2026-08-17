@@ -578,3 +578,4 @@ testability: PASSIVE
 [NEXT] PROBE (m.box.com — new surface): GET https://m.box.com/ (UA box-research/1.0 +(research), status only). First contact with mobile web app; status + redirect chain classification.
 ## 2026-08-17 16:42:56 UTC upload.box.com (ling3)
 ## 2026-08-17 17:02:53 UTC upload.box.com (ling3)
+## 2026-08-17 17:35:01 UTC upload.box.com (ling3)
