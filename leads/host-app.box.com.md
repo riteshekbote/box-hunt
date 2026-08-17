@@ -501,3 +501,4 @@ verify_steps: "OPTIONS https://cloud.app.box.com/ with Origin: https://evil.exam
 impact: Cross-origin read of embedded preview content for any authenticated user — High severity
 testability: PASSIVE
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.com, Access-Control-Request-Method: GET, User-Agent: box-research/1.0 (research) — record all response headers; then GET with same Origin
+## 2026-08-17 17:02:56 UTC app.box.com (ling3)
