@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-16 16:54:06 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: the edge answers 200/206 on root+pinned keys but has never been exercised with OPTIONS; upload.box.com's gateway 404s the same probes, so cloud.app's asset edge is a distinct code path that may carry ACAO/Allow config. CORS hypotheses at [45] target the preview origin; this targets the 206-layer handler directly.
 verify_steps: OPTIONS https://cloud.app.box.com/robots.txt with `Origin: https://evil.example` and `Access-Control-Request-Method: GET` (read-only preflight); OPTIONS https://cloud.app.box.com/favicon.ico as control.
 impact: reflected Origin + Allow-* would permit cross-origin reads of 206-layer assets if Authorization is honored — low/medium unless a protected object is reachable.
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-17 13:50:50 UTC dl.boxcloud.com (ling3)
 ## 2026-08-17 14:12:26 UTC dl.boxcloud.com (ling3)
 ## 2026-08-17 14:43:20 UTC dl.boxcloud.com (ling3)
+## 2026-08-17 15:03:21 UTC dl.boxcloud.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
