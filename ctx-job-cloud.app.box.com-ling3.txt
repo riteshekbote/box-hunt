@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-17 15:04:43 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: The pinned 206/Range layer behaves like an object-store front (exact-key, query-agnostic, partial-content). If that front is GCS, the bucket may answer XML list requests; app roots would ignore `?list-type=2` and return HTML/200 as usual.
 verify_steps: GET https://cloud.app.box.com/?list-type=2 — report status + content-type + first 500 chars. 200 + `ListBucketResult` XML = public bucket listing; 200 + HTML = app root; 400/403 = GCS bucket present but private.
 impact: Public bucket listing = full object inventory of the embedded-content origin; private-bucket error also fingerprints the backend — Low/High if public.
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-17 21:55:14 UTC cloud.app.box.com (ling3)
 ## 2026-08-17 22:13:28 UTC cloud.app.box.com (ling3)
 ## 2026-08-17 22:40:19 UTC cloud.app.box.com (ling3)
+## 2026-08-17 22:57:59 UTC cloud.app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
