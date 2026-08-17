@@ -311,3 +311,13 @@ testability: PASSIVE
 ## 2026-08-17 00:00:37 UTC dl.boxcloud.com (ling3)
 ## 2026-08-17 01:35:55 UTC dl.boxcloud.com (ling3)
 ## 2026-08-17 02:45:45 UTC dl.boxcloud.com (ling3)
+## 2026-08-17 03:34:24 UTC dl.boxcloud.com (bigpickle)
+[HYP] CORS misconfiguration on cloud.app.box.com 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt
+confidence: 35
+reasoning: Root returns 200 and pinned keys return 206; the asset handler has never been tested with OPTIONS. The origin is a distinct code path from dl.boxcloud.com and upload.box.com which both 404 on similar probes. No CORS headers have been observed yet.
+verify_steps: OPTIONS https://cloud.app.box.com/robots.txt with Origin: https://evil.example and Access-Control-Request-Method: GET
+impact: Reflected Origin + Allow headers would permit cross-origin reads of asset-layer content; low/medium unless protected objects reachable
+testability: PASSIVE
+[NEXT] PROBE: curl -I -X OPTIONS "https://cloud.app.box.com/robots.txt" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header
