@@ -576,3 +576,4 @@ testability: PASSIVE
 [NEXT] PROBE (cloud.app.box.com — API path surface): GET https://cloud.app.box.com/api/2.0/ (UA box-research/1.0 +(research), status only). If non-404, the preview origin fronts API routes without auth — significant surface.
 [NEXT] PROBE (notes.services.box.com — new surface): GET https://notes.services.box.com/ (UA box-research/1.0 +(research), status only). First contact with Box Notes backend; 200/404/302 classification.
 [NEXT] PROBE (m.box.com — new surface): GET https://m.box.com/ (UA box-research/1.0 +(research), status only). First contact with mobile web app; status + redirect chain classification.
+## 2026-08-17 16:42:56 UTC upload.box.com (ling3)
