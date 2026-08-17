@@ -542,3 +542,4 @@ impact: version/stack disclosure; unauthenticated data exposure via API endpoint
 testability: PASSIVE
 [NEXT] PROBE: two requests in sequence, 1 req/2s: (1) bare GET https://account.box.com/ with UA box-research/1.0 +(research), record status + all visible headers + body length; (2) bare GET https://api.box.com/2.0/users/me with same UA, record status + all visible headers + body length. First 4xx/429/403 -> log and stop that host.
 ## 2026-08-17 22:40:19 UTC m.box.com (ling3)
+## 2026-08-17 22:58:05 UTC m.box.com (ling3)
