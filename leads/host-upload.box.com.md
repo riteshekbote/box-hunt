@@ -516,3 +516,4 @@ impact: recon-grade. 401-on-nonce ⇒ signed-URL structure is enumerable but con
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — random-id content path after object surface closed; 401 ⇒ shape-based gate (AUTH_HELPED → PARK), 404 ⇒ signature-gated (surface EXHAUSTED → new surface next cycle).
 ## 2026-08-16 23:50:56 UTC upload.box.com (ling3)
+## 2026-08-17 00:01:24 UTC upload.box.com (ling3)
