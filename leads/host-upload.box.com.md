@@ -548,3 +548,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED: upload.box.com surface EXHAUSTED — all unsigned paths (/, robots.txt, trailing-slash variants, API paths with probe params) return 404; no edge behavior distinguishable without authentication. Upload origin parked.
 [LEARN] ACCEPTED: dl.boxcloud.com unsigned object surface EXHAUSTED — `/bhx-q7m2p-x9k4n` → 404, matching `/`, `/robots.txt`, `/favicon.ico`; signed-URL-only routing confirmed for the object layer.
 ## 2026-08-17 13:49:13 UTC upload.box.com (ling3)
+## 2026-08-17 14:12:25 UTC upload.box.com (ling3)
