@@ -427,3 +427,4 @@ testability: PASSIVE
 [PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom headers (Origin, Range); requires manual curl with Origin header to verify ACAO/ACAC reflection — parked until manual verification.
 [PARKED] Root path 206 handler is header-dependent: root stable at 200 across 3 cycles, no oscillation; Range header effect untestable via executor — parked for manual HEAD with Range.
 ## 2026-08-17 15:31:00 UTC notes.services.box.com (ling3)
+## 2026-08-17 15:51:21 UTC notes.services.box.com (ling3)
