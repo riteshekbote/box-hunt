@@ -516,3 +516,4 @@ impact: If root reflects Origin or leaks Authorization header, severity jumps to
 testability: PASSIVE
 [NEXT] PROBE: CORS divergence root vs _assets + _assets sibling enumeration
 ## 2026-08-16 23:51:19 UTC account.box.com (ling3)
+## 2026-08-17 00:00:36 UTC account.box.com (ling3)
