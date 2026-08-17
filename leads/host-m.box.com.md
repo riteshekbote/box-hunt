@@ -485,3 +485,4 @@ impact: cross-origin account data theft via embedded Box preview; critical sever
 testability: PASSIVE
 [NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with header "Origin: https://attacker.example", UA "box-research/1.0 +(research)", record response headers and status code. First 4xx/429/403 -> log and stop.
 ## 2026-08-17 15:51:19 UTC m.box.com (ling3)
+## 2026-08-17 16:09:51 UTC m.box.com (ling3)
