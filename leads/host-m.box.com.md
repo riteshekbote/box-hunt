@@ -544,3 +544,25 @@ testability: PASSIVE
 ## 2026-08-17 22:40:19 UTC m.box.com (ling3)
 ## 2026-08-17 22:58:05 UTC m.box.com (ling3)
 ## 2026-08-17 23:20:15 UTC m.box.com (ling3)
+## 2026-08-17 23:41:44 UTC m.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: CORS preflight probe with attacker Origin was requested 6+ consecutive cycles but never executed by the executor; all probe results show only GET requests to cloud.app.box.com/upload.box.com/dl.boxcloud.com — no OPTIONS, no account.box.com, no api.box.com. Hypothesis PARKED permanently until OPTIONS-capable probe is available.
+[NEW] account.box.com: auth plane unexplored — login, OAuth, SSO, tokens, sessions — zero probes recorded in any cycle
+[NEW] api.box.com: core API unexplored — files, folders, users, collabs, search, metadata, Shield, AI, events — zero probes recorded
+[HYP] Auth-plane header/info leakage on account.box.com
+class: MISCONFIG
+asset: account.box.com/
+confidence: 30
+reasoning: account.box.com is the auth plane and has never been probed in any cycle. Auth endpoints routinely expose X-Frame-Options, CSP, HSTS, Set-Cookie flags, X-Powered-By, and version strings. Login pages may leak CSRF tokens, session patterns, or framework details in HTML/JS. First probe will map the surface.
+verify_steps: (1) bare GET https://account.box.com/ with UA box-research/1.0 +(research), record status+headers+body_length; (2) bare GET https://account.box.com/login same UA; (3) bare GET https://account.box.com/api/oauth2/authorize same UA. 1 req/2s. First 4xx/429/403 -> log and stop that host.
+impact: information disclosure of auth stack/version; missing X-Frame-Options or CSP enables clickjacking or token exfil; severity MEDIUM-HIGH depending on what leaks.
+testability: PASSIVE
+[HYP] API error enumeration and version disclosure on api.box.com
+class: MISCONFIG
+asset: api.box.com/
+confidence: 30
+reasoning: api.box.com is the core API and has never been probed. Unauthenticated requests to REST APIs typically return detailed error responses with version info, internal paths, or debugging metadata. Public endpoints may expose user/file metadata without auth.
+verify_steps: (1) bare GET https://api.box.com/ with UA box-research/1.0 +(research), record status+headers+body; (2) bare GET https://api.box.com/2.0/users/me same UA. 1 req/2s. First 4xx/429/403 -> log and stop that host.
+impact: version/stack disclosure; unauthenticated data exposure via API endpoints; severity depends on what leaks.
+testability: PASSIVE
+[PARKED] CORS preflight reflection on cloud.app.box.com embedded preview origin: OPTIONS probe with attacker Origin requested 6+ cycles but never executed by executor; status-code-only output cannot validate CORS misconfiguration. Requires OPTIONS-capable probe or header-capturing GET.
+[NEXT] PROBE: three requests in sequence, 1 req/2s: (1) bare GET https://account.box.com/ with UA box-research/1.0 +(research), record status + all visible headers + body length; (2) bare GET https://account.box.com/login same UA, same recording; (3) bare GET https://api.box.com/2.0/users/me same UA, same recording. First 4xx/429/403 -> log and stop that host.
