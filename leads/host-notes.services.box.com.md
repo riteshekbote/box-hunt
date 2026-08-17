@@ -396,3 +396,4 @@ verify_steps: GET https://cloud.app.box.com/ (note status); wait 5s; HEAD https:
 impact: Inconsistent response handling could enable cache-poisoning or response-smuggling on the CDN edge — MEDIUM severity
 testability: PASSIVE
 [PARKED] Root path 206 handler is header-dependent: oscillation observed but cannot isolate variable with executor (no Range header control); parked for manual verification.
+## 2026-08-17 06:04:08 UTC notes.services.box.com (ling3)
