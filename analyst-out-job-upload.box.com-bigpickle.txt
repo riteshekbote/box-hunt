@@ -1,10 +1,26 @@
 [0m
 > build · big-pickle
 [0m
-I'll execute the pending probes and advance hypotheses. Let me run the critical probes first:
+## Analysis
 
-[PROBE] GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (close origin)
-[PROBE] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com (CORS check)
-[PROBE] GET https://cloud.app.box.com/api/2.0/ (API surface check)
-[PROBE] GET https://notes.services.box.com/ (first contact)
-[PROBE] GET https://m.box.com/ (first contact)
+**Current State:** POC phase, IN_PROGRESS. Three origins exhausted (dl.boxcloud.com, upload.box.com, cloud.app.box.com unsigned paths all 404). One origin alive but unexplored (cloud.app.box.com root 200/206). Two origins never contacted (notes.services.box.com, m.box.com).
+
+**Key Observations:**
+- cloud.app.box.com root oscillates between 200 and 206 across cycles — suggests content negotiation or cache-layer behavior
+- All sub-paths on cloud.app.box.com return 404 — narrow whitelist or SPA with no fallback
+- dl.boxcloud.com completely dead for unsigned requests — signed-URL-only origin
+- upload.box.com completely dead — auth-gated upload pipeline
+
+**Recommended Next Probes (5 total, respecting 1 req/2s):**
+
+| # | Target | Request | Purpose |
+|---|--------|---------|---------|
+| 1 | cloud.app.box.com | `OPTIONS /` with `Origin: https://evil.com` | CORS preflight — checks if origin reflects attacker origin |
+| 2 | cloud.app.box.com | `GET /api/2.0/` | API surface check — does preview origin front API routes? |
+| 3 | notes.services.box.com | `GET /` | First contact — status + server header classification |
+| 4 | m.box.com | `GET /` | First contact — status + redirect chain |
+| 5 | dl.boxcloud.com | `GET /api/2.0/files/bhx-q7m2p-x9k4n/content` | Final discriminator on dl.boxcloud.com — 401 vs 404 |
+
+**Priority:** Probes 1-2 (cloud.app.box.com) are highest value — if CORS reflects attacker origin with credentials, that's a HIGH finding. Probes 3-4 open new surfaces. Probe 5 closes dl.boxcloud.com definitively.
+
+**Note:** I cannot execute these probes directly in plan mode. The executor robot will run them between cycles.
