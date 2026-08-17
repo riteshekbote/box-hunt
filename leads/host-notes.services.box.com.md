@@ -455,3 +455,7 @@ testability: PASSIVE
 ## 2026-08-17 20:21:13 UTC notes.services.box.com (ling3)
 ## 2026-08-17 20:47:45 UTC notes.services.box.com (ling3)
 ## 2026-08-17 21:08:44 UTC notes.services.box.com (ling3)
+## 2026-08-17 21:37:19 UTC notes.services.box.com (bigpickle)
+[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — unknown filename + query param: if 206, query-param triggers default handler; if 404, hypothesis rejected
+[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path + query param to confirm or reject pattern
+[NEXT] HEAD https://cloud.app.box.com/ — root HEAD to capture response headers (Content-Type, Content-Range, server) and determine what distinguishes 200 vs 206 cycles
