@@ -363,3 +363,36 @@ testability: PASSIVE
 ## 2026-08-17 03:33:56 UTC notes.services.box.com (ling3)
 ## 2026-08-17 04:21:47 UTC notes.services.box.com (ling3)
 ## 2026-08-17 05:02:43 UTC notes.services.box.com (ling3)
+## 2026-08-17 05:42:03 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com: root `/` returned 206 (Partial Content) in latest executor cycle — previously returned 200; the 206 handler is now reachable on the bare root path without any query parameter, suggesting inconsistent or header-dependent routing.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/robots.txt?probe=x: query-parameterized paths reliably return 206 while bare paths return 404 — confirmed across 4+ cycles, dual-layer routing is stable.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/root: `/` root oscillates between 200 and 206 — indicates the 206 asset/Range handler may also serve the root depending on request conditions (method, Range header, or timing).
+[HYP] CORS misconfiguration on cloud.app.box.com 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt?probe=bhx-cors1
+confidence: 55
+reasoning: 206 layer confirmed reachable on query-parameterized paths across multiple cycles. Cache/asset edges (GCS, CloudFront) commonly reflect attacker Origin in Access-Control-* headers. Without a custom-header probe this cannot be verified — requires manual curl with Origin + Range headers. Root oscillation (200→206) adds uncertainty.
+verify_steps: curl -sI -H 'Origin: https://evil.example.invalid' -H 'Range: bytes=0-63' 'https://cloud.app.box.com/robots.txt?probe=bhx-cors1'
+impact: Cross-origin theft of Box preview/embed asset bytes and tokens via credentialed JS fetch — HIGH severity
+testability: HUMAN_ONLY
+[PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom headers (Origin, Range); requires manual curl verification — parked until manual probe confirms ACAO/ACAC reflection.
+[HYP] Object-store default handler serves any path+query on 206 layer
+class: MISCONFIG
+asset: cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2
+confidence: 65
+reasoning: Query string presence is the confirmed routing trigger (robots.txt?probe=→206 vs robots.txt→404, 4+ cycles). Root `/` now also returns 206 without query, further indicating the 206 handler is broad. If a random unguessable filename + query also returns 206, the handler is a default/wildcard serving all objects — not a pinned-asset whitelist. Executor has not yet attempted this probe.
+verify_steps: GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — if 206, default handler confirmed; if 404, whitelist-routed
+impact: Default-handler on unguessable paths = flat object-store fronting, enabling cache-poisoning and potential internal-asset exposure — MEDIUM severity
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — test whether completely unknown filename + query triggers 206 (default-handler) or 404 (whitelist)
+[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path to confirm default-handler pattern
+[NEXT] OPTIONS https://cloud.app.box.com/robots.txt?probe=opt1 — test if OPTIONS method is allowed on the 206 layer (CORS preflight surface)
+[HYP] Root path 206 handler is header-dependent (Range or Accept)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Root `/` returned 200 in cycles 03:09 and 03:58, then 206 in 04:54. The executor sends standard GET without custom headers. Oscillation may indicate CDN caching variance or time-dependent backend behavior rather than header-dependent routing. Needs controlled HEAD with/without Range to isolate.
+verify_steps: GET https://cloud.app.box.com/ (note status); wait 5s; HEAD https://cloud.app.box.com/ with Range: bytes=0-0; compare status codes
+impact: Inconsistent response handling could enable cache-poisoning or response-smuggling on the CDN edge — MEDIUM severity
+testability: PASSIVE
+[PARKED] Root path 206 handler is header-dependent: oscillation observed but cannot isolate variable with executor (no Range header control); parked for manual verification.
