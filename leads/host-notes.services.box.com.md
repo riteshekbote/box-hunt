@@ -411,3 +411,18 @@ testability: PASSIVE
 ## 2026-08-17 13:49:57 UTC notes.services.box.com (ling3)
 ## 2026-08-17 14:12:14 UTC notes.services.box.com (ling3)
 ## 2026-08-17 14:43:11 UTC notes.services.box.com (ling3)
+## 2026-08-17 15:01:56 UTC notes.services.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/root: root consistently returns 200 in latest 3 executor cycles — oscillation appears resolved; root is now stable at 200.
+[HYP] Object-store default handler vs whitelist-routed
+class: MISCONFIG
+asset: cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2
+confidence: 60
+reasoning: Query parameter presence is the confirmed routing trigger (robots.txt?probe= → 206, robots.txt → 404). Root stable at 200. Unknown random filename + query param untested — if 206, handler is flat/default; if 404, whitelist is in play.
+verify_steps: GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2
+impact: Flat object-store fronting on embedded preview origin enables cache-poisoning and potential internal-asset exposure — MEDIUM severity
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — test whether unknown filename + query triggers 206 (default-handler) or 404 (whitelist)
+[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path to confirm default-handler pattern
+[NEXT] OPTIONS https://cloud.app.box.com/robots.txt?probe=opt1 — test if OPTIONS method is allowed on 206 layer
+[PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom headers (Origin, Range); requires manual curl with Origin header to verify ACAO/ACAC reflection — parked until manual verification.
+[PARKED] Root path 206 handler is header-dependent: root stable at 200 across 3 cycles, no oscillation; Range header effect untestable via executor — parked for manual HEAD with Range.

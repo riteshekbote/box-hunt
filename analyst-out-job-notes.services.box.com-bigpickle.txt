@@ -1,21 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the executor results, I see `cloud.app.box.com/` consistently returns **200** (not 206) across all three latest cycles, while random paths return 404. The 206 behavior from earlier cycles appears to have stabilized to 200 on the root.
-
-The `[NEXT]` probes for CORS verification (custom headers) and default-handler testing are marked `HUMAN_ONLY` — the executor can't send `Origin:` headers.
-
-**Current actionable state:**
-
-| Hypothesis | Status | Confidence |
-|---|---|---|
-| Default handler vs whitelist | Needs arbitrary-path probe | 65 |
-| CORS on 206 layer | PARKED (needs manual curl) | 55 |
-| Root 206 header-dependent | PARKED (oscillation stopped — now stable 200) | 50 |
-
-**Recommended next executor cycle:**
-1. Test the default-handler hypothesis with a new random path probe
-2. Test OPTIONS method on the root (executor CAN send OPTIONS — read-only)
-3. Explore other hosts (m.box.com, account.box.com) that haven't been probed in a while
-
-Would you like me to suggest specific `[NEXT]` probe lines for the next cycle, or is there a particular hypothesis you want to focus on?
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/root: root consistently returns 200 in latest 3 executor cycles — oscillation appears resolved; root is now stable at 200.
+[HYP] Object-store default handler vs whitelist-routed
+class: MISCONFIG
+asset: cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2
+confidence: 60
+reasoning: Query parameter presence is the confirmed routing trigger (robots.txt?probe= → 206, robots.txt → 404). Root stable at 200. Unknown random filename + query param untested — if 206, handler is flat/default; if 404, whitelist is in play.
+evidence_needed: Status code for completely unregistered filename with query parameter
+verify_steps: GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2
+impact: Flat object-store fronting on embedded preview origin enables cache-poisoning and potential internal-asset exposure — MEDIUM severity
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — test whether unknown filename + query triggers 206 (default-handler) or 404 (whitelist)
+[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path to confirm default-handler pattern
+[NEXT] OPTIONS https://cloud.app.box.com/robots.txt?probe=opt1 — test if OPTIONS method is allowed on 206 layer
+[PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom headers (Origin, Range); requires manual curl with Origin header to verify ACAO/ACAC reflection — parked until manual verification.
+[PARKED] Root path 206 handler is header-dependent: root stable at 200 across 3 cycles, no oscillation; Range header effect untestable via executor — parked for manual HEAD with Range.
