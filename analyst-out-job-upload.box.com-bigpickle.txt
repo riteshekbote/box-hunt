@@ -1,34 +1,8 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the current state, I need to assess the situation and provide the next cycle output.
+[LEARN] ACCEPTED: upload.box.com surface EXHAUSTED — all unsigned paths (/, robots.txt, trailing-slash variants, API paths with probe params) return 404; no edge behavior distinguishable without authentication. Upload origin parked.
 
-## Analysis
+[LEARN] ACCEPTED: dl.boxcloud.com unsigned object surface EXHAUSTED — `/bhx-q7m2p-x9k4n` → 404, matching `/`, `/robots.txt`, `/favicon.ico`; signed-URL-only routing confirmed for the object layer.
 
-**dl.boxcloud.com surface status:** Fully closed for unsigned paths. Root, robots.txt, favicon.ico, random nonce — all 404. The only non-404 in the historical record is `/api/2.0/files/1/content` → 401 (from 2026-08-14).
-
-**Critical gap:** The last `[NEXT]` probe (`GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content`) has **not yet appeared in any executor batch**. The most recent executor output (2026-08-17 01:52:02 UTC) only repeats the prior probes — no random-id content-path result.
-
-**Status:** dl.boxcloud.com is **IN_PROGRESS** with a single open discriminator remaining.
-
----
-
-## Cycle Output
-
-[NEW] dl.boxcloud.com random-id content probe not yet executed: the key 401-vs-404 discriminator (`/api/2.0/files/bhx-q7m2p-x9k4n/content`) from the 23:36 cycle has no executor result in the record. If the executor ran it and it returned 401 → shape-based gate confirmed; 404 → signature gate confirmed; either outcome closes this origin.
-
-[HYP] dl.boxcloud.com api content path-shape gate — random-id content probe
-class: MISCONFIG
-asset: dl.boxcloud.com/api/2.0/files/{id}/content (GET)
-confidence: 60
-reasoning: Historical probe `/api/2.0/files/1/content` → 401 while every object-path probe (/, robots.txt, favicon.ico, random nonce) 404s. The edge routes by path class. Random unguessable id discriminates: 401 = shape-based auth gate (signed-URL structure enumerable but access requires valid signature — AUTH_HELPED); 404 = signature-presence gate (same outcome — dead end without credentials).
-evidence_needed: HTTP status from `GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content`
-verify_steps: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (UA `box-research/1.0 +(research)`, 1 req/2s, status only).
-impact: recon-grade. 401 ⇒ signed-URL structure enumerable but content gated by auth — surface AUTH_HELPED, no unsigned data exposure from this pipeline. 404 ⇒ same. Either outcome parks dl.boxcloud.com.
-testability: PASSIVE
-
-[NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — the single remaining discriminator on dl.boxcloud.com. If result is 401 → [LEARN] shape-based gate ACCEPTED → PARK dl.boxcloud.com (AUTH_HELPED, unreachable without valid signature). If 404 → [LEARN] signature gate ACCEPTED → dl.boxcloud.com surface EXHAUSTED, pivot to new origin or new surface on existing origins.
-
----
-
-**Parked hypotheses (all confidence ≤45, no evidence path from dl.boxcloud.com):** The ranked cloud.app.box.com / upload.box.com hypotheses (object-store handler, CORS, method surface) remain valid but are not the current discriminator. Once dl.boxcloud.com is parked, the next highest-yield action is: **cloud.app.box.com CORS preflight test** (`OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.example.com`) — currently at confidence 45 and AUTH_HELPED-class, requiring browser interaction to verify reflected origins.
+[PROBE] GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (UA `box-research/1.0 +(research)`, 1 req/2s, status only) — the single remaining discriminator on this origin. 401 → shape-based gate (AUTH_HELPED, park); 404 → signature gate (surface exhausted, pivot to cloud.app.box.com CORS hypotheses).
