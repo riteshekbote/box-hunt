@@ -75,3 +75,15 @@ https://cloud.app.box.com/favicon.ico -> 206
 https://cloud.app.box.com/.well-known/security.txt -> HTTP 404
 https://cloud.app.box.com/crossdomain.xml -> 206
 https://cloud.app.box.com/?list-type=2 -> 200
+
+## 2026-08-17 15:04:43 UTC cloud.app.box.com
+https://cloud.app.box.com/?list-type=2 -> 200
+https://cloud.app.box.com/favicon.ico -> 206
+https://cloud.app.box.com/robots.txt -> 206
+https://cloud.app.box.com/bhx-r4nd0m-p4th -> HTTP 404
+https://cloud.app.box.com/ -> 200
+https://cloud.app.box.com/login -> 200
+https://cloud.app.box.com/api/2.0/users/me -> HTTP 401
+https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
+https://cloud.app.box.com/shared_items -> HTTP 404
+https://cloud.app.box.com/api/2.0/events -> HTTP 401

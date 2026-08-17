@@ -37,20 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-14 10:16:34 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-16 22:00:42 UTC cloud.app.box.com (ling3)
-## 2026-08-16 22:26:13 UTC cloud.app.box.com (bigpickle)
-[NEW] cloud.app.box.com/bhx-xp4k7-m9f3q: Random 16-char nonce finally executed (@20:54 batch) → **HTTP 404**, while `/robots.txt`, `/favicon.ico` return 206 under Range and `/` returns 200. The routing discriminator is now resolved: the 206/Range layer is whitelist-pinned to known static keys, NOT a catch-all default handler.
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/bhx-xp4k7-m9f3q: Random unguessable path → 404 falsifies the catch-all-default-handler model. Range layer is pinned (robots.txt, favicon.ico, root only). Root 200↔206 flip-flop re-read as cache/multi-node artifact inside the pinned layer, not two stacked origins.
-[HYP] Pinned static-key whitelist extent on cloud.app.box.com 206/Range layer: which additional well-known keys are proxied (dot-path, XML policy files)
-class: MISCONFIG
-asset: cloud.app.box.com/.well-known/security.txt
-confidence: 40
-reasoning: Confirmed pinned keys are robots.txt, favicon.ico, root; nonce and two-segment paths 404. Whitelist extent is unmapped; `crossdomain.xml`/`clientaccesspolicy.xml` would be security-relevant if proxied.
-verify_steps: GET /.well-known/security.txt with `Range: bytes=0-0`; GET /crossdomain.xml with `Range: bytes=0-0`; report status + Content-Range + body snippet.
-impact: Maps cache-key/proxy primitives or exposes legacy Flash/XML policy through the asset layer — Low/Medium.
-testability: PASSIVE
-[HYP] CORS misconfiguration on the cloud.app.box.com 206 asset layer, keyed on favicon.ico (unprobed key)
-class: MISCONFIG
 asset: cloud.app.box.com/favicon.ico
 confidence: 40
 reasoning: favicon.ico is confirmed Range-served (206); every prior CORS probe was keyed on robots.txt and no header report ever returned. No Origin/OPTIONS byte has reached favicon.ico.
@@ -97,10 +83,24 @@ testability: PASSIVE
 ## 2026-08-17 05:02:46 UTC cloud.app.box.com (ling3)
 ## 2026-08-17 05:41:17 UTC cloud.app.box.com (ling3)
 ## 2026-08-17 06:04:06 UTC cloud.app.box.com (ling3)
+## 2026-08-17 07:11:34 UTC cloud.app.box.com (bigpickle)
+## 2026-08-17 07:59:14 UTC cloud.app.box.com (ling3)
+## 2026-08-17 08:43:22 UTC cloud.app.box.com (ling3)
+## 2026-08-17 09:24:00 UTC cloud.app.box.com (ling3)
+## 2026-08-17 10:02:07 UTC cloud.app.box.com (ling3)
+## 2026-08-17 10:39:55 UTC cloud.app.box.com (ling3)
+## 2026-08-17 11:01:04 UTC cloud.app.box.com (ling3)
+## 2026-08-17 11:30:54 UTC cloud.app.box.com (ling3)
+## 2026-08-17 11:51:38 UTC cloud.app.box.com (ling3)
+## 2026-08-17 12:14:12 UTC cloud.app.box.com (ling3)
+## 2026-08-17 13:05:38 UTC cloud.app.box.com (ling3)
+## 2026-08-17 13:48:52 UTC cloud.app.box.com (ling3)
+## 2026-08-17 14:12:12 UTC cloud.app.box.com (ling3)
+## 2026-08-17 14:43:17 UTC cloud.app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-- [40] cloud.app.box.com/: upload.box.com responder fingerprint via robots.txt: whether the upload gateway answers the status channel for any non-API path, using robots.txt as the highest-yield key (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
-## RANKED 2026-08-17 03:58:58 UTC
+## RANKED 2026-08-17 13:50:24 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -113,7 +113,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
-## RANKED 2026-08-17 04:54:33 UTC
+## RANKED 2026-08-17 14:39:01 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -126,7 +126,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
-## RANKED 2026-08-17 05:46:13 UTC
+## RANKED 2026-08-17 14:58:35 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -154,7 +154,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-17 03:58:58 UTC (executor)
+## 2026-08-17 13:50:24 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -170,8 +170,8 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-17 04:54:32 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
+## 2026-08-17 14:39:01 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
@@ -186,7 +186,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-17 05:46:13 UTC (executor)
+## 2026-08-17 14:58:35 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
