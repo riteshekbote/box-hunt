@@ -610,3 +610,4 @@ impact: Aids targeted attacks against internal Box infrastructure. Severity: Low
 testability: PASSIVE
 [NEXT] RECON: `curl -sD- https://notes.services.box.com/` (1 request, observe status, headers, redirect behavior)
 ## 2026-08-17 19:11:49 UTC account.box.com (ling3)
+## 2026-08-17 19:40:45 UTC account.box.com (ling3)
