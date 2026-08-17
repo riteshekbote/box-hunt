@@ -518,3 +518,14 @@ testability: PASSIVE
 ## 2026-08-16 23:50:56 UTC upload.box.com (ling3)
 ## 2026-08-17 00:01:24 UTC upload.box.com (ling3)
 ## 2026-08-17 01:35:55 UTC upload.box.com (ling3)
+## 2026-08-17 02:46:07 UTC upload.box.com (bigpickle)
+[NEW] dl.boxcloud.com random-id content probe not yet executed: the key 401-vs-404 discriminator (`/api/2.0/files/bhx-q7m2p-x9k4n/content`) from the 23:36 cycle has no executor result in the record. If the executor ran it and it returned 401 → shape-based gate confirmed; 404 → signature gate confirmed; either outcome closes this origin.
+[HYP] dl.boxcloud.com api content path-shape gate — random-id content probe
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/{id}/content (GET)
+confidence: 60
+reasoning: Historical probe `/api/2.0/files/1/content` → 401 while every object-path probe (/, robots.txt, favicon.ico, random nonce) 404s. The edge routes by path class. Random unguessable id discriminates: 401 = shape-based auth gate (signed-URL structure enumerable but access requires valid signature — AUTH_HELPED); 404 = signature-presence gate (same outcome — dead end without credentials).
+verify_steps: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (UA `box-research/1.0 +(research)`, 1 req/2s, status only).
+impact: recon-grade. 401 ⇒ signed-URL structure enumerable but content gated by auth — surface AUTH_HELPED, no unsigned data exposure from this pipeline. 404 ⇒ same. Either outcome parks dl.boxcloud.com.
+testability: PASSIVE
+[NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — the single remaining discriminator on dl.boxcloud.com. If result is 401 → [LEARN] shape-based gate ACCEPTED → PARK dl.boxcloud.com (AUTH_HELPED, unreachable without valid signature). If 404 → [LEARN] signature gate ACCEPTED → dl.boxcloud.com surface EXHAUSTED, pivot to new origin or new surface on existing origins.
