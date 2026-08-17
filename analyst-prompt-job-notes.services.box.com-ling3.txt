@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-17 18:37:47 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: Root `/` returned 200 in cycles 03:09 and 03:58, then 206 in 04:54. The executor sends standard GET without custom headers. Oscillation may indicate CDN caching variance or time-dependent backend behavior rather than header-dependent routing. Needs controlled HEAD with/without Range to isolate.
 verify_steps: GET https://cloud.app.box.com/ (note status); wait 5s; HEAD https://cloud.app.box.com/ with Range: bytes=0-0; compare status codes
 impact: Inconsistent response handling could enable cache-poisoning or response-smuggling on the CDN edge — MEDIUM severity
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 [PARKED] Root path 206 handler is header-dependent: root stable at 200 across 3+ cycles; Range header effect untestable via executor — parked for manual HEAD with Range.
 ## 2026-08-17 19:11:33 UTC notes.services.box.com (ling3)
 ## 2026-08-17 19:40:46 UTC notes.services.box.com (ling3)
+## 2026-08-17 19:57:36 UTC notes.services.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
