@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-16 13:30:57 UTC"
 }=== MY LAST LEADS (tail) ===
-confidence: 60
 reasoning: favicon.ico is a confirmed 206 key in every executor cycle. robots.txt already proved the boundary set on one key: trailing-slash 404, query-invariance 206, single-decode collapse 206. The `;`-path-param and suffix-child boundaries remain untested on any key; reusing the executor's own pinned shapes (favicon.ico is in the replayed set) gives the highest pickup probability under the replay constraint.
 verify_steps: 3 read-only GETs, 2s apart, UA "box-research/1.0 +(research)": (1) GET https://cloud.app.box.com/favicon.ico;bhx-61 (2) GET https://cloud.app.box.com/favicon.ico/bhx-62 (3) GET https://cloud.app.box.com/favicon.ico?probe=bhx-63 — record status + content-type verbatim. 404s informative; stop host on first 403/429.
 impact: If a `;`-tokenized or suffix-child key normalizes onto a pinned object, the edge matches a key that differs from the request path (cache-key/wrong-object risk at the object-store edge). Low unless a body leak surfaces.
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-17 11:30:55 UTC api.box.com (ling3)
 ## 2026-08-17 11:51:53 UTC api.box.com (ling3)
 ## 2026-08-17 12:13:53 UTC api.box.com (ling3)
+## 2026-08-17 13:05:23 UTC api.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
