@@ -321,3 +321,4 @@ verify_steps: OPTIONS https://cloud.app.box.com/robots.txt with Origin: https://
 impact: Reflected Origin + Allow headers would permit cross-origin reads of asset-layer content; low/medium unless protected objects reachable
 testability: PASSIVE
 [NEXT] PROBE: curl -I -X OPTIONS "https://cloud.app.box.com/robots.txt" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header
+## 2026-08-17 04:21:47 UTC dl.boxcloud.com (ling3)
