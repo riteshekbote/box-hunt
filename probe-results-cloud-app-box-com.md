@@ -87,3 +87,8 @@ https://cloud.app.box.com/api/2.0/users/me -> HTTP 401
 https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
 https://cloud.app.box.com/shared_items -> HTTP 404
 https://cloud.app.box.com/api/2.0/events -> HTTP 401
+
+## 2026-08-17 17:03:30 UTC cloud.app.box.com
+https://cloud.app.box.com/.well-known/security.txt -> HTTP 404
+https://cloud.app.box.com/crossdomain.xml -> 206
+https://cloud.app.box.com/favicon.ico -> 206
