@@ -516,3 +516,4 @@ testability: PASSIVE
 [NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
 ## 2026-08-17 20:21:18 UTC m.box.com (ling3)
 ## 2026-08-17 20:47:44 UTC m.box.com (ling3)
+## 2026-08-17 21:09:12 UTC m.box.com (ling3)
