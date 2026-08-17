@@ -1,5 +1,11 @@
-[CONFIRMED] cloud.app.box.com/_assets/ bucket metadata leakage: 404 responses expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. Consistent across multiple cycles. Severity: Low.
-[CONFIRMED] cloud.app.box.com/_assets/package.json + Makefile.js: Both return 200 with `access-control-allow-origin: *,*`. package.json exposes internal git host `gitenterprise.inside-box.net` and internal packages. Makefile.js exposes build paths and Amsterdam app structure. Severity: Low-Medium.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/_assets/*: Two distinct routing layers confirmed — CDN/app edge (root, 302, no CORS) vs GCS bucket (/_assets/*, 200/404, full CORS). _assets bypasses all CDN security controls.
-[LEARN] REJECTED cloud.app.box.com/root CORS reflection: Root consistently returns 302 to /login with no CORS headers. Not exploitable without authentication.
-[NEXT] RECON: `curl -sD- https://notes.services.box.com/` (1 request, observe status, headers, redirect behavior)
+[NEW] notes.services.box.com/: 302 redirect to https://services.app.box.com/ with x-envoy-upstream-service-time, box-request-id, via: 1.1 google headers
+[NEXT] RECON: `curl -sD- https://notes.services.box.com/robots.txt` (1 request, check for notes service paths)
+[HYP] notes.services.box.com/: Service endpoint enumeration via path fuzzing
+class: MISCONFIG
+asset: notes.services.box.com/
+confidence: 30
+reasoning: Redirect to services.app.box.com suggests notes.services.box.com may expose internal service endpoints. First probe shows 302 with Envoy headers. Need to check for API endpoints, health checks, or documentation.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/robots.txt` then `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api`
+impact: Could reveal internal service structure or APIs. Severity: Low-Medium.
+testability: PASSIVE
+[NEXT] RECON: `curl -sD- https://notes.services.box.com/robots.txt` (1 request, observe status and content)

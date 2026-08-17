@@ -623,3 +623,15 @@ testability: PASSIVE
 ## 2026-08-17 21:36:44 UTC account.box.com (ling3)
 ## 2026-08-17 21:55:14 UTC account.box.com (ling3)
 ## 2026-08-17 22:13:29 UTC account.box.com (ling3)
+## 2026-08-17 22:40:51 UTC account.box.com (bigpickle)
+[NEW] notes.services.box.com/: 302 redirect to https://services.app.box.com/ with x-envoy-upstream-service-time, box-request-id, via: 1.1 google headers
+[NEXT] RECON: `curl -sD- https://notes.services.box.com/robots.txt` (1 request, check for notes service paths)
+[HYP] notes.services.box.com/: Service endpoint enumeration via path fuzzing
+class: MISCONFIG
+asset: notes.services.box.com/
+confidence: 30
+reasoning: Redirect to services.app.box.com suggests notes.services.box.com may expose internal service endpoints. First probe shows 302 with Envoy headers. Need to check for API endpoints, health checks, or documentation.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/robots.txt` then `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api`
+impact: Could reveal internal service structure or APIs. Severity: Low-Medium.
+testability: PASSIVE
+[NEXT] RECON: `curl -sD- https://notes.services.box.com/robots.txt` (1 request, observe status and content)
