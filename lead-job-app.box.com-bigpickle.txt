@@ -1,0 +1,9 @@
+[HYP] CORS preflight reflection on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 65
+reasoning: Executor consistently returns HTTP 200 for cloud.app.box.com/ root across multiple cycles (15:35, 15:55, 16:40). This 206/200 behavior with Range support suggests CDN/object-store backend that may lack application-layer CORS hardening. The origin serves embedded content previews which are sensitive assets.
+verify_steps: "OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET — record Access-Control-* headers; follow with GET with same Origin to confirm credentials exposure"
+impact: Cross-origin read of embedded preview content for any authenticated user — High severity
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.com, Access-Control-Request-Method: GET, User-Agent: box-research/1.0 (research) — record all response headers; then GET with same Origin
