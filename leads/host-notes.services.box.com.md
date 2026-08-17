@@ -339,3 +339,23 @@ testability: PASSIVE
 [NEXT] PROBE: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — determine default-handler vs whitelist behavior for query-keyed unknown paths.
 ## 2026-08-16 23:51:45 UTC notes.services.box.com (ling3)
 ## 2026-08-17 00:01:22 UTC notes.services.box.com (ling3)
+## 2026-08-17 01:36:11 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com: [NEXT] probes from prior cycle (CORS HEAD + random-path ?probe) not yet reflected in executor results — re-issuing with tightened targets.
+[HYP] CORS misconfiguration on cloud.app.box.com 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/robots.txt?probe=bhx-cors1
+confidence: 58
+reasoning: 206 layer confirmed reachable via query-parameterized paths. Cache/asset edges (GCS, S3, CloudFront) commonly reflect attacker Origin in Access-Control-* headers. If ACAO reflects our Origin and ACAC is true, cross-origin credentialed reads of preview-embed assets become possible.
+verify_steps: HEAD https://cloud.app.box.com/robots.txt?probe=bhx-cors1 with `Origin: https://evil.example.invalid` and `Range: bytes=0-63` — inspect Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Content-Range in response
+impact: Cross-origin theft of Box preview/embed asset bytes and tokens via credentialed JS fetch — HIGH severity
+testability: PASSIVE
+[HYP] Object-store default handler vs whitelist-routed (query-keyed)
+class: MISCONFIG
+asset: cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2
+confidence: 62
+reasoning: robots.txt?probe= consistently returns 206 while bare robots.txt and all bare random paths return 404. The query string is the routing trigger. If a completely unknown filename + query also returns 206, the 206 layer is a default/wildcard handler serving any object — not a whitelist of pinned static files.
+verify_steps: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — compare status against same path without ?probe
+impact: Default-handler on unguessable paths = flat object-store fronting, enabling cache-poisoning and potential internal-asset exposure — MEDIUM severity
+testability: PASSIVE
+[NEXT] PROBE: HEAD https://cloud.app.box.com/robots.txt?probe=bhx-cors1 with headers `Origin: https://evil.example.invalid` and `Range: bytes=0-63` — check ACAO/ACAC/Content-Range reflection
+[NEXT] PROBE: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — default-handler vs whitelist for unknown query-keyed paths
