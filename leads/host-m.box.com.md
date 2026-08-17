@@ -503,3 +503,14 @@ testability: PASSIVE
 ## 2026-08-17 18:37:24 UTC m.box.com (ling3)
 ## 2026-08-17 19:11:33 UTC m.box.com (ling3)
 ## 2026-08-17 19:41:10 UTC m.box.com (ling3)
+## 2026-08-17 19:57:51 UTC m.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: The root consistently returns 200/206 across multiple cycles, confirming the 206/Range asset edge fronts the origin root — not just pinned static assets. All other paths (robots.txt, random nonces) return 404, suggesting either a whitelist-routed gateway or object-store default handler limited to /. The CORS hypothesis remains untested after multiple cycles — the executor has not executed the OPTIONS probe.
+[HYP] CORS preflight reflection on cloud.app.box.com embedded preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: cloud.app.box.com/ returns 200/206 consistently, proving the asset edge serves the root; all other paths return 404 (whitelist or default-handler behavior). The CORS policy has never been probed with OPTIONS+Origin. Embedded preview content likely uses cookies/Authorization. If preflight reflects attacker Origin or exposes credentials cross-origin, this enables account data theft via a malicious page embedding Box previews.
+verify_steps: bare OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA box-research/1.0 +(research); record all response headers and status; 1 req/2s.
+impact: cross-origin account data theft via embedded Box preview; critical severity if credentials are exposed.
+testability: PASSIVE
+[NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
