@@ -377,3 +377,4 @@ impact: Reflected Origin + credentials would permit cross-origin reading of prev
 testability: PASSIVE
 [NEXT] PROBE: curl -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header. If 403/404, mark CORS hypothesis PARKED on this origin and surface a new target from the remaining in-scope hosts.
 ## 2026-08-17 23:41:26 UTC dl.boxcloud.com (ling3)
+## 2026-08-17 23:57:10 UTC dl.boxcloud.com (ling3)
