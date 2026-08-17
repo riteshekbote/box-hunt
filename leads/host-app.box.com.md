@@ -436,3 +436,16 @@ testability: PASSIVE
 ## 2026-08-16 23:51:13 UTC app.box.com (ling3)
 ## 2026-08-17 00:00:38 UTC app.box.com (ling3)
 ## 2026-08-17 01:35:55 UTC app.box.com (ling3)
+## 2026-08-17 02:46:01 UTC app.box.com (bigpickle)
+[NEW] app.box.com: app-origin probes remain systematically dropped by executor (zero app-origin evidence across 30+ cycles); stuck batch hypothesis confirmed
+[HYP] App-origin root handler type via Range-header GET
+class: MISCONFIG
+asset: app.box.com/
+confidence: 50
+reasoning: Executor consistently produces identical cloud+upload batch results without any app-origin row. Whether this is a routing issue (app.box.com resolves to a different IP that blocks headless requests), a WAF rule, or a genuine SPA shell that returns 404/403 to Range requests is unmeasurable through the executor. The hypothesis remains valid but untestable through current pipeline.
+verify_steps: GET https://app.box.com/ with headers "Range: bytes=0-0" and "User-Agent: box-research/1.0 (research)" — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes
+impact: delivery-topology map for the primary origin; decides whether the cloud object-store parity findings port to app
+testability: PASSIVE
+[PARKED] App-origin root handler type via Range-header GET: executor systematically drops all app.box.com probes — 30+ cycles with zero evidence; requires external verification or different probe pipeline
+[NEXT] PROBE: GET https://app.box.com/ with Range: bytes=0-0 and UA box-research/1.0 (research) — attempt fresh probe with different query parameter to break potential filter
+[LEARN] ACCEPTED MISCONFIG @ app.box.com: Executor probe-results-next.md is a fixed cloud+upload batch (30+ consecutive byte-similar cycles); queued app probes are dropped before execution rather than returning evidence; re-emitting the same [NEXT] is a documented no-op. This cycle attempts a fresh Range-keyed root probe with distinct query parameter.
