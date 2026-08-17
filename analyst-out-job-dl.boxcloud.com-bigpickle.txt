@@ -1,6 +1,26 @@
 [0m
 > build · big-pickle
 [0m
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/cors_headers.txt -o /tmp/cors_body.txt -w "HTTP_CODE:%{http_code}\nCONTENT_TYPE:%{content_type}\nSIZE:%{size_download}" -X OPTIONS "https://cloud.app.box.com/robots.txt" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0" 2>&1 && echo "---HEADERS---" && cat /tmp/cors_headers.txt failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com: exhaustive 404 across /, /robots.txt, /favicon.ico, random paths, and OPTIONS — CDN edge serves nothing without signed-token; no attack surface reachable via unauthenticated probes.
+
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com OPTIONS: no Access-Control-* headers observed on 404; CORS is not configured on CDN edge for error responses — hypothesis rejected.
+
+[PARKED] Download-edge CORS on dl.boxcloud.com API content handler: CDN returns 404 on all unauthenticated paths; CORS testing blocked by auth gate; revisit only with a valid signed-URL (AUTH_HELPED).
+
+[PARKED] Object-store default handler vs whitelist-routed (cloud.app.box.com): random paths return 404 while root returns 200/206; insufficient to distinguish object-store default from app-edge routing without content inspection — park until body-content probe feasible.
+
+[PARKED] Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root: same as above; root response confirms asset-layer serves origin root but arbitrary-path routing remains ambiguous; no new evidence.
+
+[PARKED] Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce): /robots.txt/ vs /robots.txt both 404 on cloud.app.box.com; discriminator not observable; park.
+
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 30
+reasoning: cloud.app.box.com root intermittently returns 200/206; OPTIONS preflight has never been tested on this origin; the asset-layer serves content which implies an application edge may handle CORS; if preflight reflects attacker Origin or exposes Authorization, cross-origin reads are possible.
+evidence_needed: OPTIONS response with Access-Control-Allow-Origin reflecting attacker origin OR Access-Control-Allow-Credentials: true with exposed Authorization header.
+verify_steps: curl -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status and all Access-Control-* headers.
+impact: Reflected Origin + credentials would permit cross-origin reading of preview content; medium severity if any user-scoped data reachable.
+testability: PASSIVE
+
+[NEXT] PROBE: curl -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header. If 403/404, mark CORS hypothesis PARKED on this origin and surface a new target from the remaining in-scope hosts.
