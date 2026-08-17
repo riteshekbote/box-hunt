@@ -488,3 +488,14 @@ testability: PASSIVE
 ## 2026-08-17 16:09:51 UTC m.box.com (ling3)
 ## 2026-08-17 16:43:04 UTC m.box.com (bigpickle)
 ## 2026-08-17 17:02:53 UTC m.box.com (ling3)
+## 2026-08-17 17:35:16 UTC m.box.com (bigpickle)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: The root now returns 206 (Partial Content), confirming the 206/Range layer fronts the origin root — not just pinned static assets. This is new evidence from this cycle.
+[HYP] CORS preflight reflection on cloud.app.box.com embedded preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 52
+reasoning: cloud.app.box.com/ now confirmed returning 206, proving the asset edge serves the root via partial-content layer; CORS policy has never been probed with OPTIONS+Origin; embedded preview content likely uses cookies/Authorization; if preflight reflects attacker Origin or exposes credentials cross-origin, this enables account data theft.
+verify_steps: bare OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA box-research/1.0 +(research), record all response headers and status; then bare GET with same Origin; 1 req/2s.
+impact: cross-origin account data theft via embedded Box preview; critical severity if credentials are exposed.
+testability: PASSIVE
+[NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
