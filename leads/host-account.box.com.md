@@ -560,3 +560,4 @@ impact: If root reflects Origin or leaks Authorization header, severity jumps to
 testability: PASSIVE
 [NEXT] PROBE: CORS divergence root vs _assets + _assets sibling enumeration (extended: config.json, VERSION, .env, webpack.config.js, package-lock.json + root Origin reflection)
 ## 2026-08-17 08:43:21 UTC account.box.com (ling3)
+## 2026-08-17 09:24:01 UTC account.box.com (ling3)
