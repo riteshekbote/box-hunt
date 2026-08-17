@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-17 21:09:06 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/
 confidence: 55
 reasoning: cloud.app.box.com is a distinct frontend origin serving embedded content views (preview/docs). The 206 Range-support on root suggests a CDN/object-store backend that may lack application-layer CORS hardening. If OPTIONS/GET with an attacker Origin reflects Access-Control-Allow-Origin + Allow-Credentials, any malicious page can read preview content cross-origin.
 verify_steps: "OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET — record Access-Control-* headers"
@@ -97,6 +96,7 @@ verify_steps: "OPTIONS https://cloud.app.box.com/ with Origin: https://evil.exam
 impact: Cross-origin read of embedded preview content for any authenticated user — High severity
 testability: PASSIVE
 [NEXT] PROBE: curl -I -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" — record all response headers; then curl -I "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" — record headers
+## 2026-08-17 21:36:51 UTC app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
