@@ -322,3 +322,5 @@ impact: Reflected Origin + Allow headers would permit cross-origin reads of asse
 testability: PASSIVE
 [NEXT] PROBE: curl -I -X OPTIONS "https://cloud.app.box.com/robots.txt" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header
 ## 2026-08-17 04:21:47 UTC dl.boxcloud.com (ling3)
+## 2026-08-17 05:03:06 UTC dl.boxcloud.com (bigpickle)
+[NEXT] PROBE: curl -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header; no ACAO on 404 means CORS is not configured on the CDN edge.
