@@ -1,15 +1,62 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: The root consistently returns 200/206 across multiple cycles, confirming the 206/Range asset edge fronts the origin root — not just pinned static assets. All other paths (robots.txt, random nonces) return 404, suggesting either a whitelist-routed gateway or object-store default handler limited to /. The CORS hypothesis remains untested after multiple cycles — the executor has not executed the OPTIONS probe.
+[0m$ [0mecho "=== Cycle Analysis ==="
+echo "Host: cloud.app.box.com"
+echo "Phase: POC"
+echo "Current hypothesis confidence: 55"
+echo ""
+echo "Key facts from executor results:"
+echo "- cloud.app.box.com/ -> 200/206 (consistent)"
+echo "- All other paths -> 404 (robots.txt, ROBOTS.TXT, random nonces, etc.)"
+echo "- OPTIONS probe with Origin header NOT executed (executor limitation?)"
+echo ""
+echo "Hypothesis status:"
+echo "- CORS preflight reflection: UNTESTED (OPTIONS not executed)"
+echo "- Default handler vs whitelist: Strong evidence for default handler"
+echo ""
+echo "Decision: Emit refined hypothesis with GET-based verification steps"
+=== Cycle Analysis ===
+Host: cloud.app.box.com
+Phase: POC
+Current hypothesis confidence: 55
 
-[HYP] CORS preflight reflection on cloud.app.box.com embedded preview origin
+Key facts from executor results:
+- cloud.app.box.com/ -> 200/206 (consistent)
+- All other paths -> 404 (robots.txt, ROBOTS.TXT, random nonces, etc.)
+- OPTIONS probe with Origin header NOT executed (executor limitation?)
+
+Hypothesis status:
+- CORS preflight reflection: UNTESTED (OPTIONS not executed)
+- Default handler vs whitelist: Strong evidence for default handler
+
+Decision: Emit refined hypothesis with GET-based verification steps
+[0m
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root consistently returns 200/206 while all other paths (robots.txt, ROBOTS.TXT, random nonces, deep paths) return 404. This is strong evidence of an object-store default handler serving the root, with the CDN/edge enforcing path whitelisting for everything else. The CORS OPTIONS probe with attacker Origin has been requested in every recent cycle but the executor has never executed an OPTIONS request — only GET. The hypothesis is untestable without header inspection.
+
+[PARKED] CORS preflight reflection on cloud.app.box.com embedded preview origin: OPTIONS probe with attacker Origin has been requested 6+ consecutive cycles but never executed by the executor; status-code-only output cannot validate CORS misconfiguration. PARKED pending OPTIONS-capable probe or header-capturing GET.
+
+[NEW] account.box.com: unexplored auth plane — login, OAuth, SSO, tokens, sessions — fresh surface for RECON
+[NEW] api.box.com: unexplored core API — files, folders, users, collabs, search, metadata, Shield, AI, events — fresh surface for RECON
+
+[HYP] Auth-plane header/info leakage on account.box.com
 class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 55
-reasoning: cloud.app.box.com/ returns 200/206 consistently, proving the asset edge serves the root; all other paths return 404 (whitelist or default-handler behavior). The CORS policy has never been probed with OPTIONS+Origin. Embedded preview content likely uses cookies/Authorization. If preflight reflects attacker Origin or exposes credentials cross-origin, this enables account data theft via a malicious page embedding Box previews.
-evidence_needed: OPTIONS response headers (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Methods) when Origin is attacker-controlled
-verify_steps: bare OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA box-research/1.0 +(research); record all response headers and status; 1 req/2s.
-impact: cross-origin account data theft via embedded Box preview; critical severity if credentials are exposed.
+asset: account.box.com/
+confidence: 25
+reasoning: account.box.com (auth plane) has not been probed in any recent cycle. Auth endpoints often expose X-Frame-Options, CSP, HSTS, Set-Cookie flags, and X-Powered-By headers that reveal stack info or missing protections. Login pages may also leak CSRF tokens, session patterns, or version strings in HTML/JS.
+evidence_needed: response headers from GET on account.box.com root; presence/absence of security headers; any version or stack tokens in body.
+verify_steps: bare GET https://account.box.com/ with UA box-research/1.0 +(research), 1 req/2s; record status, headers, body length. Then GET https://account.box.com/login and GET https://account.box.com/api/oauth2/authorize to map the auth surface.
+impact: information disclosure of auth stack/version; missing security headers (X-Frame-Options, CSP) could enable clickjacking or token exfil.
 testability: PASSIVE
-[NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
+
+[HYP] API error enumeration and version disclosure on api.box.com
+class: MISCONFIG
+asset: api.box.com/
+confidence: 25
+reasoning: api.box.com is the core API and has not been probed in recent cycles. Unauthenticated API requests often return detailed error responses with version info, internal paths, or debugging data. Public API endpoints may leak user metadata, file info, or internal IDs without auth.
+evidence_needed: response headers and body from GET on api.box.com root and common API paths (/2.0/users/me, /2.0/files, /2.0/folders).
+verify_steps: bare GET https://api.box.com/ with UA box-research/1.0 +(research), 1 req/2s; then GET https://api.box.com/2.0/users/me; record status, headers, body for each.
+impact: version/stack disclosure; unauthenticated data exposure via API endpoints; severity depends on what leaks.
+testability: PASSIVE
+
+[NEXT] PROBE: two requests in sequence, 1 req/2s: (1) bare GET https://account.box.com/ with UA box-research/1.0 +(research), record status + all visible headers + body length; (2) bare GET https://api.box.com/2.0/users/me with same UA, record status + all visible headers + body length. First 4xx/429/403 -> log and stop that host.
