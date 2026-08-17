@@ -1,8 +1,15 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the evidence: root on cloud.app.box.com oscillates 200/206 with no clear trigger; random paths without query params consistently 404; the query-param hypothesis has never actually been tested by the executor. Let me push the key probes.
+[LEARN] REJECTED upload.box.com surface: 5 consecutive GET probes all returned 404 (robots.txt, robots.txt/, api/2.0/files/content, with and without query params). Upload gateway is a strict allowlist — no evidence of flat object-store fronting. Parked.
+[LEARN] REJECTED dl.boxcloud.com surface: 4 consecutive GET probes all returned 404 (/, robots.txt, favicon.ico, random path). Download CDN is locked down with no default handler. Parked.
 
-[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — unknown filename + query param: if 206, query-param triggers default handler; if 404, hypothesis rejected
-[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path + query param to confirm or reject pattern
-[NEXT] HEAD https://cloud.app.box.com/ — root HEAD to capture response headers (Content-Type, Content-Range, server) and determine what distinguishes 200 vs 206 cycles
+[PARKED] Object-store default handler on cloud.app.box.com (query-param discriminator): Prior evidence showed robots.txt?probe= → 206 while robots.txt → 404. My query-param probes (bhx-q7m2p-x9k4n.txt?probe=bhx2, bhx-randtest987.json?probe=x9) were not picked up by the executor in the last cycle. Re-emitting — if executor skips again, this requires manual curl verification.
+[PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: Cannot send custom Origin/Range headers via executor — requires manual curl. Carried forward from prior cycles.
+[PARKED] Root path behavior: cloud.app.box.com/ stable at 200 across 4+ cycles. Root is handled by the app edge. No oscillation. No further testing needed unless evidence changes.
+[PARKED] Method surface on 206 asset layer: OPTIONS probe pending but low-priority — re-emitting one more time.
+[PARKED] dl.boxcloud.com download-edge CORS: All paths 404, no surface to test against. Dead end.
+
+[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — query-param trigger test (random filename + query)
+[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path + query to confirm/reject
+[NEXT] HEAD https://cloud.app.box.com/ — capture response headers from root (Content-Type, Server, X-*, Accept-Ranges) to characterize the 200 handler
