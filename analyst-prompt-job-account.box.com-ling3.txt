@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-17 07:59:31 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/_assets/
 confidence: 60
 reasoning: GCS objects under `resources/` prefix are accessible with wildcard CORS. If the bucket contains other sensitive prefixes (configs, env files, keys), traversing or enumerating sibling objects could yield higher-severity disclosures. The `resources/` prefix was leaked in 404 XML — need to test adjacent keys.
 verify_steps: 1. `curl -sI https://cloud.app.box.com/_assets/config.json` 2. `curl -sI https://cloud.app.box.com/_assets/VERSION` 3. `curl -sI https://cloud.app.box.com/_assets/.env` 4. `curl -sI https://cloud.app.box.com/_assets/webpack.config.js` 5. `curl -sI https://cloud.app.box.com/_assets/package-lock.json`
@@ -97,6 +96,7 @@ impact: If root reflects Origin or leaks Authorization header, severity jumps to
 testability: PASSIVE
 [NEXT] PROBE: CORS divergence root vs _assets + _assets sibling enumeration (extended: config.json, VERSION, .env, webpack.config.js, package-lock.json + root Origin reflection)
 ## 2026-08-17 08:43:21 UTC account.box.com (ling3)
+## 2026-08-17 09:24:01 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
