@@ -473,3 +473,14 @@ testability: PASSIVE
 ## 2026-08-17 14:12:14 UTC m.box.com (ling3)
 ## 2026-08-17 14:42:45 UTC m.box.com (ling3)
 ## 2026-08-17 15:01:34 UTC m.box.com (ling3)
+## 2026-08-17 15:31:24 UTC m.box.com (bigpickle)
+[LEARN] REJECTED HYPOTHESIS @ cloud.app.box.com/: The executor ran cloud.app.box.com/ and got 200, but my planned trailing-slash/favicon.ico probes weren't executed. The CORS hypothesis requires actual OPTIONS/GET probes with attacker Origin to validate.
+[HYP] CORS preflight reflection on cloud.app.box.com embedded preview origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: cloud.app.box.com returns 200 on root (executor confirmed); the CORS policy has never been probed with OPTIONS+Origin header; embedded preview content uses cookies/Authorization; if preflight reflects attacker Origin or exposes credentials cross-origin, this enables account data theft via a malicious page embedding Box previews.
+verify_steps: bare OPTIONS https://cloud.app.box.com/ with header "Origin: https://attacker.example", UA box-research/1.0 +(research), 1 req/2s; then bare GET with same Origin; record all Access-Control-* headers.
+impact: cross-origin account data theft via embedded Box preview; critical severity if credentials are exposed.
+testability: PASSIVE
+[NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with header "Origin: https://attacker.example", UA "box-research/1.0 +(research)", record response headers and status code. First 4xx/429/403 -> log and stop.
