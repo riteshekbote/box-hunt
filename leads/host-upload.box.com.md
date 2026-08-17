@@ -529,3 +529,4 @@ verify_steps: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content 
 impact: recon-grade. 401 ⇒ signed-URL structure enumerable but content gated by auth — surface AUTH_HELPED, no unsigned data exposure from this pipeline. 404 ⇒ same. Either outcome parks dl.boxcloud.com.
 testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/api/2.0/files/bhx-q7m2p-x9k4n/content (read-only, UA `box-research/1.0 +(research)`, 1 req/2s, status only) — the single remaining discriminator on dl.boxcloud.com. If result is 401 → [LEARN] shape-based gate ACCEPTED → PARK dl.boxcloud.com (AUTH_HELPED, unreachable without valid signature). If 404 → [LEARN] signature gate ACCEPTED → dl.boxcloud.com surface EXHAUSTED, pivot to new origin or new surface on existing origins.
+## 2026-08-17 03:33:57 UTC upload.box.com (ling3)
