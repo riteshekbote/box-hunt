@@ -359,3 +359,4 @@ impact: Default-handler on unguessable paths = flat object-store fronting, enabl
 testability: PASSIVE
 [NEXT] PROBE: HEAD https://cloud.app.box.com/robots.txt?probe=bhx-cors1 with headers `Origin: https://evil.example.invalid` and `Range: bytes=0-63` — check ACAO/ACAC/Content-Range reflection
 [NEXT] PROBE: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — default-handler vs whitelist for unknown query-keyed paths
+## 2026-08-17 02:45:43 UTC notes.services.box.com (ling3)
