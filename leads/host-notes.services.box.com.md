@@ -361,3 +361,4 @@ testability: PASSIVE
 [NEXT] PROBE: HEAD https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 with `Range: bytes=0-1` — default-handler vs whitelist for unknown query-keyed paths
 ## 2026-08-17 02:45:43 UTC notes.services.box.com (ling3)
 ## 2026-08-17 03:33:56 UTC notes.services.box.com (ling3)
+## 2026-08-17 04:21:47 UTC notes.services.box.com (ling3)
