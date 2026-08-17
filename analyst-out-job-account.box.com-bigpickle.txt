@@ -1,54 +1,27 @@
 [0m
 > build · big-pickle
 [0m
-[CONFIRMED] GCS bucket metadata leak via `/_assets/` 404s
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/*
-confidence: 95
-reasoning: Repeated probes confirm GCS XML error responses on `/_assets/` 404s expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` metadata headers on every response including successful ones.
-evidence_needed: None further — already confirmed across cycles.
-verify_steps: `curl -sD- https://cloud.app.box.com/_assets/nonexistent`
-impact: Bucket name + metadata leakage aids recon. Severity: Low.
-testability: PASSIVE
-
-[CONFIRMED] `_assets/*` serves GCS objects with wildcard CORS `*,*`
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/*
-confidence: 95
-reasoning: `/_assets/package.json` (3168B) and `/_assets/Makefile.js` (6117B) return 200 with `access-control-allow-origin: *,*` confirmed across multiple cycles. Root-level paths strip CORS via CDN edge, but `/_assets/` bypasses this.
-evidence_needed: None further — confirmed.
-verify_steps: `curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/_assets/package.json`
-impact: Any origin can read Box internal build config, Git host, filesystem paths. Severity: Low-Medium.
-testability: PASSIVE
-
-[HYP] _assets path traversal / sibling-object enumeration
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/
-confidence: 60
-reasoning: GCS objects under `resources/` prefix are accessible with wildcard CORS. If the bucket contains other sensitive prefixes (configs, env files, keys), traversing or enumerating sibling objects could yield higher-severity disclosures. The `resources/` prefix was leaked in 404 XML — need to test adjacent keys.
-evidence_needed: Any 200 response from `_assets/` paths outside `resources/` or containing sensitive filenames.
-verify_steps: 1. `curl -sI https://cloud.app.box.com/_assets/config.json` 2. `curl -sI https://cloud.app.box.com/_assets/VERSION` 3. `curl -sI https://cloud.app.box.com/_assets/.env` 4. `curl -sI https://cloud.app.box.com/_assets/webpack.config.js` 5. `curl -sI https://cloud.app.box.com/_assets/package-lock.json`
-impact: Sensitive config/secret exposure via open GCS bucket. Severity: High.
-testability: PASSIVE
-
-[HYP] Root-origin CORS vs _assets CORS divergence
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 55
-reasoning: `_assets/` returns `access-control-allow-origin: *,*` but root (`/`) and other paths go through CDN edge that strips CORS headers. Need to confirm whether root responds to attacker Origin with any CORS header or Authorization leak — the divergence itself is the key differentiator between the two routing layers.
-evidence_needed: Full response headers from root with `Origin: https://evil.com` — whether any `Access-Control-*` appears.
-verify_steps: 1. `curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/` 2. `curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/robots.txt`
-impact: If root reflects Origin or leaks Authorization header, severity jumps to High.
-testability: PASSIVE
-
-[NEXT] PROBE: CORS divergence root vs _assets + _assets sibling enumeration
-```
-curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/
-curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/_assets/package.json
-curl -sI https://cloud.app.box.com/_assets/config.json
-curl -sI https://cloud.app.box.com/_assets/VERSION
-curl -sI https://cloud.app.box.com/_assets/.env
-curl -sI https://cloud.app.box.com/_assets/webpack.config.js
-curl -sI https://cloud.app.box.com/_assets/package-lock.json
-curl -sI -H "Range: bytes=0-50" https://cloud.app.box.com/_assets/package.json
-```
+[0m$ [0mcurl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/ 2>&1 | head -50
+HTTP/2 302 
+date: Mon, 17 Aug 2026 05:41:40 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=0n1jnmdmm6nddudr4s1r3l2ou9; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=0n1jnmdmm6nddudr4s1r3l2ou9; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a829f145fa392.62928143; expires=Tue, 17 Aug 2027 05:41:40 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=AGENTS-690; expires=Mon, 24 Aug 2026 05:41:40 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=84; expires=Tue, 17 Aug 2027 05:41:40 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 59
+location: https://cloud.app.box.com/login
+box-request-id: 0549a90e0e5eac67f62efd53e7a2cfa7
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcurl -s -D /tmp/resp_headers.txt https://cloud.app.box.com/ 2>&1 | head -5 & cat /tmp/resp_headers.txt failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
