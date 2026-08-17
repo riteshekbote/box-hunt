@@ -484,3 +484,4 @@ verify_steps: bare OPTIONS https://cloud.app.box.com/ with header "Origin: https
 impact: cross-origin account data theft via embedded Box preview; critical severity if credentials are exposed.
 testability: PASSIVE
 [NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with header "Origin: https://attacker.example", UA "box-research/1.0 +(research)", record response headers and status code. First 4xx/429/403 -> log and stop.
+## 2026-08-17 15:51:19 UTC m.box.com (ling3)
