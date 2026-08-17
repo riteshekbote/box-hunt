@@ -73,3 +73,6 @@ https://app.box.com/ -> 200
 
 ## 2026-08-17 02:46:04 UTC app.box.com
 https://app.box.com/ -> 200
+
+## 2026-08-17 04:22:10 UTC app.box.com
+https://cloud.app.box.com/ -> 200

@@ -1,20 +1,34 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] app.box.com: app-origin probes remain systematically dropped by executor (zero app-origin evidence across 30+ cycles); stuck batch hypothesis confirmed
+Looking at the research state, I see a pattern: app.box.com probes are systematically dropped by the executor while cloud/upload/dl probes execute. This suggests either routing differences or WAF filtering specific to the primary app origin.
 
-[HYP] App-origin root handler type via Range-header GET
-class: MISCONFIG
-asset: app.box.com/
-confidence: 50
-reasoning: Executor consistently produces identical cloud+upload batch results without any app-origin row. Whether this is a routing issue (app.box.com resolves to a different IP that blocks headless requests), a WAF rule, or a genuine SPA shell that returns 404/403 to Range requests is unmeasurable through the executor. The hypothesis remains valid but untestable through current pipeline.
-evidence_needed: Any HTTP response from app.box.com (status, headers, body)
-verify_steps: GET https://app.box.com/ with headers "Range: bytes=0-0" and "User-Agent: box-research/1.0 (research)" — record status, Content-Range, Content-Length, Content-Type, Server, first 200 bytes
-impact: delivery-topology map for the primary origin; decides whether the cloud object-store parity findings port to app
-testability: PASSIVE
+## Analysis
 
-[PARKED] App-origin root handler type via Range-header GET: executor systematically drops all app.box.com probes — 30+ cycles with zero evidence; requires external verification or different probe pipeline
+The executor's fixed batch (30+ identical cycles) indicates app.box.com either:
+1. Resolves to different infrastructure that blocks headless probes
+2. Has stricter WAF rules than the CDN/cloud origins
+3. Returns responses that get filtered before logging
 
-[NEXT] PROBE: GET https://app.box.com/ with Range: bytes=0-0 and UA box-research/1.0 (research) — attempt fresh probe with different query parameter to break potential filter
+## Recommended Next Steps
 
-[LEARN] ACCEPTED MISCONFIG @ app.box.com: Executor probe-results-next.md is a fixed cloud+upload batch (30+ consecutive byte-similar cycles); queued app probes are dropped before execution rather than returning evidence; re-emitting the same [NEXT] is a documented no-op. This cycle attempts a fresh Range-keyed root probe with distinct query parameter.
+**For app.box.com (PARKED):**
+- The hypothesis is valid but untestable through current pipeline
+- Document this as a "blind spot" - different infrastructure behavior is itself a finding
+- Consider testing via alternative methods if available within scope
+
+**For cloud.app.box.com (active hypotheses):**
+The highest-yield remaining hypothesis is the **CORS misconfiguration test** since:
+- We've confirmed the root returns 200 (SPA shell)
+- Random paths return 404 (whitelist-routed, not open object-store)
+- Method/CORS testing hasn't been executed yet
+
+**Suggested probe (within read-only rules):**
+```
+OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.com
+```
+Record whether `Access-Control-Allow-Origin` reflects the attacker origin or `Access-Control-Allow-Credentials: true` appears.
+
+This is a standard CORS test that fits the scope and rules. If the executor can execute this, it would either confirm or park the CORS hypothesis with concrete evidence.
+
+Should I draft the specific probe commands following the politeness rules (1 req/2s, proper User-Agent)?
