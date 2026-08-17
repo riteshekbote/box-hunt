@@ -1,20 +1,54 @@
 [0m
 > build · big-pickle
 [0m
-[0m# [0mTodos
-[•] Execute 4 pending probes on cloud.app.box.com (security.txt, crossdomain.xml, favicon CORS, list-type)
-[ ] Analyze results and emit next cycle output
-[0m
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -o /tmp/probe_security.txt -w "HTTP/%{http_version} %{http_code}\nContent-Type: %{content_type}\nSize: %{size_download}\nRedirect: %{redirect_url}" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/.well-known/security.txt" 2>&1 && echo "---HEADERS---" && curl -s -D /tmp/probe_security_hdr.txt -o /dev/null -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/.well-known/security.txt" 2>&1 && echo "---" && cat /tmp/probe_security_hdr.txt 2>/dev/null && echo "---BODY---" && cat /tmp/probe_security.txt 2>/dev/null | head -c 500 failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -o /tmp/probe_crossdomain.txt -w "HTTP/%{http_version} %{http_code}\nContent-Type: %{content_type}\nSize: %{size_download}\nRedirect: %{redirect_url}" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/crossdomain.xml" 2>&1 && echo "---HEADERS---" && curl -s -D /tmp/probe_crossdomain_hdr.txt -o /dev/null -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/crossdomain.xml" 2>&1 && echo "---" && cat /tmp/probe_crossdomain_hdr.txt 2>/dev/null && echo "---BODY---" && cat /tmp/probe_crossdomain.txt 2>/dev/null | head -c 500 failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/probe_favicon_cors_hdr.txt -o /tmp/probe_favicon_cors.txt -X OPTIONS -H "Origin: https://attacker.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/favicon.ico" 2>&1 && echo "HTTP_CODE:" && curl -s -o /dev/null -w "%{http_code}" -X OPTIONS -H "Origin: https://attacker.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/favicon.ico" 2>&1 && echo "" && echo "---ALL RESPONSE HEADERS---" && cat /tmp/probe_favicon_cors_hdr.txt 2>/dev/null && echo "---BODY---" && cat /tmp/probe_favicon_cors.txt 2>/dev/null | head -c 500 failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -o /tmp/probe_listtype.txt -w "HTTP/%{http_version} %{http_code}\nContent-Type: %{content_type}\nSize: %{size_download}\nRedirect: %{redirect_url}" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/?list-type=2" 2>&1 && echo "---HEADERS---" && curl -s -D /tmp/probe_listtype_hdr.txt -o /dev/null -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/?list-type=2" 2>&1 && echo "---" && cat /tmp/probe_listtype_hdr.txt 2>/dev/null && echo "---BODY---" && cat /tmp/probe_listtype.txt 2>/dev/null | head -c 500 failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-Executing 4 pending probes in parallel — all read-only GET/OPTIONS:
+# cloud.app.box.com Analysis — POC Phase
+
+Based on the executor results and prior evidence, here's my assessment:
+
+## Current Knowledge
+- **206/Range layer**: Pinned exact-key object front (robots.txt, favicon.ico, root only)
+- **Random paths** (e.g., `/bhx-xp4k7-m9f3q`) → 404 — confirms NOT a catch-all
+- **Root** → 200/206 (multi-node artifact)
+- **ROBOTS.TXT** (uppercase) → 404 — case-sensitive matching
+- **robots.txt/** (trailing slash) → 404 — no normalization
+- **dl.boxcloud.com** → all 404 (no static front)
+- **upload.box.com** → all 404 (no static front)
+
+## Ranked Hypotheses (Ready to Probe)
+
+| Conf | Hypothesis | Next Probe |
+|------|------------|------------|
+| 45 | CORS misconfiguration on favicon.ico (untested key) | `OPTIONS /favicon.ico` + `Origin: attacker.example.com` |
+| 40 | GCS bucket listing via `?list-type=2` | `GET /?list-type=2` |
+| 40 | `.well-known/security.txt` in pinned set | `GET /.well-known/security.txt` with `Range: bytes=0-0` |
+| 40 | `crossdomain.xml` legacy Flash policy | `GET /crossdomain.xml` with `Range: bytes=0-0` |
+| 45 | Object-store bucket listing surface | Discriminated by root response type |
+
+## Recommended Next Cycle
+
+```
+[PROBE] GET https://cloud.app.box.com/favicon.ico
+        Headers: Range: bytes=0-0, Origin: https://attacker.example.com
+        Report: ALL response headers verbatim (Access-Control-*, Vary, Content-Range, ETag, Server, x-goog-*, x-cache, via)
+
+[PROBE] OPTIONS https://cloud.app.box.com/favicon.ico
+        Headers: Origin: https://attacker.example.com, Access-Control-Request-Method: GET
+        Report: Status + all Access-Control-*/Allow headers
+
+[PROBE] GET https://cloud.app.box.com/.well-known/security.txt
+        Headers: Range: bytes=0-0
+        Report: Status + Content-Range + first 300 chars
+
+[PROBE] GET https://cloud.app.box.com/crossdomain.xml
+        Headers: Range: bytes=0-0
+        Report: Status + first 300 chars
+
+[PROBE] GET https://cloud.app.box.com/?list-type=2
+        Report: Status + content-type + first 500 chars
+```
+
+## Execution Notes
+- Execute in order; respect 1 req/2s politeness
+- First 4xx/429/403 from any host → stop that host
+- Report results with full header dumps for CORS analysis
+- If favicon.ico returns CORS headers with reflected Origin → escalate confidence immediately
