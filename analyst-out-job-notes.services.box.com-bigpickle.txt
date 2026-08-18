@@ -1,27 +1,37 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: root path stable at 206 across last 3 cycles (15:41, 16:02, 16:45) — oscillation resolved to consistent 206
+Looking at the context, I see we're in POC phase for cloud.app.box.com with a stable 206 on root path. The executor shows cloud.app.box.com/ returning 206, but we need to characterize what that 206 contains.
 
-[HYP] Root 206 handler serves object-storage partial content without Range
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 65
-reasoning: Three consecutive cycles confirm root returns 206 Partial Content on bare GET with no Range header. All sub-paths return 404, confirming root is uniquely routed. The 206-without-Range pattern is characteristic of object-storage default responses when a zero-byte or placeholder object exists at the bucket root. If the body contains XML (e.g. ListObjects), this would be an information disclosure of bucket structure.
-evidence_needed: Response body of the 206 (is it HTML app shell, XML bucket listing, or empty?), Content-Type header, Content-Range header
-verify_steps: GET https://cloud.app.box.com/ (capture body + Content-Type), HEAD https://cloud.app.box.com/ (capture all headers including Content-Range, Accept-Ranges, Server), OPTIONS https://cloud.app.box.com/ (capture CORS headers)
-impact: If body is XML bucket listing → HIGH (internal asset enumeration). If body is app shell rendered as 206 → LOW (just misconfigured status code). If Content-Range exposes file size → MEDIUM (information leakage).
-testability: PASSIVE
+## Current Status
 
-[NEXT] HEAD https://cloud.app.box.com/ — capture all response headers (Content-Type, Content-Range, Accept-Ranges, Server, X-*) to characterize the 206 handler
-[NEXT] GET https://cloud.app.box.com/ — retrieve body content to determine if HTML app shell or XML/listing
-[NEXT] OPTIONS https://cloud.app.box.com/ — capture CORS and allowed methods on root 206 handler
+**Phase:** POC (Characterization)
+**Host:** cloud.app.box.com
+**Key Finding:** Root path `/` returns HTTP 206 consistently (3+ cycles), all sub-paths return 404
 
-[PARKED] Query-param discriminator hypothesis: Executor has dropped query-param probes for 5+ consecutive cycles. Cannot verify whether ?probe= triggers 206 on arbitrary paths. Requires manual curl.
-[PARKED] CORS misconfiguration on 206 layer: Executor cannot send custom Origin header. Requires manual curl to test ACAO/ACAC reflection.
-[PARKED] Method/CORS surface on upload.box.com OPTIONS: upload.box.com confirmed dead end (all 404). Parked permanently.
-[PARKED] upload.box.com trailing-slash vs bare-path: Both return 404. Rejected.
+## Next Probes Needed
 
-[LEARN] REJECTED upload.box.com surface: 10+ consecutive probes all 404. Strict allowlist. Dead end.
-[LEARN] REJECTED dl.boxcloud.com surface: 8+ consecutive probes all 404. Locked down. Dead end.
-[LEARN] ACCEPTED cloud.app.box.com root 206: Stable across 3+ cycles. Root is uniquely routed with 206 response. Proceeding to POC characterization.
+```
+[HEAD] https://cloud.app.box.com/ — capture response headers (Content-Type, Content-Range, Accept-Ranges, Server, X-* headers) to understand what 206 layer is serving
+[GET] https://cloud.app.box.com/ — capture response body to determine if HTML app shell, XML listing, or empty
+[OPTIONS] https://cloud.app.box.com/ — test CORS headers (Access-Control-Allow-Origin, Access-Control-Allow-Methods)
+```
+
+## Priority Action
+
+The critical missing piece is the **response body and headers** for the 206. Without knowing if this is:
+- An app shell (HTML) → LOW (just misconfigured status code)
+- An XML bucket listing → HIGH (internal asset enumeration)
+- Empty/minimal → MEDIUM (information leakage via Content-Range)
+
+We cannot assess the actual impact.
+
+---
+
+**What would you like to do?**
+
+1. **Execute these probes manually** via curl/browser DevTools and share results
+2. **Let me continue** with more hypothesis refinement based on what we know
+3. **Move to a different host** if cloud.app.box.com is exhausted for read-only testing
+
+The CORS hypothesis remains parked because we cannot send custom `Origin` headers through the executor — this requires manual testing or a browser-based approach.
