@@ -107,3 +107,9 @@ https://cloud.app.box.com/?versioning -> 200
 https://cloud.app.box.com/?list-type=2&delimiter=/ -> 200
 https://cloud.app.box.com/crossdomain.xml -> 206
 https://cloud.app.box.com/embed -> 200
+
+## 2026-08-18 13:16:07 UTC cloud.app.box.com
+https://cloud.app.box.com/?list-type=2&prefix=/ -> 206
+https://cloud.app.box.com/?list-type=2&prefix=&max-keys=1 -> 200
+https://cloud.app.box.com/robots.txt -> 206
+https://cloud.app.box.com/sitemap.xml -> 206
