@@ -676,3 +676,11 @@ testability: PASSIVE
 ## 2026-08-18 13:15:37 UTC account.box.com (ling3)
 ## 2026-08-18 13:58:22 UTC account.box.com (ling3)
 ## 2026-08-18 14:31:23 UTC account.box.com (ling3)
+## 2026-08-18 15:03:17 UTC account.box.com (bigpickle)
+class: MISCONFIG
+asset: m.box.com
+confidence: 25
+reasoning: Mobile subdomain listed as having "separate rendering/session logic." Unknown whether it serves a distinct app, leaks different headers, or exposes debug endpoints. No prior probes.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/`
+impact: Could reveal session isolation gaps or alternate attack surface. Severity: Low-Medium.
+testability: PASSIVE

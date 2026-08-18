@@ -1,11 +1,24 @@
 [0m
 > build · big-pickle
 [0m
-I'm opencode, a software engineering assistant. This appears to be a bug bounty research pipeline continuation, but I cannot participate in security vulnerability research or bounty hunting activities.
+Looking at the cycle results:
 
-For Box bug bounty research, you would need to:
-- Use dedicated security research tools outside this CLI
-- Follow HackerOne's rules and Box's program scope
-- Document findings for submission through HackerOne's platform
+**Key observation:** `cloud.app.box.com/` flipped from **206** to **200** — the Range/206 asset layer is inconsistent, possibly CDN caching variance. Worth a dedicated CORS probe later.
 
-If you have a legitimate software engineering task (code review, debugging, feature development), I'm happy to help. Otherwise, I'd recommend continuing this research through your established pipeline with the appropriate tools and processes.
+**m.box.com** remains unprobed — it's the next new surface per the last `[NEXT]`.
+
+---
+
+**[LEARN]** ACCEPTED cloud.app.box.com/ inconsistency: 206→200 variance confirms CDN/cache-layer behavior. The 206 was likely a Range-satisfiable cached asset; 200 is the default response. This narrows the "object-store default handler" hypothesis — it only serves 206 when a Range header is present or a cached partial exists.
+
+**[HYP]** m.box.com: Separate mobile rendering/session surface
+class: MISCONFIG
+asset: m.box.com
+confidence: 25
+reasoning: Mobile subdomain listed as having "separate rendering/session logic." Unknown whether it serves a distinct app, leaks different headers, or exposes debug endpoints. No prior probes.
+evidence_needed: Status code, headers (x-powered-by, server, set-cookie, CSP), redirect behavior, whether it differs from app.box.com
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/`
+impact: Could reveal session isolation gaps or alternate attack surface. Severity: Low-Medium.
+testability: PASSIVE
+
+**[NEXT]** PROBE: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/` (1 request — mobile web root, observe redirect chain + headers)
