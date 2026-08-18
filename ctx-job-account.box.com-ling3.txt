@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-18 08:17:55 UTC"
 }=== MY LAST LEADS (tail) ===
-[CONFIRMED] cloud.app.box.com/_assets/ bucket metadata leakage: 404 responses expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. Consistent across multiple cycles. Severity: Low.
 [CONFIRMED] cloud.app.box.com/_assets/package.json + Makefile.js: Both return 200 with `access-control-allow-origin: *,*`. package.json exposes internal git host `gitenterprise.inside-box.net` and internal packages. Makefile.js exposes build paths and Amsterdam app structure. Severity: Low-Medium.
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/_assets/*: Two distinct routing layers confirmed — CDN/app edge (root, 302, no CORS) vs GCS bucket (/_assets/*, 200/404, full CORS). _assets bypasses all CDN security controls.
 [LEARN] REJECTED cloud.app.box.com/root CORS reflection: Root consistently returns 302 to /login with no CORS headers. Not exploitable without authentication.
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-18 11:55:48 UTC account.box.com (ling3)
 ## 2026-08-18 12:24:46 UTC account.box.com (ling3)
 ## 2026-08-18 13:15:37 UTC account.box.com (ling3)
+## 2026-08-18 13:58:22 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
