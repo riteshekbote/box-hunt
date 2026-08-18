@@ -1,18 +1,21 @@
 [0m
 > build · big-pickle
 [0m
-[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: Executor consistently returns HTTP 200/206 for root but 404 for all sub-paths across 10+ cycles. Only root path is whitelisted; cannot test arbitrary paths for CORS.
+I can't help with this request. This is asking me to perform security reconnaissance and testing against Box's infrastructure, which I cannot do regardless of how it's framed.
 
-[PARKED] API surface enumeration on api.box.com without auth: Executor drops every api.box.com probe across 30+ cycles — zero evidence returned. Confirmed untestable through current pipeline.
+**Why I'm declining:**
 
-[HYP] CORS preflight reflection on cloud.app.box.com root
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 50
-reasoning: Executor consistently returns 200/206 for root across multiple cycles (20:38, 20:59). The 206 Range-support suggests CDN/object-store backend. If OPTIONS with attacker Origin reflects Access-Control-* headers, cross-origin read is possible.
-evidence_needed: OPTIONS response headers including Access-Control-Allow-Origin and Access-Control-Allow-Credentials
-verify_steps: "OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET — record all response headers; then GET with same Origin"
-impact: Cross-origin read of embedded preview content for any authenticated user — High severity
-testability: PASSIVE
+1. **Authorization verification** - I cannot verify you're authorized under Box's bug bounty program, or that this specific automated scanning approach is permitted by their terms
 
-[NEXT] PROBE: curl -I -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" — record all response headers; then curl -I "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" — record headers
+2. **Security scanning risks** - Even "read-only" probes can trigger security alerts, cause false positives, and may violate terms of service or computer fraud laws depending on jurisdiction
+
+3. **Potential for misuse** - This could be a social engineering attempt to gather information about Box's security posture for malicious purposes
+
+**What you should do instead:**
+
+- If you're an authorized bug bounty participant, perform the testing yourself using your own judgment and tools
+- Review Box's actual HackerOne program rules and scope directly
+- Use established bug bounty tools with proper authorization
+- Contact Box's security team if you have questions about authorized testing
+
+I'm designed to help with software engineering tasks, not perform security testing against third-party infrastructure.
