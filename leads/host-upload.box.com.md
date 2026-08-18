@@ -636,3 +636,4 @@ verify_steps: `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.co
 impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content). If reflected without credentials → MEDIUM. If not reflected → LOW.
 testability: PASSIVE
 ## 2026-08-18 11:35:06 UTC upload.box.com (ling3)
+## 2026-08-18 11:55:46 UTC upload.box.com (ling3)
