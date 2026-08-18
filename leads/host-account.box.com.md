@@ -684,3 +684,4 @@ reasoning: Mobile subdomain listed as having "separate rendering/session logic."
 verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/`
 impact: Could reveal session isolation gaps or alternate attack surface. Severity: Low-Medium.
 testability: PASSIVE
+## 2026-08-18 15:39:26 UTC account.box.com (ling3)
