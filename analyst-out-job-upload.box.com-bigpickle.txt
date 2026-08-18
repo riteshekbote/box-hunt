@@ -1,26 +1,34 @@
 [0m
 > build · big-pickle
 [0m
-## Analysis
+[NEW] cloud.app.box.com/: status oscillation observed — root returned 200 in latest cycle (previously 206 in prior two cycles). Inconsistent Content-Length or varying upstream handler.
 
-**Current State:** POC phase, IN_PROGRESS. Three origins exhausted (dl.boxcloud.com, upload.box.com, cloud.app.box.com unsigned paths all 404). One origin alive but unexplored (cloud.app.box.com root 200/206). Two origins never contacted (notes.services.box.com, m.box.com).
+[LEARN] ACCEPTED: dl.boxcloud.com remains 404 on all paths after 8+ cycles; server likely requires signed tokens or auth for all content. Park this origin's path-shape probe — surface EXHAUSTED without auth.
 
-**Key Observations:**
-- cloud.app.box.com root oscillates between 200 and 206 across cycles — suggests content negotiation or cache-layer behavior
-- All sub-paths on cloud.app.box.com return 404 — narrow whitelist or SPA with no fallback
-- dl.boxcloud.com completely dead for unsigned requests — signed-URL-only origin
-- upload.box.com completely dead — auth-gated upload pipeline
+[PARKED] dl.boxcloud.com API content path-shape: All paths 404 after 8+ cycles — server gates every request on token/signature; no public surface. Parked.
 
-**Recommended Next Probes (5 total, respecting 1 req/2s):**
+[NEXT] PROBE (cloud.app.box.com — CORS preflight): OPTIONS https://cloud.app.box.com/ with headers `Origin: https://evil.com`, `Access-Control-Request-Method: GET`, UA box-research/1.0 +(research). Status + response headers only (focus: Access-Control-Allow-Origin, Allow-Credentials, Access-Control-Allow-Headers). 1 req.
 
-| # | Target | Request | Purpose |
-|---|--------|---------|---------|
-| 1 | cloud.app.box.com | `OPTIONS /` with `Origin: https://evil.com` | CORS preflight — checks if origin reflects attacker origin |
-| 2 | cloud.app.box.com | `GET /api/2.0/` | API surface check — does preview origin front API routes? |
-| 3 | notes.services.box.com | `GET /` | First contact — status + server header classification |
-| 4 | m.box.com | `GET /` | First contact — status + redirect chain |
-| 5 | dl.boxcloud.com | `GET /api/2.0/files/bhx-q7m2p-x9k4n/content` | Final discriminator on dl.boxcloud.com — 401 vs 404 |
+[NEXT] PROBE (notes.services.box.com — first contact): GET https://notes.services.box.com/ UA box-research/1.0 +(research). Status + redirect chain only. 1 req.
 
-**Priority:** Probes 1-2 (cloud.app.box.com) are highest value — if CORS reflects attacker origin with credentials, that's a HIGH finding. Probes 3-4 open new surfaces. Probe 5 closes dl.boxcloud.com definitively.
+[NEXT] PROBE (m.box.com — first contact): GET https://m.box.com/ UA box-research/1.0 +(research). Status + redirect chain only. 1 req.
 
-**Note:** I cannot execute these probes directly in plan mode. The executor robot will run them between cycles.
+[HYP] cloud.app.box.com root status oscillation (200 vs 206)
+class: MISCONFIG
+asset: cloud.app.box.com/ (GET)
+confidence: 55
+reasoning: Root returned 206 (Range-request satisfied) in two prior cycles, then 200 in the latest. This oscillation suggests either a load-balancer routing to different upstream handlers, or a CDN edge vs origin inconsistency. If the 206 handler and 200 handler have different CORS/auth behavior, selecting the wrong one via request variation could expose different surfaces.
+evidence_needed: OPTIONS preflight response (CORS headers), and Content-Type + body content on 200 vs 206 responses (Range header present?).
+verify_steps: `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.com`. Then `GET https://cloud.app.box.com/` with `Range: bytes=0-0` to compare 206 vs 200 behavior.
+impact: Recon-grade — maps which backend handles the root and whether CORS is exposed. If one handler leaks CORS with credentials, risk escalates to cross-origin content theft.
+testability: PASSIVE
+
+[HYP] cloud.app.box.com CORS preflight reflection
+class: MISCONFIG
+asset: cloud.app.box.com (OPTIONS)
+confidence: 50
+reasoning: cloud.app.box.com serves embedded content previews iframed by third-party sites. If OPTIONS reflects the attacker origin with credentials, authenticated preview content could be read cross-origin. The root now proves the origin is live and varied (200/206 oscillation); CORS behavior is the next discriminator.
+evidence_needed: OPTIONS response headers — Access-Control-Allow-Origin value, Access-Control-Allow-Credentials, Access-Control-Allow-Methods/Headers.
+verify_steps: `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.com`, `Access-Control-Request-Method: GET`.
+impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content). If reflected without credentials → MEDIUM. If not reflected → LOW.
+testability: PASSIVE
