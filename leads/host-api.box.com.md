@@ -447,3 +447,4 @@ testability: PASSIVE
 [CLOSED] account.box.com: /forgot-password -> 302 (moved), /login -> 200 Resin page.
 BOX VERDICT: 8-host read-only surface remains defense-positive after manual header-level pass; no new reportable.
 ## 2026-08-18 09:54:08 UTC api.box.com (ling3)
+## 2026-08-18 10:13:58 UTC api.box.com (ling3)
