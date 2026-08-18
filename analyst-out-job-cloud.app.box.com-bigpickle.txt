@@ -1,15 +1,18 @@
 [0m
 > build · big-pickle
 [0m
+[0m$ [0mcurl -s -o /tmp/crossdomain.txt -w "HTTP %{http_code}\nSize: %{size_download}\nType: %{content_type}" "https://cloud.app.box.com/crossdomain.xml" -H "Range: bytes=0-0" -A "box-research/1.0 +(research)" --max-time 10 2>&1 && echo "---BODY---" && head -c 300 /tmp/crossdomain.txt
+HTTP 206
+Size: 1
+Type: text/x-cross-domain-policy---BODY---
+<
+[0m
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mecho "=== PROBE 1: .well-known/security.txt with Range ===" && curl -s -o /tmp/probe1_body -w "HTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}\nSIZE: %{size_download}\n" -H "User-Agent: box-research/1.0 (research)" -H "Range: bytes=0-0" "https://cloud.app.box.com/.well-known/security.txt" && echo "--- HEADERS ---" && curl -s -D /tmp/probe1_hdr -o /dev/null -H "User-Agent: box-research/1.0 (research)" -H "Range: bytes=0-0" "https://cloud.app.box.com/.well-known/security.txt" && cat /tmp/probe1_hdr && echo "--- BODY (first 300 chars) ---" && head -c 300 /tmp/probe1_body && echo "" failed
+[0m✗ [0mcurl -s -o /tmp/cors_favicon.txt -w "HTTP %{http_code}\nSize: %{size_download}" "https://cloud.app.box.com/favicon.ico" -X OPTIONS -H "Origin: https://attacker.example.com" -H "Access-Control-Request-Method: GET" -A "box-research/1.0 +(research)" --max-time 10 -D /tmp/cors_favicon_headers.txt 2>&1 && echo "---HEADERS---" && cat /tmp/cors_favicon_headers.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mecho "=== PROBE 2: crossdomain.xml with Range ===" && curl -s -o /tmp/probe2_body -w "HTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}\nSIZE: %{size_download}\n" -H "User-Agent: box-research/1.0 (research)" -H "Range: bytes=0-0" "https://cloud.app.box.com/crossdomain.xml" && echo "--- HEADERS ---" && curl -s -D /tmp/probe2_hdr -o /dev/null -H "User-Agent: box-research/1.0 (research)" -H "Range: bytes=0-0" "https://cloud.app.box.com/crossdomain.xml" && cat /tmp/probe2_hdr && echo "--- BODY (first 300 chars) ---" && head -c 300 /tmp/probe2_body && echo "" failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mecho "=== PROBE 3: OPTIONS favicon.ico ===" && curl -s -o /tmp/probe3_body -w "HTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}\nSIZE: %{size_download}\n" -X OPTIONS -H "User-Agent: box-research/1.0 (research)" -H "Origin: https://attacker.example.com" -H "Access-Control-Request-Method: GET" "https://cloud.app.box.com/favicon.ico" && echo "--- HEADERS ---" && curl -s -D /tmp/probe3_hdr -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 (research)" -H "Origin: https://attacker.example.com" -H "Access-Control-Request-Method: GET" "https://cloud.app.box.com/favicon.ico" && cat /tmp/probe3_hdr && echo "--- BODY (first 300 chars) ---" && head -c 300 /tmp/probe3_body && echo "" failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mecho "=== PROBE 4: GET favicon.ico with Range + Origin ===" && curl -s -o /tmp/probe4_body -w "HTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}\nSIZE: %{size_download}\n" -H "User-Agent: box-research/1.0 (research)" -H "Range: bytes=0-0" -H "Origin: https://attacker.example.com" "https://cloud.app.box.com/favicon.ico" && echo "--- HEADERS ---" && curl -s -D /tmp/probe4_hdr -o /dev/null -H "User-Agent: box-research/1.0 (research)" -H "Range: bytes=0-0" -H "Origin: https://attacker.example.com" "https://cloud.app.box.com/favicon.ico" && cat /tmp/probe4_hdr && echo "--- BODY (first 300 chars) ---" && head -c 300 /tmp/probe4_body && echo "" failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[0m
+[0m$ [0mcurl -s -o /tmp/listbucket.txt -w "HTTP %{http_code}\nSize: %{size_download}\nType: %{content_type}" "https://cloud.app.box.com/?list-type=2" -A "box-research/1.0 +(research)" --max-time 10 2>&1 && echo "---BODY---" && head -c 500 /tmp/listbucket.txt
+HTTP 302
+Size: 0
+Type: text/html; charset=utf-8---BODY---
+[0m

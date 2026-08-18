@@ -37,33 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-17 15:04:43 UTC"
 }=== MY LAST LEADS (tail) ===
-testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/.well-known/security.txt with `Range: bytes=0-0` — report status + Content-Range. 206 = whitelist extends to dot-path keys; 404 = pinned set is flat-file only.
-[NEXT] PROBE: GET https://cloud.app.box.com/crossdomain.xml with `Range: bytes=0-0` — 206 + XML body = legacy Flash policy exposed through the Range layer (report body snippet); 404 = not pinned.
-[NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with `Origin: https://attacker.example.com` and `Access-Control-Request-Method: GET` — report all Access-Control-*/Allow headers; 204/200 = CORS layer present, 405/404 = none.
-[NEXT] PROBE: GET https://cloud.app.box.com/favicon.ico with `Range: bytes=0-0` and `Origin: https://attacker.example.com` — report ALL response headers verbatim (Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Vary, Server, Content-Range, ETag, Last-Modified, x-goog-*, x-cache, via).
-## 2026-08-16 22:43:54 UTC cloud.app.box.com (ling3)
-## 2026-08-16 22:58:38 UTC cloud.app.box.com (bigpickle)
-[NEW] cloud.app.box.com: Executor confirms `ROBOTS.TXT`→404, `robots.txt/`→404, `robots.txt?probe=`→206, `/robots`→404 — the 206/Range layer does exact case-sensitive key matching, ignores query strings, and rejects trailing-slash keys (object-store semantics, not a normalizing app server).
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Case/canonicalization matrix now complete — only `robots.txt`, `favicon.ico`, `/` are Range-served; ROBOTS.TXT, slash-suffix, and nonce paths 404. The 206 layer is a pinned, exact-key object front. The last two stacked-origin models are dead; remaining surface is CORS behavior on pinned keys and the extent of the pinned set.
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/?list-type=2: no data yet — one probe below will discriminate object-store bucket-listing vs app-root before I invest confidence.
-[HYP] GCS-style object-store bucket-listing surface on the cloud.app.box.com static front
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 20
-reasoning: The pinned 206/Range layer behaves like an object-store front (exact-key, query-agnostic, partial-content). If that front is GCS, the bucket may answer XML list requests; app roots would ignore `?list-type=2` and return HTML/200 as usual.
-verify_steps: GET https://cloud.app.box.com/?list-type=2 — report status + content-type + first 500 chars. 200 + `ListBucketResult` XML = public bucket listing; 200 + HTML = app root; 400/403 = GCS bucket present but private.
-impact: Public bucket listing = full object inventory of the embedded-content origin; private-bucket error also fingerprints the backend — Low/High if public.
-testability: PASSIVE
-[HYP] CORS layer presence on the confirmed Range-served asset key
-class: MISCONFIG
-asset: cloud.app.box.com/favicon.ico
-confidence: 40
-reasoning: favicon.ico is a confirmed pinned 206 key and the only origin/OPTIONS byte never sent to it; every prior CORS probe keyed on robots.txt returned no header data and no status discriminator was recorded.
-verify_steps: OPTIONS https://cloud.app.box.com/favicon.ico with `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET` — report status + Access-Control-*/Allow. 204/200 = CORS layer; 405/404 = none.
-impact: If the CORS layer reflects attacker Origin with credentials on a Range-served asset, a malicious page could read those responses — Medium.
-testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/.well-known/security.txt with header `Range: bytes=0-0` — report status + Content-Range + first 300 chars. 206 = dot-path keys in pinned set; 404 = flat-file pinning only.
 [NEXT] PROBE: GET https://cloud.app.box.com/crossdomain.xml with header `Range: bytes=0-0` — report status + first 300 chars. 206 + XML policy = legacy Flash policy exposed via Range layer; 404 = not pinned.
 [NEXT] PROBE: OPTIONS https://cloud.app.box.com/favicon.ico with headers `Origin: https://attacker.example.com` + `Access-Control-Request-Method: GET` — report status + all Access-Control-*/Allow. 204/200 = CORS layer present; 405/404 = none.
 [NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — report status + content-type + first 500 chars. 200 + ListBucketResult XML = public bucket listing; 200 + HTML = app root; 400/403 = GCS bucket present but private.
@@ -97,10 +70,37 @@ testability: PASSIVE
 ## 2026-08-17 15:51:21 UTC cloud.app.box.com (ling3)
 ## 2026-08-17 16:09:52 UTC cloud.app.box.com (ling3)
 ## 2026-08-17 16:42:57 UTC cloud.app.box.com (ling3)
+## 2026-08-17 17:03:24 UTC cloud.app.box.com (bigpickle)
+## 2026-08-17 17:35:01 UTC cloud.app.box.com (ling3)
+## 2026-08-17 17:58:35 UTC cloud.app.box.com (ling3)
+## 2026-08-17 18:37:24 UTC cloud.app.box.com (ling3)
+## 2026-08-17 19:11:32 UTC cloud.app.box.com (ling3)
+## 2026-08-17 19:40:44 UTC cloud.app.box.com (ling3)
+## 2026-08-17 19:57:34 UTC cloud.app.box.com (ling3)
+## 2026-08-17 20:21:13 UTC cloud.app.box.com (ling3)
+## 2026-08-17 20:47:42 UTC cloud.app.box.com (ling3)
+## 2026-08-17 21:08:41 UTC cloud.app.box.com (ling3)
+## 2026-08-17 21:37:16 UTC cloud.app.box.com (ling3)
+## 2026-08-17 21:55:14 UTC cloud.app.box.com (ling3)
+## 2026-08-17 22:13:28 UTC cloud.app.box.com (ling3)
+## 2026-08-17 22:40:19 UTC cloud.app.box.com (ling3)
+## 2026-08-17 22:57:59 UTC cloud.app.box.com (ling3)
+## 2026-08-17 23:20:18 UTC cloud.app.box.com (ling3)
+## 2026-08-17 23:41:27 UTC cloud.app.box.com (ling3)
+## 2026-08-17 23:57:21 UTC cloud.app.box.com (ling3)
+## 2026-08-18 00:55:46 UTC cloud.app.box.com (ling3)
+## 2026-08-18 02:10:32 UTC cloud.app.box.com (ling3)
+## 2026-08-18 03:07:16 UTC cloud.app.box.com (ling3)
+## 2026-08-18 03:53:57 UTC cloud.app.box.com (ling3)
+## 2026-08-18 04:21:56 UTC cloud.app.box.com (ling3)
+## 2026-08-18 04:56:40 UTC cloud.app.box.com (ling3)
+## 2026-08-18 05:22:10 UTC cloud.app.box.com (ling3)
+## 2026-08-18 05:50:30 UTC cloud.app.box.com (ling3)
+## 2026-08-18 06:17:34 UTC cloud.app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
-- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
-## RANKED 2026-08-17 15:55:21 UTC
+## RANKED 2026-08-18 05:40:01 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -108,12 +108,12 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
-## RANKED 2026-08-17 16:40:21 UTC
+## RANKED 2026-08-18 05:59:55 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -121,12 +121,12 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 
-## RANKED 2026-08-17 17:00:35 UTC
+## RANKED 2026-08-18 07:00:20 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -134,10 +134,10 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com route surface: gateway routes a narrow allowlist of upload-only paths; unknown GET/HEAD/OPTIONS behavior distinguishes app-edge from GCS-bucket fronting (from host-upload.box.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
@@ -154,7 +154,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-17 15:55:21 UTC (executor)
+## 2026-08-18 05:40:01 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -170,7 +170,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-17 16:40:21 UTC (executor)
+## 2026-08-18 05:59:55 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -186,8 +186,8 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-17 17:00:35 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
+## 2026-08-18 07:00:20 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
