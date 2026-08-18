@@ -652,3 +652,4 @@ verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://no
 impact: Could reveal internal service structure or debug endpoints. Severity: Low-Medium.
 testability: PASSIVE
 [NEXT] PROBE: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api && curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/health`
+## 2026-08-18 03:53:56 UTC account.box.com (ling3)
