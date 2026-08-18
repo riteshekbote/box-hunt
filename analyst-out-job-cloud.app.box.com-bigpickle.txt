@@ -1,34 +1,25 @@
 [0m
 > build · big-pickle
 [0m
-[0m$ [0mcurl -sS -o /tmp/probe1_body.txt -w "HTTP_CODE:%{http_code}\nSIZE:%{size_download}\nCONTENT_TYPE:%{content_type}\nREDIRECT_URL:%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/?list-type=2&prefix=/" 2>&1
-HTTP_CODE:302
-SIZE:0
-CONTENT_TYPE:text/html; charset=utf-8
-REDIRECT_URL:https://cloud.app.box.com/login
-[0m
-[0m$ [0mcurl -sS -o /tmp/probe2_body.txt -w "HTTP_CODE:%{http_code}\nSIZE:%{size_download}\nCONTENT_TYPE:%{content_type}\nREDIRECT_URL:%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/?list-type=2&prefix=&max-keys=1" 2>&1
-HTTP_CODE:302
-SIZE:0
-CONTENT_TYPE:text/html; charset=utf-8
-REDIRECT_URL:https://cloud.app.box.com/login
-[0m
-[0m$ [0mcurl -sS -D /tmp/probe3_headers.txt -o /tmp/probe3_body.txt -w "HTTP_CODE:%{http_code}\nSIZE:%{size_download}" -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/robots.txt" 2>&1
-HTTP_CODE:200
-SIZE:2187
-[0m
-I'll execute the pending [NEXT] probes from the last cycle to test both active hypotheses.
-[0m$ [0mcurl -sS -D /tmp/probe4_headers.txt -o /tmp/probe4_body.txt -w "HTTP_CODE:%{http_code}\nSIZE:%{size_download}" -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/sitemap.xml" 2>&1
-HTTP_CODE:302
-SIZE:0
-[0m
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcat /tmp/probe3_headers.txt failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcat /tmp/probe3_body.txt failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcat /tmp/probe4_headers.txt failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-Significant findings. Let me read the response details.
+Looking at the probe results, I see **cloud.app.box.com/** consistently returns 206, while **upload.box.com** and **dl.boxcloud.com** return 404 for all tested paths. The 206 response suggests an S3-backed object store with Range request support.
+
+**Current State Analysis:**
+- cloud.app.box.com: 206 on root, 404 on random paths → likely S3-compatible bucket with pinned assets
+- upload.box.com: All 404 → either no public surface or strict path normalization
+- dl.boxcloud.com: All 404 → no public surface without auth tokens
+
+**Most Promising Hypothesis:**
+The S3 bucket-listing parameter test (confidence 50) is the strongest lead. If cloud.app.box.com accepts `?list-type=2`, we might enumerate bucket contents.
+
+**Next Probe Cycle:**
+```
+[NEW] cloud.app.box.com/?list-type=2&prefix=/ (S3 ListObjects-v2 probe)
+[NEW] cloud.app.box.com/?list-type=2&prefix=&max-keys=1 (minimal listing)
+[NEW] cloud.app.box.com/robots.txt (capture headers + body for fingerprinting)
+[NEW] cloud.app.box.com/sitemap.xml (capture headers + body for structure)
+```
+
+**Phase Assessment:**
+We're in POC phase but hitting 404s on unauthenticated probes. The 206 on root suggests we need specific paths or query parameters. If the S3 listing probe fails, we should pivot to **AUTH_HELPED** testing with authenticated sessions, or move to **EXHAUSTED** and start new surface exploration on other eligible hosts.
+
+**Recommendation:** Execute the 4 probes above. If all return 404/206 with no listing data, mark cloud.app.box.com as **EXHAUSTED** for unauthenticated POC and shift focus to **notes.services.box.com** or **app.box.com** for new attack surface.

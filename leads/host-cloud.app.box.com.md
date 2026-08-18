@@ -547,3 +547,8 @@ testability: PASSIVE
 ## 2026-08-18 22:37:33 UTC cloud.app.box.com (ling3)
 ## 2026-08-18 22:56:22 UTC cloud.app.box.com (ling3)
 ## 2026-08-18 23:14:43 UTC cloud.app.box.com (ling3)
+## 2026-08-18 23:37:25 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com/?list-type=2&prefix=/ (S3 ListObjects-v2 probe)
+[NEW] cloud.app.box.com/?list-type=2&prefix=&max-keys=1 (minimal listing)
+[NEW] cloud.app.box.com/robots.txt (capture headers + body for fingerprinting)
+[NEW] cloud.app.box.com/sitemap.xml (capture headers + body for structure)
