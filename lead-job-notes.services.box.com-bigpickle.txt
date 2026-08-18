@@ -1,0 +1,14 @@
+[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — random filename + query param; tests if query triggers 206 layer
+[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path + query param to confirm/reject pattern
+[NEXT] HEAD https://cloud.app.box.com/ — capture root response headers (Content-Type, Server, Accept-Ranges, X-*)
+[NEXT] OPTIONS https://cloud.app.box.com/ — test CORS/allowed methods on root
+[HYP] Object-store default handler vs whitelist-routed (query-param discriminator)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Prior evidence (pre-session cycles) showed robots.txt?probe= → 206 while robots.txt → 404. Latest 3 executor cycles show all bare paths (no query) return 404. The query parameter appears to be the routing trigger. Random filenames + query param probes were emitted 3 cycles in a row but executor never executed them — possibly a filtering issue.
+verify_steps: GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — if 206, query triggers handler; if 404, hypothesis rejected
+impact: If query-param triggers 206 on any path, the 206/Range layer is a default handler fronting object storage, enabling cache-poisoning and potential internal-asset exposure — MEDIUM
+testability: PASSIVE
+[PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom Origin/Range headers; requires manual curl to verify ACAO/ACAC reflection — parked until manual probe.
+[PARKED] Root path behavior: cloud.app.box.com/ stable at 200 across 5+ cycles. Root is handled by the app edge. No oscillation. Needs HEAD for header characterization.
