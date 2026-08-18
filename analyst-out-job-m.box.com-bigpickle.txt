@@ -1,6 +1,12 @@
 [0m
 > build · big-pickle
 [0m
+[0m$ [0mcurl -s -o /tmp/api_box_resp.txt -w "HTTP_CODE:%{http_code}\nCONTENT_TYPE:%{content_type}\nSIZE:%{size_download}\nREDIRECT_URL:%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" https://api.box.com/ 2>&1
+HTTP_CODE:401
+CONTENT_TYPE:
+SIZE:0
+REDIRECT_URL:
+[0m
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -sS -w "\nHTTP_STATUS: %{http_code}\nSIZE: %{size_download}\nTIME: %{time_total}s\nREDIRECT_URL: %{redirect_url}" -o /tmp/api_box_resp.txt -D /tmp/api_box_headers.txt -A "box-research/1.0 +(research)" "https://api.box.com/" && cat /tmp/api_box_headers.txt && echo "---BODY---" && cat /tmp/api_box_resp.txt 2>/dev/null | head -20 failed
+[0m✗ [0mcurl -s -D /tmp/api_box_headers.txt -o /tmp/api_box_body.txt -H "User-Agent: box-research/1.0 +(research)" https://api.box.com/ 2>&1 && echo "---HEADERS---" && cat /tmp/api_box_headers.txt && echo "---BODY---" && cat /tmp/api_box_body.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.
