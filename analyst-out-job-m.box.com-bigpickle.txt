@@ -1,41 +1,12 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the evidence: cloud.app.box.com root consistently returns 200/206 while all other paths return 404, but CORS probes have never been executed with OPTIONS requests. account.box.com and api.box.com remain completely unexplored.
-
-[NEW] account.box.com/: Auth plane completely unexplored — zero probes in any cycle
-[NEW] api.box.com/: Core API completely unexplored — zero probes in any cycle
-
-[HYP] CORS preflight reflection on cloud.app.box.com embedded preview origin
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 50
-reasoning: Root returns 200/206 consistently, proving the asset edge serves content. All other paths return 404 (whitelist/default-handler). CORS policy has never been probed with OPTIONS+Origin. Embedded preview content likely uses cookies/Authorization headers. If preflight reflects attacker Origin or exposes credentials cross-origin, this enables account data theft via malicious page embedding Box previews.
-evidence_needed: OPTIONS response with attacker Origin showing Access-Control-Allow-Origin, Access-Control-Allow-Credentials, or Access-Control-Allow-Headers reflecting attacker-controlled values
-verify_steps: bare OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA box-research/1.0 +(research); record all response headers and status; 1 req/2s.
-impact: cross-origin account data theft via embedded Box preview; critical severity if credentials are exposed
-testability: PASSIVE
-
-[HYP] Auth-plane header/info leakage on account.box.com
-class: MISCONFIG
-asset: account.box.com/
-confidence: 30
-reasoning: account.box.com (auth plane) has never been probed in any cycle. Auth endpoints routinely expose X-Frame-Options, CSP, HSTS, Set-Cookie flags, X-Powered-By, and version strings. Login pages may leak CSRF tokens, session patterns, or framework details in HTML/JS.
-evidence_needed: HTTP response headers from account.box.com showing security header configuration, framework indicators, or version information
-verify_steps: (1) bare GET https://account.box.com/ with UA box-research/1.0 +(research), record status+headers+body_length; (2) bare GET https://account.box.com/login same UA, same recording. 1 req/2s. First 4xx/429/403 -> log and stop that host.
-impact: information disclosure of auth stack/version; missing X-Frame-Options or CSP enables clickjacking or token exfil; severity MEDIUM-HIGH depending on what leaks
-testability: PASSIVE
-
-[HYP] API error enumeration and version disclosure on api.box.com
-class: MISCONFIG
-asset: api.box.com/
-confidence: 30
-reasoning: api.box.com is the core API and has never been probed in any cycle. Unauthenticated API requests typically return detailed error responses with version info, internal paths, or debugging metadata. Public endpoints may expose user/file metadata without auth.
-evidence_needed: API error responses with version strings, internal paths, or debugging metadata; unauthenticated access to user/file endpoints
-verify_steps: (1) bare GET https://api.box.com/ with UA box-research/1.0 +(research), record status+headers+body; (2) bare GET https://api.box.com/2.0/users/me same UA. 1 req/2s. First 4xx/429/403 -> log and stop that host.
-impact: version/stack disclosure; unauthenticated data exposure via API endpoints; severity depends on what leaks
-testability: PASSIVE
-
-[PARKED] CORS preflight reflection on cloud.app.box.com embedded preview origin: OPTIONS probe with attacker Origin requested 6+ consecutive cycles but never executed by the executor; all probe results show only GET requests. Requires OPTIONS-capable probe or header-capturing GET.
-
-[NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
+[0m$ [0mcurl -s -o /tmp/account_root.html -w "HTTP_CODE:%{http_code}\nSIZE:%{size_download}\nCONTENT_TYPE:%{content_type}\nREDIRECT_URL:%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/" 2>&1
+HTTP_CODE:302
+SIZE:0
+CONTENT_TYPE:text/html; charset=utf-8
+REDIRECT_URL:https://account.box.com/login
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcurl -s -D /tmp/account_root_headers.txt -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/" 2>&1 && cat /tmp/account_root_headers.txt failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
