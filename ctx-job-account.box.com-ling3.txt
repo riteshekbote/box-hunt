@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-18 08:17:55 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: package.json exposes internal git host `gitenterprise.inside-box.net`, internal packages (`asset-pipeline`, `node-box-config`, `karma-tmpl2html-preprocessor`). Makefile.js exposes build output paths (`/box/www/assets/webapp_assets`, `/box/www/assets/legacy_assets`), internal tooling (`./tools/console.php box_gen204_batch_record_from_console`), and Amsterdam app structure (files-app, login, integration).
 verify_steps: `curl -s https://cloud.app.box.com/_assets/package.json && curl -s https://cloud.app.box.com/_assets/Makefile.js`
 impact: Aids targeted attacks against internal Box infrastructure. Severity: Low-Medium.
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEW] notes.services.box.com/ subpaths: All return 404 on Express with identical ETag `f-Z280BOLXUGgeynAe/z2VTx5EI7Q`. CSRF cookies set on every request. `x-powered-by: Express`, `x-frame-options: ALLOW-FROM https://app.box.com`, CSP `frame-ancestors https://app.box.com`. Single catch-all handler, no exposed routes.
 [PARKED] notes.services.box.com service endpoint enumeration: Express catch-all returns uniform 404 for all subpaths. No routes discovered. Express app fingerprinting (x-powered-by) is low severity.
 [NEXT] RECON: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/` (mobile web — new surface, observe redirect/headers)
+## 2026-08-18 08:55:33 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
