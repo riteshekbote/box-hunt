@@ -595,3 +595,4 @@ impact: version/stack disclosure; unauthenticated data exposure via API endpoint
 testability: PASSIVE
 [PARKED] CORS preflight reflection on cloud.app.box.com embedded preview origin: OPTIONS probe with attacker Origin requested 6+ consecutive cycles but never executed by the executor; all probe results show only GET requests. Requires OPTIONS-capable probe or header-capturing GET.
 [NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
+## 2026-08-18 00:55:45 UTC m.box.com (ling3)
