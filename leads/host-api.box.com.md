@@ -463,3 +463,4 @@ BOX VERDICT: 8-host read-only surface remains defense-positive after manual head
 [NEXT] OPTIONS cloud.app.box.com/ — confirm 204 + ACAO:* without ACAC one more time for definitiveness
 [NEXT] GET https://app.box.com/robots.txt — last untested host surface in scope; check for path disclosure or info leak
 ## 2026-08-18 12:25:05 UTC api.box.com (ling3)
+## 2026-08-18 13:15:37 UTC api.box.com (ling3)
