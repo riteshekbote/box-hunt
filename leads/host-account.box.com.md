@@ -664,3 +664,4 @@ testability: PASSIVE
 [NEW] notes.services.box.com/ subpaths: All return 404 on Express with identical ETag `f-Z280BOLXUGgeynAe/z2VTx5EI7Q`. CSRF cookies set on every request. `x-powered-by: Express`, `x-frame-options: ALLOW-FROM https://app.box.com`, CSP `frame-ancestors https://app.box.com`. Single catch-all handler, no exposed routes.
 [PARKED] notes.services.box.com service endpoint enumeration: Express catch-all returns uniform 404 for all subpaths. No routes discovered. Express app fingerprinting (x-powered-by) is low severity.
 [NEXT] RECON: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/` (mobile web — new surface, observe redirect/headers)
+## 2026-08-18 08:55:33 UTC account.box.com (ling3)
