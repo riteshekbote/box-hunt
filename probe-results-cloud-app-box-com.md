@@ -97,3 +97,13 @@ https://cloud.app.box.com/favicon.ico -> 206
 https://cloud.app.box.com/crossdomain.xml -> 206
 https://cloud.app.box.com/favicon.ico -> 206
 https://cloud.app.box.com/?list-type=2 -> 200
+
+## 2026-08-18 09:24:18 UTC cloud.app.box.com
+https://cloud.app.box.com/?list-type=2&prefix=/ -> 200
+https://cloud.app.box.com/?list-type=2&prefix=&max-keys=1 -> 200
+https://cloud.app.box.com/robots.txt -> 206
+https://cloud.app.box.com/sitemap.xml -> 206
+https://cloud.app.box.com/?versioning -> 200
+https://cloud.app.box.com/?list-type=2&delimiter=/ -> 200
+https://cloud.app.box.com/crossdomain.xml -> 206
+https://cloud.app.box.com/embed -> 200
