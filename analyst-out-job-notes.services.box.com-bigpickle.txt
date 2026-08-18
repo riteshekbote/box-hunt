@@ -1,25 +1,22 @@
 [0m
 > build · big-pickle
 [0m
-[0m# [0mTodos
-[•] Re-emit query-param probes that executor skipped last cycle
-[ ] HEAD root to capture response headers
-[ ] Test OPTIONS on 206 asset layer
-[0m
-[NEXT] GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — random filename + query param; tests if query triggers 206 layer
-[NEXT] GET https://cloud.app.box.com/bhx-randtest987.json?probe=x9 — second random path + query param to confirm/reject pattern
-[NEXT] HEAD https://cloud.app.box.com/ — capture root response headers (Content-Type, Server, Accept-Ranges, X-*)
-[NEXT] OPTIONS https://cloud.app.box.com/ — test CORS/allowed methods on root
+Looking at the evidence: cloud.app.box.com root oscillates 200→206→206 across recent cycles, while all sub-paths return 404. Query-param probes keep getting dropped. The 206 on root without Range request is the strongest signal. Let me pivot to HEAD/OPTIONS to capture headers and characterize the oscillation.
 
-[HYP] Object-store default handler vs whitelist-routed (query-param discriminator)
+[NEW] cloud.app.box.com/: root path oscillates between HTTP 200 and 206 across cycles (200 at 11:56, 206 at 13:04 and 13:52) — different backend handlers or CDN layers responding inconsistently
+[HYP] Root path 206-oscillation: object-storage default handler on cloud.app.box.com root
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 55
-reasoning: Prior evidence (pre-session cycles) showed robots.txt?probe= → 206 while robots.txt → 404. Latest 3 executor cycles show all bare paths (no query) return 404. The query parameter appears to be the routing trigger. Random filenames + query param probes were emitted 3 cycles in a row but executor never executed them — possibly a filtering issue.
-evidence_needed: GET with any unknown filename + query param returning 206 would confirm query-param routing triggers default handler
-verify_steps: GET https://cloud.app.box.com/bhx-q7m2p-x9k4n.txt?probe=bhx2 — if 206, query triggers handler; if 404, hypothesis rejected
-impact: If query-param triggers 206 on any path, the 206/Range layer is a default handler fronting object storage, enabling cache-poisoning and potential internal-asset exposure — MEDIUM
+confidence: 60
+reasoning: Root returns 206 Partial Content without a Range request header in 2 of 3 recent cycles. 206 without Range is abnormal — indicates either CDN/object-storage edge returning partial content by default, or a misconfigured origin handler. All sub-paths return 404, confirming the root is a special path with distinct routing. The oscillation itself (200 vs 206) suggests load-balanced backends with inconsistent configuration.
+evidence_needed: Response headers from HEAD https://cloud.app.box.com/ — specifically Content-Type, Content-Range, Content-Length, Accept-Ranges, Server, and any X-* headers. Also need to confirm whether 200 vs 206 is deterministic or truly random.
+verify_steps: HEAD https://cloud.app.box.com/ (capture all response headers), then OPTIONS https://cloud.app.box.com/ (capture CORS and allowed methods), then GET https://cloud.app.box.com/ (confirm current status code)
+impact: If root 206 is object-storage default handler, it may expose internal bucket structure or enable Range-based content enumeration — MEDIUM
 testability: PASSIVE
-
-[PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom Origin/Range headers; requires manual curl to verify ACAO/ACAC reflection — parked until manual probe.
-[PARKED] Root path behavior: cloud.app.box.com/ stable at 200 across 5+ cycles. Root is handled by the app edge. No oscillation. Needs HEAD for header characterization.
+[PARKED] Query-param discriminator hypothesis: Executor drops all query-param probes for 3+ consecutive cycles. Cannot verify whether ?probe= triggers 206 layer on arbitrary paths. Requires manual curl or different probe format.
+[PARKED] CORS misconfiguration on 206 asset layer: Cannot send custom Origin header via executor. Requires manual curl.
+[LEARN] REJECTED upload.box.com surface: 8+ consecutive probes all 404. Strict allowlist. Dead end.
+[LEARN] REJECTED dl.boxcloud.com surface: 4+ consecutive probes all 404. Locked down. Dead end.
+[NEXT] HEAD https://cloud.app.box.com/ — capture all response headers to characterize 206 vs 200 handler (Content-Type, Content-Range, Accept-Ranges, Server, X-*)
+[NEXT] OPTIONS https://cloud.app.box.com/ — test CORS allowed methods and whether Access-Control headers are present
+[NEXT] GET https://cloud.app.box.com/ — confirm current cycle status code (200 or 206)

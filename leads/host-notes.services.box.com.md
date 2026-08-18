@@ -513,3 +513,20 @@ testability: PASSIVE
 ## 2026-08-18 12:24:45 UTC notes.services.box.com (ling3)
 ## 2026-08-18 13:15:38 UTC notes.services.box.com (ling3)
 ## 2026-08-18 13:58:22 UTC notes.services.box.com (ling3)
+## 2026-08-18 14:32:22 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root path oscillates between HTTP 200 and 206 across cycles (200 at 11:56, 206 at 13:04 and 13:52) — different backend handlers or CDN layers responding inconsistently
+[HYP] Root path 206-oscillation: object-storage default handler on cloud.app.box.com root
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 60
+reasoning: Root returns 206 Partial Content without a Range request header in 2 of 3 recent cycles. 206 without Range is abnormal — indicates either CDN/object-storage edge returning partial content by default, or a misconfigured origin handler. All sub-paths return 404, confirming the root is a special path with distinct routing. The oscillation itself (200 vs 206) suggests load-balanced backends with inconsistent configuration.
+verify_steps: HEAD https://cloud.app.box.com/ (capture all response headers), then OPTIONS https://cloud.app.box.com/ (capture CORS and allowed methods), then GET https://cloud.app.box.com/ (confirm current status code)
+impact: If root 206 is object-storage default handler, it may expose internal bucket structure or enable Range-based content enumeration — MEDIUM
+testability: PASSIVE
+[PARKED] Query-param discriminator hypothesis: Executor drops all query-param probes for 3+ consecutive cycles. Cannot verify whether ?probe= triggers 206 layer on arbitrary paths. Requires manual curl or different probe format.
+[PARKED] CORS misconfiguration on 206 asset layer: Cannot send custom Origin header via executor. Requires manual curl.
+[LEARN] REJECTED upload.box.com surface: 8+ consecutive probes all 404. Strict allowlist. Dead end.
+[LEARN] REJECTED dl.boxcloud.com surface: 4+ consecutive probes all 404. Locked down. Dead end.
+[NEXT] HEAD https://cloud.app.box.com/ — capture all response headers to characterize 206 vs 200 handler (Content-Type, Content-Range, Accept-Ranges, Server, X-*)
+[NEXT] OPTIONS https://cloud.app.box.com/ — test CORS allowed methods and whether Access-Control headers are present
+[NEXT] GET https://cloud.app.box.com/ — confirm current cycle status code (200 or 206)
