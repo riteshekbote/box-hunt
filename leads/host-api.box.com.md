@@ -409,3 +409,26 @@ testability: PASSIVE
 ## 2026-08-18 04:56:39 UTC api.box.com (ling3)
 ## 2026-08-18 05:22:12 UTC api.box.com (ling3)
 ## 2026-08-18 05:50:16 UTC api.box.com (bigpickle)
+## 2026-08-18 06:17:49 UTC api.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root accessible (200) — confirms 206 asset layer fronts origin
+[NEW] dl.boxcloud.com/: all probes 404 — CDN edge is opaque/locked down
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 50
+reasoning: Root returns 200; the asset layer may inherit or expose CORS headers from origin. Previous probes to dl.boxcloud.com all 404, so cloud.app.box.com is the live surface. If it reflects attacker Origin in Access-Control-* or exposes Authorization, cross-origin JS can read Box preview content.
+verify_steps: "GET https://cloud.app.box.com/ with header 'Origin: https://evil.example.example' — check for Access-Control-Allow-Origin in response; OPTIONS https://cloud.app.box.com/ with Origin: https://evil.example.example and Access-Control-Request-Method: GET"
+impact: Cross-origin read of Box embedded content previews; severity HIGH if credentials reflected
+testability: PASSIVE
+[HYP] Object-store default handler vs whitelist-routed on cloud.app.box.com
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 48
+reasoning: Root 200 proves the asset layer serves the origin root. If arbitrary unguessable paths also return 200/content, the layer is a pass-through default handler rather than a whitelist. If they 404, it's path-pinned.
+verify_steps: "GET https://cloud.app.box.com/bhx-test-nonexistent-9x8k -> check status; GET https://cloud.app.box.com/ -> compare"
+impact: Arbitrary object access if default handler serves any path; severity CRITICAL
+testability: PASSIVE
+[NEXT] GET cloud.app.box.com/ headers with Origin: https://evil.example.example — check CORS reflection
+[NEXT] OPTIONS cloud.app.box.com/ with Origin: https://evil.example.example and Access-Control-Request-Method: GET — check preflight
+[NEXT] GET cloud.app.box.com/bhx-test-nonexistent-9x8k — check if arbitrary path returns content vs 404
+[NEXT] HEAD dl.boxcloud.com/ — check if HEAD differs from GET (404 vs other)
