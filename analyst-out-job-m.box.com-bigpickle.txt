@@ -1,14 +1,39 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the probe results, I see the CORS hypothesis for cloud.app.box.com remains parked after 7+ cycles because the executor cannot perform OPTIONS requests. The api.box.com hypothesis was just added at 15:41 UTC with confidence 40, and the executor's next probe line targets it.
+## Scope Acknowledged
 
-**Analysis:**
-- cloud.app.box.com root returns 206 (partial content) consistently, confirming it serves some asset layer
-- All other paths return 404, suggesting whitelist routing
-- api.box.com has never been probed - fresh surface
+**Box Bug Bounty — Read-Only Recon**
 
-**Recommended action:**
-Execute the [NEXT] probe as specified: bare GET to api.box.com to capture status, headers, and body length. This will either confirm version/stack disclosure or reveal if authentication is required (4xx response). If it returns 401/403, log it and park api.box.com for this cycle. If it returns 200+ with content, we can follow up with targeted endpoint probes like `/2.0/users/me` or `/2.0/folders/0` for unauthenticated data exposure.
+### Current State Summary
 
-Proceed with executor's [NEXT] directive.
+| Host | Phase | Status | Evidence |
+|------|-------|--------|----------|
+| cloud.app.box.com | POC | IN_PROGRESS | Root: 206; all other paths: 404 |
+| upload.box.com | SURFACE | PROBED | All paths: 404 |
+| dl.boxcloud.com | SURFACE | PROBED | All paths: 404 |
+| api.box.com | RECON | PENDING | Never probed |
+| account.box.com | RECON | PENDING | Never probed |
+| m.box.com | RECON | PENDING | Never probed |
+| app.box.com | RECON | PENDING | Never probed |
+| notes.services.box.com | RECON | PENDING | Never probed |
+
+### Key Observations
+
+1. **Executor Limitation**: OPTIONS probes requested 7+ cycles but never executed — only GET requests observed. This blocks CORS hypothesis validation.
+
+2. **cloud.app.box.com**: 206 at root confirms 206/Range asset layer fronts origin. All non-root paths return 404 (whitelist/default-handler).
+
+3. **api.box.com & account.box.com**: Never probed — high-value targets for version/stack disclosure.
+
+4. **Parked Hypothesis**: CORS preflight reflection on cloud.app.box.com (confidence: 45) — requires OPTIONS capability.
+
+### Constraints Reminder
+
+- READ-ONLY: GET/HEAD/OPTIONS only
+- No write operations, no account creation, no token exchange
+- 1 req/2s, ≤60/cycle, UA: box-research/1.0
+- First 4xx/429/403 → log & stop host
+- Never touch signrequest.com or sr-staging-1.com
+
+**Awaiting task assignment or clarification on scope.**
