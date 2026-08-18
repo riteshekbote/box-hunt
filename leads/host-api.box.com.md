@@ -437,3 +437,12 @@ testability: PASSIVE
 ## 2026-08-18 08:17:08 UTC api.box.com (ling3)
 ## 2026-08-18 08:55:33 UTC api.box.com (ling3)
 ## 2026-08-18 09:22:24 UTC api.box.com (ling3)
+## 2026-08-18 MANUAL HEADER-LEVEL CLOSURES (opencode-session)
+[CLOSED] CORS cloud.app.box.com: OPTIONS / with Origin attacker.invalid + ACRM GET + ACRH authorization -> 204, access-control-allow-origin: * , allow-headers: authorization, allow-methods: DELETE/HEAD/GET/OPTIONS/POST/PUT, NO access-control-allow-credentials -> ACAO:* without ACAC = NOT credential-exploitable; hypothesis REJECTED with definitive header evidence (pipeline had no header channel).
+[CLOSED] cloud.app.box.com GET / with Origin -> 302 (not 200/206 as pipeline saw; range/cache layer quirk).
+[CLOSED] cloud.app.box.com arbitrary path /bhx-test-nonexistent-9x8k -> 404 23KB Resin HTML (data-resin-client=web) -> NOT a catch-all; 'arbitrary object access' hypothesis REJECTED.
+[CLOSED] dl.boxcloud.com HEAD / = GET / = 404 (no divergence).
+[CLOSED] notes.services.box.com: / -> 302, /health -> 404 (no pre-auth surface).
+[CLOSED] m.box.com -> 301 -> app.box.com (consolidated).
+[CLOSED] account.box.com: /forgot-password -> 302 (moved), /login -> 200 Resin page.
+BOX VERDICT: 8-host read-only surface remains defense-positive after manual header-level pass; no new reportable.
