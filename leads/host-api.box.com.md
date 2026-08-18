@@ -432,3 +432,4 @@ testability: PASSIVE
 [NEXT] OPTIONS cloud.app.box.com/ with Origin: https://evil.example.example and Access-Control-Request-Method: GET — check preflight
 [NEXT] GET cloud.app.box.com/bhx-test-nonexistent-9x8k — check if arbitrary path returns content vs 404
 [NEXT] HEAD dl.boxcloud.com/ — check if HEAD differs from GET (404 vs other)
+## 2026-08-18 07:07:45 UTC api.box.com (ling3)
