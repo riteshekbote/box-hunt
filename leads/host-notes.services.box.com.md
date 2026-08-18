@@ -590,3 +590,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED cloud.app.box.com root oscillation: 200/206 oscillation confirmed across 5+ cycles — multi-backend with divergent config. Moving to sub-path probing to characterize routing layers.
 ## 2026-08-18 21:36:44 UTC notes.services.box.com (ling3)
 ## 2026-08-18 21:54:32 UTC notes.services.box.com (ling3)
+## 2026-08-18 22:08:43 UTC notes.services.box.com (ling3)
