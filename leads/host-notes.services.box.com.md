@@ -563,3 +563,28 @@ testability: PASSIVE
 ## 2026-08-18 20:07:37 UTC notes.services.box.com (ling3)
 ## 2026-08-18 20:35:47 UTC notes.services.box.com (ling3)
 ## 2026-08-18 20:55:08 UTC notes.services.box.com (ling3)
+## 2026-08-18 21:13:10 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root oscillation NOT resolved — 200 (19:53), 206 (20:36), 200 (20:55). Confirmed multi-backend load balancing with divergent config.
+[HYP] Root 206 oscillation: multi-origin CDN with inconsistent backend handlers
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Oscillation persists across 5+ cycles: 200/206/200/206/200. This confirms at least two backend pools behind the load balancer returning different status codes for the identical bare GET. One pool is correctly serving 200 (app shell), the other serves 206 (partial content — likely object-storage or misconfigured origin). The executor cannot capture headers, so we need to probe sub-paths that might expose which layer we hit.
+verify_steps: HEAD https://cloud.app.box.com/, GET https://cloud.app.box.com/ (capture body), OPTIONS https://cloud.app.box.com/
+impact: If object-storage layer is accessible directly, may leak bucket metadata or enable Range-based content enumeration — MEDIUM
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/health — test whether backend exposes health-check endpoints
+[NEXT] GET https://cloud.app.box.com/status — test for status/debug endpoints
+[NEXT] GET https://cloud.app.box.com/v1/ — test for API version prefix routing
+[NEXT] GET https://cloud.app.box.com/api/ — test for API prefix on preview origin
+[NEXT] GET https://cloud.app.box.com/robots.txt — retest with full path (previous cycle used bare /)
+[NEXT] GET https://cloud.app.box.com/robots.txt/ — trailing slash discriminator test
+[NEXT] GET https://cloud.app.box.com/%2e/ — path traversal to expose bucket listing
+[NEXT] GET https://cloud.app.box.com/..; — semicolon path normalization test for bucket escape
+[NEXT] OPTIONS https://cloud.app.box.com/ — CORS preflight characterization (may return different status)
+[NEXT] HEAD https://cloud.app.box.com/static/ — test static asset prefix routing
+[PARKED] Query-param discriminator hypothesis: Executor dropped query-param probes for 6+ consecutive cycles. Requires manual curl.
+[PARKED] CORS misconfiguration on 206 asset layer: Executor cannot send custom Origin header. Requires manual curl.
+[LEARN] REJECTED upload.box.com surface: 12+ consecutive probes all 404. Strict allowlist. Dead end permanently.
+[LEARN] REJECTED dl.boxcloud.com surface: 8+ consecutive probes all 404. Locked down. Dead end permanently.
+[LEARN] ACCEPTED cloud.app.box.com root oscillation: 200/206 oscillation confirmed across 5+ cycles — multi-backend with divergent config. Moving to sub-path probing to characterize routing layers.
