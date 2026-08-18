@@ -502,3 +502,4 @@ impact: If query-param triggers 206 on any path, the 206/Range layer is a defaul
 testability: PASSIVE
 [PARKED] CORS misconfiguration on cloud.app.box.com 206 asset layer: executor cannot send custom Origin/Range headers; requires manual curl to verify ACAO/ACAC reflection — parked until manual probe.
 [PARKED] Root path behavior: cloud.app.box.com/ stable at 200 across 5+ cycles. Root is handled by the app edge. No oscillation. Needs HEAD for header characterization.
+## 2026-08-18 08:55:34 UTC notes.services.box.com (ling3)
