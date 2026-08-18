@@ -113,3 +113,10 @@ https://cloud.app.box.com/?list-type=2&prefix=/ -> 206
 https://cloud.app.box.com/?list-type=2&prefix=&max-keys=1 -> 200
 https://cloud.app.box.com/robots.txt -> 206
 https://cloud.app.box.com/sitemap.xml -> 206
+
+## 2026-08-18 19:07:05 UTC cloud.app.box.com
+https://cloud.app.box.com/?list-type=2&prefix=/ -> 200
+https://cloud.app.box.com/login -> 200
+https://cloud.app.box.com/?list-type=2&prefix=&max-keys=1 -> 200
+https://cloud.app.box.com/robots.txt -> 206
+https://cloud.app.box.com/sitemap.xml -> 206
