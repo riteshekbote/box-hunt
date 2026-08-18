@@ -688,3 +688,7 @@ testability: PASSIVE
 ## 2026-08-18 16:01:13 UTC account.box.com (ling3)
 ## 2026-08-18 16:37:57 UTC account.box.com (ling3)
 ## 2026-08-18 17:01:11 UTC account.box.com (ling3)
+## 2026-08-18 17:32:54 UTC account.box.com (bigpickle)
+[NEW] m.box.com/: Permanent 301 to `https://app.box.com/` — zero distinct surface, no unique headers, no separate session logic exposed.
+[LEARN] REJECTED MISCONFIG @ m.box.com: Mobile subdomain is a simple 301 redirect to app.box.com with no distinct rendering/session logic, headers, or endpoints. Exhausted.
+[NEXT] RECON: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://app.box.com/` to re-baseline the primary web app headers after the m.box.com redirect chain, and look for any set-cookie or frame-ancestors differences.

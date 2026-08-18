@@ -1,7 +1,3 @@
-class: MISCONFIG
-asset: m.box.com
-confidence: 25
-reasoning: Mobile subdomain listed as having "separate rendering/session logic." Unknown whether it serves a distinct app, leaks different headers, or exposes debug endpoints. No prior probes.
-verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/`
-impact: Could reveal session isolation gaps or alternate attack surface. Severity: Low-Medium.
-testability: PASSIVE
+[NEW] m.box.com/: Permanent 301 to `https://app.box.com/` — zero distinct surface, no unique headers, no separate session logic exposed.
+[LEARN] REJECTED MISCONFIG @ m.box.com: Mobile subdomain is a simple 301 redirect to app.box.com with no distinct rendering/session logic, headers, or endpoints. Exhausted.
+[NEXT] RECON: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://app.box.com/` to re-baseline the primary web app headers after the m.box.com redirect chain, and look for any set-cookie or frame-ancestors differences.

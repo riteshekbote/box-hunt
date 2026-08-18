@@ -1,24 +1,17 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the cycle results:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/ 2>&1 | head -80
+HTTP/2 301 
+cache-control: private
+location: https://app.box.com/
+content-length: 0
+date: Tue, 18 Aug 2026 17:32:48 GMT
+content-type: text/html; charset=UTF-8
+alt-svc: h3=":443"; ma=2592000
+[0m
+[NEW] m.box.com/: Permanent 301 to `https://app.box.com/` — zero distinct surface, no unique headers, no separate session logic exposed.
 
-**Key observation:** `cloud.app.box.com/` flipped from **206** to **200** — the Range/206 asset layer is inconsistent, possibly CDN caching variance. Worth a dedicated CORS probe later.
+[LEARN] REJECTED MISCONFIG @ m.box.com: Mobile subdomain is a simple 301 redirect to app.box.com with no distinct rendering/session logic, headers, or endpoints. Exhausted.
 
-**m.box.com** remains unprobed — it's the next new surface per the last `[NEXT]`.
-
----
-
-**[LEARN]** ACCEPTED cloud.app.box.com/ inconsistency: 206→200 variance confirms CDN/cache-layer behavior. The 206 was likely a Range-satisfiable cached asset; 200 is the default response. This narrows the "object-store default handler" hypothesis — it only serves 206 when a Range header is present or a cached partial exists.
-
-**[HYP]** m.box.com: Separate mobile rendering/session surface
-class: MISCONFIG
-asset: m.box.com
-confidence: 25
-reasoning: Mobile subdomain listed as having "separate rendering/session logic." Unknown whether it serves a distinct app, leaks different headers, or exposes debug endpoints. No prior probes.
-evidence_needed: Status code, headers (x-powered-by, server, set-cookie, CSP), redirect behavior, whether it differs from app.box.com
-verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/`
-impact: Could reveal session isolation gaps or alternate attack surface. Severity: Low-Medium.
-testability: PASSIVE
-
-**[NEXT]** PROBE: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/` (1 request — mobile web root, observe redirect chain + headers)
+[NEXT] RECON: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://app.box.com/` to re-baseline the primary web app headers after the m.box.com redirect chain, and look for any set-cookie or frame-ancestors differences.
