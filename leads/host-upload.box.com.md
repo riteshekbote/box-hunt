@@ -635,3 +635,4 @@ reasoning: cloud.app.box.com serves embedded content previews iframed by third-p
 verify_steps: `OPTIONS https://cloud.app.box.com/` with `Origin: https://evil.com`, `Access-Control-Request-Method: GET`.
 impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content). If reflected without credentials → MEDIUM. If not reflected → LOW.
 testability: PASSIVE
+## 2026-08-18 11:35:06 UTC upload.box.com (ling3)
