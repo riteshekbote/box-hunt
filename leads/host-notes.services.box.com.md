@@ -535,3 +535,23 @@ testability: PASSIVE
 ## 2026-08-18 16:01:25 UTC notes.services.box.com (ling3)
 ## 2026-08-18 16:38:10 UTC notes.services.box.com (ling3)
 ## 2026-08-18 17:01:38 UTC notes.services.box.com (ling3)
+## 2026-08-18 17:33:04 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com/: root path stable at 206 across last 3 cycles (15:41, 16:02, 16:45) — oscillation resolved to consistent 206
+[HYP] Root 206 handler serves object-storage partial content without Range
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 65
+reasoning: Three consecutive cycles confirm root returns 206 Partial Content on bare GET with no Range header. All sub-paths return 404, confirming root is uniquely routed. The 206-without-Range pattern is characteristic of object-storage default responses when a zero-byte or placeholder object exists at the bucket root. If the body contains XML (e.g. ListObjects), this would be an information disclosure of bucket structure.
+verify_steps: GET https://cloud.app.box.com/ (capture body + Content-Type), HEAD https://cloud.app.box.com/ (capture all headers including Content-Range, Accept-Ranges, Server), OPTIONS https://cloud.app.box.com/ (capture CORS headers)
+impact: If body is XML bucket listing → HIGH (internal asset enumeration). If body is app shell rendered as 206 → LOW (just misconfigured status code). If Content-Range exposes file size → MEDIUM (information leakage).
+testability: PASSIVE
+[NEXT] HEAD https://cloud.app.box.com/ — capture all response headers (Content-Type, Content-Range, Accept-Ranges, Server, X-*) to characterize the 206 handler
+[NEXT] GET https://cloud.app.box.com/ — retrieve body content to determine if HTML app shell or XML/listing
+[NEXT] OPTIONS https://cloud.app.box.com/ — capture CORS and allowed methods on root 206 handler
+[PARKED] Query-param discriminator hypothesis: Executor has dropped query-param probes for 5+ consecutive cycles. Cannot verify whether ?probe= triggers 206 on arbitrary paths. Requires manual curl.
+[PARKED] CORS misconfiguration on 206 layer: Executor cannot send custom Origin header. Requires manual curl to test ACAO/ACAC reflection.
+[PARKED] Method/CORS surface on upload.box.com OPTIONS: upload.box.com confirmed dead end (all 404). Parked permanently.
+[PARKED] upload.box.com trailing-slash vs bare-path: Both return 404. Rejected.
+[LEARN] REJECTED upload.box.com surface: 10+ consecutive probes all 404. Strict allowlist. Dead end.
+[LEARN] REJECTED dl.boxcloud.com surface: 8+ consecutive probes all 404. Locked down. Dead end.
+[LEARN] ACCEPTED cloud.app.box.com root 206: Stable across 3+ cycles. Root is uniquely routed with 206 response. Proceeding to POC characterization.
