@@ -451,3 +451,14 @@ BOX VERDICT: 8-host read-only surface remains defense-positive after manual head
 ## 2026-08-18 10:46:07 UTC api.box.com (ling3)
 ## 2026-08-18 11:05:13 UTC api.box.com (ling3)
 ## 2026-08-18 11:34:47 UTC api.box.com (ling3)
+## 2026-08-18 11:56:10 UTC api.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Manual closure confirmed ACAO:* without ACAC; catch-all default handler rejected by 404 on random paths. All 45-rated hypotheses on this host are now evidence-closed.
+[LEARN] REJECTED MISCONFIG @ dl.boxcloud.com: Every probe (GET /, robots.txt, favicon, random nonce) returns 404. CDN edge is opaque; no discoverable surface.
+[LEARN] REJECTED AUTH @ notes.services.box.com: / returns 302, /health returns 404. No pre-auth surface exposed.
+[LEARN] REJECTED OTHER @ m.box.com: 301 → app.box.com. Consolidated; no independent surface.
+[PARKED] Object-store default handler vs whitelist-routed on cloud.app.box.com: Random paths all 404; root 200/206 is a pinned asset. Catch-all hypothesis REJECTED with definitive 404 evidence across 10+ nonces. No further read-only probe can change this.
+[PARKED] CORS on cloud.app.box.com 206 asset layer: ACAO:* without ACAC confirmed by manual OPTIONS. Not credential-exploitable; no cross-origin read of authenticated content possible.
+[PARKED] Method/CORS surface on dl.boxcloud.com: All paths 404. No OPTIONS/GET divergence possible on non-existent routes.
+[NEXT] GET cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure
+[NEXT] OPTIONS cloud.app.box.com/ — confirm 204 + ACAO:* without ACAC one more time for definitiveness
+[NEXT] GET https://app.box.com/robots.txt — last untested host surface in scope; check for path disclosure or info leak
