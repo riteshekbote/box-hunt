@@ -1,37 +1,72 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the context, I see we're in POC phase for cloud.app.box.com with a stable 206 on root path. The executor shows cloud.app.box.com/ returning 206, but we need to characterize what that 206 contains.
+Looking at the evidence: cloud.app.box.com root is stable at 206 across 4+ consecutive cycles. upload.box.com and dl.boxcloud.com are dead ends (all 404). The next cycle must characterize the 206 handler body and headers.
 
-## Current Status
-
-**Phase:** POC (Characterization)
-**Host:** cloud.app.box.com
-**Key Finding:** Root path `/` returns HTTP 206 consistently (3+ cycles), all sub-paths return 404
-
-## Next Probes Needed
-
-```
-[HEAD] https://cloud.app.box.com/ — capture response headers (Content-Type, Content-Range, Accept-Ranges, Server, X-* headers) to understand what 206 layer is serving
-[GET] https://cloud.app.box.com/ — capture response body to determine if HTML app shell, XML listing, or empty
-[OPTIONS] https://cloud.app.box.com/ — test CORS headers (Access-Control-Allow-Origin, Access-Control-Allow-Methods)
-```
-
-## Priority Action
-
-The critical missing piece is the **response body and headers** for the 206. Without knowing if this is:
-- An app shell (HTML) → LOW (just misconfigured status code)
-- An XML bucket listing → HIGH (internal asset enumeration)
-- Empty/minimal → MEDIUM (information leakage via Content-Range)
-
-We cannot assess the actual impact.
+Here's my analysis and plan for the next executor cycle:
 
 ---
 
-**What would you like to do?**
+## ANALYSIS — 2026-08-18 cloud.app.box.com POC
 
-1. **Execute these probes manually** via curl/browser DevTools and share results
-2. **Let me continue** with more hypothesis refinement based on what we know
-3. **Move to a different host** if cloud.app.box.com is exhausted for read-only testing
+### Current State
+- **cloud.app.box.com/** — stable 206, 4+ consecutive cycles confirmed
+- **cloud.app.box.com/{any-subpath}** — all 404 (strict routing, root-only handler)
+- **upload.box.com** — REJECTED (all probes 404, 10+ cycles)
+- **dl.boxcloud.com** — REJECTED (all probes 404, 8+ cycles)
 
-The CORS hypothesis remains parked because we cannot send custom `Origin` headers through the executor — this requires manual testing or a browser-based approach.
+### What We Need Now
+
+The 206 handler is confirmed but we haven't seen **body content** or **response headers**. The executor only reports status codes, not Content-Type/Content-Range/Server or body. To advance, the executor MUST be told to capture and return:
+
+1. **HEAD cloud.app.box.com/** — all response headers (especially Content-Type, Content-Range, Accept-Ranges, Server, X-Cache, X-Served-By)
+2. **GET cloud.app.box.com/** — body content (HTML app shell? XML listing? Binary partial?)
+3. **OPTIONS cloud.app.box.com/** — CORS headers (Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers)
+
+### Hypothesis Update
+
+| ID | Hypothesis | Confidence | Change |
+|----|-----------|------------|--------|
+| H1 | Root 206 is object-storage default handler (ListObjects XML or placeholder) | 65 | No change — still no body evidence |
+| H2 | Root 206 is app shell with wrong status code | 30 | — |
+| H3 | 206 triggers on any path with Range header | 40 | Parked — can't send Range via executor |
+| H4 | CORS misconfiguration on asset layer | 45 | Parked — can't send Origin via executor |
+
+### Critical Gap
+The executor only reports HTTP status codes, never headers or body. This is a fundamental limitation for POC work. **The next cycle should instruct the executor to use `curl -sI` (HEAD) and `curl -s` (GET body) and report the raw output.**
+
+### Proposed Next Executor Commands
+
+```
+HEAD https://cloud.app.box.com/
+GET https://cloud.app.box.com/
+OPTIONS https://cloud.app.box.com/
+```
+
+But since the executor only returns status codes, these will be informative only for status. **To get real POC data, a human must run:**
+
+```bash
+# Headers
+curl -sI https://cloud.app.box.com/
+
+# Body
+curl -s https://cloud.app.box.com/
+
+# CORS
+curl -sI -X OPTIONS -H "Origin: https://evil.com" https://cloud.app.box.com/
+```
+
+### Parked Items (unchanged)
+- CORS misconfiguration on 206 asset layer — needs custom Origin header
+- Query-param discriminator — executor drops probes
+- upload.box.com method/CORS surface — dead end
+- dl.boxcloud.com download-edge CORS — dead end
+
+---
+
+**Recommendation:** The 206 mystery on cloud.app.box.com cannot be fully resolved by the automated executor alone (it doesn't report headers/body). The most productive next step is either:
+
+1. **Human manually runs** the three curl commands above to capture headers, body, and CORS behavior
+2. **Executor continues probing** cloud.app.box.com with varied paths to test if ANY subpath returns 206 (to confirm root-only vs bucket-wide routing)
+
+Either way, the hypothesis stays at **65% confidence** pending body/header evidence.
