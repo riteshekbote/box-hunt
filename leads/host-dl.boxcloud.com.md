@@ -431,3 +431,4 @@ testability: PASSIVE
 [NEXT] RECON: Begin surface enumeration on `api.box.com` — the core API. Probe OPTIONS preflight on `/`, `/2.0/`, `/2.0/files`, `/2.0/users/me` to map CORS policy and identify any unauthenticated endpoints. curl -D- -o /dev/null -X OPTIONS "https://api.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report status and all headers. Then curl -D- -o /dev/null "https://api.box.com/2.0/users/me" -H "User-Agent: box-research/1.0" — report status + location header.
 ## 2026-08-18 22:38:22 UTC dl.boxcloud.com (ling3)
 ## 2026-08-18 22:56:21 UTC dl.boxcloud.com (ling3)
+## 2026-08-18 23:14:41 UTC dl.boxcloud.com (ling3)
