@@ -37,19 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-17 20:48:08 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/_assets/*
-confidence: 98
-reasoning: 404 XML responses consistently expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. Verified again this cycle with identical results across multiple probes.
-verify_steps: `curl -s "https://cloud.app.box.com/_assets/nonexistent123.txt"`
-impact: Bucket name + metadata leakage aids recon. Severity: Low.
-testability: PASSIVE
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/package.json
-confidence: 98
-reasoning: `/_assets/package.json` (3168B) and `/_assets/Makefile.js` (6117B) return 200 with `access-control-allow-origin: *,*` and full GCS metadata headers. OPTIONS preflight also returns 200 with `allow-methods: GET`, `allow-origin: *,*`, `max-age: 3600`. Double-asterisk CORS is non-standard but functionally equivalent to `*`.
-verify_steps: `curl -sI -H "Origin: https://evil.com" https://cloud.app.box.com/_assets/package.json`
-impact: Any origin can read Box internal build config and git hostnames. Severity: Low-Medium.
-testability: PASSIVE
 class: MISCONFIG
 asset: cloud.app.box.com/
 confidence: 98
@@ -97,36 +84,49 @@ testability: PASSIVE
 ## 2026-08-17 23:57:24 UTC account.box.com (ling3)
 ## 2026-08-18 00:55:45 UTC account.box.com (ling3)
 ## 2026-08-18 02:10:29 UTC account.box.com (ling3)
+## 2026-08-18 03:07:31 UTC account.box.com (bigpickle)
+[NEW] notes.services.box.com/robots.txt: Confirmed 302 to services.app.box.com with Envoy/Google headers (from last cycle)
+[HYP] notes.services.box.com: Service endpoint enumeration
+class: MISCONFIG
+asset: notes.services.box.com
+confidence: 40
+reasoning: The 302 redirect to services.app.box.com with Envoy headers suggests this is a service mesh endpoint. Need to check for common paths (/api, /health, /v1, /internal) that might bypass the redirect.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api`, `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/health`, `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/v1`
+impact: Could reveal internal service structure or debug endpoints. Severity: Low-Medium.
+testability: PASSIVE
+[NEXT] PROBE: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api && curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/health`
+## 2026-08-18 03:53:56 UTC account.box.com (ling3)
+## 2026-08-18 04:21:57 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
-## RANKED 2026-08-17 23:54:07 UTC
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
-- [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
-
-## RANKED 2026-08-18 01:47:42 UTC
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
-- [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
-- [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
-
 ## RANKED 2026-08-18 03:05:51 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
+
+## RANKED 2026-08-18 03:53:56 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
+- [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
+- [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
+
+## RANKED 2026-08-18 04:47:37 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -154,39 +154,39 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-17 23:54:07 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-18 01:47:42 UTC (executor)
-https://cloud.app.box.com/ -> 200 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
 ## 2026-08-18 03:05:51 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-18 03:53:56 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-18 04:47:37 UTC (executor)
 https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
