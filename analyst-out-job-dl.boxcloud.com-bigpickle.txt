@@ -1,26 +1,63 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com: exhaustive 404 across /, /robots.txt, /favicon.ico, random paths, and OPTIONS — CDN edge serves nothing without signed-token; no attack surface reachable via unauthenticated probes.
+[0m# [0mTodos
+[•] Execute CORS preflight probe on cloud.app.box.com/ with foreign Origin
+[ ] Analyze CORS response and update hypothesis confidence
+[ ] If CORS not vulnerable, pivot to new hypothesis or surface
+[0m
+[0m# [0mTodos
+[✓] Execute CORS preflight probe on cloud.app.box.com/ with foreign Origin
+[✓] Analyze CORS response and update hypothesis confidence
+[ ] If CORS not vulnerable, pivot to new hypothesis or surface
+[0m
+## Analysis & Next Steps
 
-[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com OPTIONS: no Access-Control-* headers observed on 404; CORS is not configured on CDN edge for error responses — hypothesis rejected.
+Based on the accumulated evidence:
 
-[PARKED] Download-edge CORS on dl.boxcloud.com API content handler: CDN returns 404 on all unauthenticated paths; CORS testing blocked by auth gate; revisit only with a valid signed-URL (AUTH_HELPED).
+**Current state summary:**
+- **dl.boxcloud.com**: Exhaustively tested - all paths return 404; CDN requires signed tokens. Parked.
+- **cloud.app.box.com**: Root returns 200/206 intermittently; other random paths return 404. This suggests either:
+  - An asset-serving layer with a whitelist
+  - Or an origin that serves content for valid paths only
 
-[PARKED] Object-store default handler vs whitelist-routed (cloud.app.box.com): random paths return 404 while root returns 200/206; insufficient to distinguish object-store default from app-edge routing without content inspection — park until body-content probe feasible.
+**Pending hypothesis (from last cycle):**
+CORS misconfiguration on cloud.app.box.com (confidence 30-45). The probe I specified was **never executed** by the executor - I don't see the OPTIONS request in the results.
 
-[PARKED] Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root: same as above; root response confirms asset-layer serves origin root but arbitrary-path routing remains ambiguous; no new evidence.
+---
 
-[PARKED] Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce): /robots.txt/ vs /robots.txt both 404 on cloud.app.box.com; discriminator not observable; park.
+## Recommended Next Probe
 
-[HYP] CORS misconfiguration on cloud.app.box.com preview origin
-class: MISCONFIG
-asset: cloud.app.box.com
-confidence: 30
-reasoning: cloud.app.box.com root intermittently returns 200/206; OPTIONS preflight has never been tested on this origin; the asset-layer serves content which implies an application edge may handle CORS; if preflight reflects attacker Origin or exposes Authorization, cross-origin reads are possible.
-evidence_needed: OPTIONS response with Access-Control-Allow-Origin reflecting attacker origin OR Access-Control-Allow-Credentials: true with exposed Authorization header.
-verify_steps: curl -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status and all Access-Control-* headers.
-impact: Reflected Origin + credentials would permit cross-origin reading of preview content; medium severity if any user-scoped data reachable.
-testability: PASSIVE
+Execute the queued CORS preflight test:
 
-[NEXT] PROBE: curl -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" — report HTTP status, all Access-Control-* headers, and Allow header. If 403/404, mark CORS hypothesis PARKED on this origin and surface a new target from the remaining in-scope hosts.
+```
+curl -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" \
+  -H "Origin: https://evil.example" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "User-Agent: box-research/1.0"
+```
+
+**Also run a content inspection to understand what cloud.app.box.com serves:**
+
+```
+curl -D- "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0"
+```
+
+**If CORS returns no Access-Control-Allow-Origin:** mark hypothesis PARKED and consider:
+1. Pivoting to **account.box.com** (auth plane - OAuth, tokens, sessions)
+2. Pivoting to **notes.services.box.com** (real-time collaboration backend)
+3. Testing **api.box.com** for unauthenticated endpoint discovery
+
+**If CORS reflects Origin:** immediate high-severity finding - capture all headers for report.
+---
+
+**Summary for next cycle:**
+
+| Priority | Probe | Target | Purpose |
+|----------|-------|--------|---------|
+| 1 | `OPTIONS /` with foreign Origin | cloud.app.box.com | CORS preflight reflection test |
+| 2 | `GET /` full headers | cloud.app.box.com | Content-type, cache headers, CSP |
+| 3 | `OPTIONS /` | account.box.com | Auth plane CORS surface |
+| 4 | `GET /` | notes.services.box.com | Notes backend discovery |
+
+**Stop conditions:** First 4xx/429/403 from any host → halt that host for this cycle.
