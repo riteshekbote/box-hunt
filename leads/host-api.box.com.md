@@ -462,3 +462,4 @@ BOX VERDICT: 8-host read-only surface remains defense-positive after manual head
 [NEXT] GET cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure
 [NEXT] OPTIONS cloud.app.box.com/ — confirm 204 + ACAO:* without ACAC one more time for definitiveness
 [NEXT] GET https://app.box.com/robots.txt — last untested host surface in scope; check for path disclosure or info leak
+## 2026-08-18 12:25:05 UTC api.box.com (ling3)
