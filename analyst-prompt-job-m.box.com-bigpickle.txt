@@ -37,8 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-18 05:50:38 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/
-confidence: 50
 reasoning: Root returns 200/206 consistently, proving the asset edge serves content. All other paths return 404 (whitelist/default-handler). CORS policy has never been probed with OPTIONS+Origin. Embedded preview content likely uses cookies/Authorization headers. If preflight reflects attacker Origin or exposes credentials cross-origin, this enables account data theft via malicious page embedding Box previews.
 verify_steps: bare OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA box-research/1.0 +(research); record all response headers and status; 1 req/2s.
 impact: cross-origin account data theft via embedded Box preview; critical severity if credentials are exposed
@@ -97,6 +95,8 @@ testability: PASSIVE
 [PARKED] CORS preflight reflection on cloud.app.box.com embedded preview origin: OPTIONS probe with attacker Origin requested 6+ consecutive cycles but never executed by the executor; all probe results show only GET requests. Requires OPTIONS-capable probe or header-capturing GET.
 [NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
 ## 2026-08-18 06:17:37 UTC m.box.com (ling3)
+## 2026-08-18 07:08:18 UTC m.box.com (bigpickle)
+[NEXT] PROBE: single OPTIONS https://cloud.app.box.com/ with headers "Origin: https://attacker.example" and "Access-Control-Request-Method: GET", UA "box-research/1.0 +(research)", record full response status + all headers. First 4xx/429/403 -> log and stop.
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
