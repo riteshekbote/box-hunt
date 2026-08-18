@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-17 21:09:06 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: api.box.com is the core API host. Without authentication, most endpoints return 401, but the error format, header leakage (Server, X-Powered-By, rate-limit headers, debug tokens), and response to malformed requests may reveal implementation details. Additionally, certain public/shared-file endpoints or metadata queries may not require auth.
 verify_steps: "GET https://api.box.com/ — record status, headers, body; GET https://api.box.com/2.0/users/me — same; GET https://api.box.com/2.0/folders/0 — same"
 impact: Information disclosure of backend technology, internal error formats, or unintended unauthenticated data access — severity Low-Medium
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-17 23:57:08 UTC app.box.com (ling3)
 ## 2026-08-18 00:55:45 UTC app.box.com (ling3)
 ## 2026-08-18 02:10:30 UTC app.box.com (ling3)
+## 2026-08-18 03:07:16 UTC app.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
