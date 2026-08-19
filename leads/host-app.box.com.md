@@ -646,3 +646,4 @@ verify_steps: 1) GET https://cloud.app.box.com/ with headers Host: cloud.app.box
 impact: Information disclosure of asset-layer routing config, cache keys, or signed-URL parameters (MEDIUM); if Access-Control-Allow-Origin reflects arbitrary Origin, cross-origin read of preview content (HIGH).
 testability: AUTH_HELPED
 [NEXT] PROBE: GET https://cloud.app.box.com/ with headers Origin: https://evil.com, Range: bytes=0-0 and also OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — capture all response headers and body for both.
+## 2026-08-19 22:25:17 UTC app.box.com (ling3)
