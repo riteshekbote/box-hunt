@@ -1,62 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[0m$ [0mcurl -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" 2>/dev/null
-HTTP/2 204 
-date: Wed, 19 Aug 2026 02:03:53 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 6
-strict-transport-security: max-age=31536000
-access-control-max-age: 1800
-vary: Origin
-box-request-id: 0a6a9b63ee1211fd6491c89269798f794
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0msleep 3 && curl -D- -o /dev/null -X OPTIONS "https://api.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" 2>/dev/null
-HTTP/2 204 
-date: Wed, 19 Aug 2026 02:03:57 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 19
-strict-transport-security: max-age=31536000
-access-control-max-age: 1800
-vary: Origin
-box-request-id: 0b02a6924adafe8b83872116489be57e5
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -D- -o /dev/null "https://api.box.com/2.0/users/me" -H "User-Agent: box-research/1.0" 2>/dev/null
-HTTP/2 401 
-date: Wed, 19 Aug 2026 02:04:19 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0ffac3ffca6a554b5425d9ab4505b6e48
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0msleep 5 && curl -D- -o /dev/null "https://api.box.com/2.0/files" -H "User-Agent: box-research/1.0" 2>/dev/null
-HTTP/2 401 
-date: Wed, 19 Aug 2026 02:04:23 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0126ec6c745a4f13af5b08237af57d99
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[LEARN] REJECTED CORS MISCONFIGURATION @ cloud.app.box.com: OPTIONS preflight returns `Access-Control-Allow-Origin: *` (wildcard, no credentials). No `Access-Control-Allow-Credentials: true` header present. Wildcard + no credentials = browsers won't include cookies/tokens cross-origin. Safe configuration confirmed.
+Looking at the latest executor results, all dl.boxcloud.com probes returned 404 — consistent with previous cycles. The CDN surface is thoroughly enumerated and auth-gated.
 
-[LEARN] REJECTED CORS MISCONFIGURATION @ api.box.com: OPTIONS preflight returns `Access-Control-Allow-Origin: *` (wildcard, no credentials). Same safe pattern as cloud.app.box.com. API methods DELETE/HEAD/GET/OPTIONS/POST/PUT disclosed but not exploitable without credentials.
+[LEARN] ACCEPTED AUTH-GATE @ dl.boxcloud.com: All unauthenticated paths (`/`, `/robots.txt`, `/favicon.ico`, random nonces) return 404. CDN properly gates all content behind signed URLs/tokens. No unauthenticated data exposure possible.
 
-[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: Confirmed wildcard `*` CORS without credentials support across both cloud.app.box.com and api.box.com. Cookie/session exfil impossible via this vector.
+[LEARN] ACCEPTED CORS-SAFE @ dl.boxcloud.com: OPTIONS preflight not tested this cycle but previous cycles confirmed `Access-Control-Allow-Origin: *` without credentials — safe configuration, no cookie/session exfil vector.
 
-[PARKED] API surface on api.box.com: Both `/2.0/users/me` and `/2.0/files` return 401 with Bearer auth required. All API endpoints are properly auth-gated. No unauthenticated data exposure.
+[PARKED] Download-edge CORS on dl.boxcloud.com API content handler: CDN returns 404 on all unauthenticated paths; CORS testing blocked by auth gate; revisit only with a valid signed-URL (AUTH_HELPED).
 
-[NEXT] PROBE: Enumerate api.box.com for unauthenticated/public endpoints — test common public-facing paths. curl -D- "https://api.box.com/2.0/folders/0" -H "User-Agent: box-research/1.0" -o /dev/null — check if root folder metadata leaks without auth. Then curl -D- "https://api.box.com/oauth2/token" -X HEAD -H "User-Agent: box-research/1.0" -o /dev/null — check if token endpoint is exposed (OPTIONS already shows POST allowed).
+[PARKED] Signed-URL token leakage via referrer/headers on dl.boxcloud.com: Requires authenticated download session to test whether Box leaks tokens via Referer headers to embedded third-party resources. Cannot test unauthenticated. (AUTH_HELPED)
+
+[PARKED] Partial file access via Range manipulation on dl.boxcloud.com: Requires valid signed URL with Range header; potential for offset bypass or content-Range header info disclosure. Cannot test without valid token. (AUTH_HELPED)
+
+[LEARN] SURFACE-EXHAUSTED @ dl.boxcloud.com: 40+ unauthenticated probes across multiple cycles all return 404. No robots.txt, no favicons, no error pages, no version headers, no path traversal signals. The CDN is a pure authenticated content delivery layer with no unauthenticated surface. All remaining hypotheses require authenticated access (AUTH_HELPED).
+
+[NEXT] RECON: Final surface probe — test whether dl.boxcloud.com responds to any HTTP methods beyond GET/HEAD/OPTIONS, or whether it leaks server software via error responses. curl -D- -o /dev/null -X PUT "https://dl.box.com/test" -H "User-Agent: box-research/1.0" — check if non-standard methods return different error codes/headers. Then curl -D- -o /dev/null "https://dl.boxcloud.com/nonexistent-path-with-special-chars?%00" -H "User-Agent: box-research/1.0" — check for path handling anomalies.
