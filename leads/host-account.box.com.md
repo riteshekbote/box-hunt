@@ -751,3 +751,25 @@ testability: PASSIVE
 ## 2026-08-19 17:37:22 UTC account.box.com (ling3)
 ## 2026-08-19 17:56:02 UTC account.box.com (ling3)
 ## 2026-08-19 18:19:24 UTC account.box.com (ling3)
+## 2026-08-19 18:57:46 UTC account.box.com (bigpickle)
+[LEARN] REJECTED CORS misconfiguration @ cloud.app.box.com: 10+ duplicate hypothesis variants cluttering the table with no preflight evidence yet. Consolidating into one canonical entry.
+[LEARN] REJECTED method/CORS surface @ upload.box.com: All probe paths return 404 including /api/2.0/files/content — the origin 404s unauthenticated API attempts. Park unless authenticated probe reveals upload-specific CORS headers.
+[HYP] CORS preflight reflects attacker Origin on cloud.app.box.com
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 40
+reasoning: cloud.app.box.com alternates between 200 and 206 across cycles, suggesting a CDN/object-store content layer in front of a frontend origin. CDN layers sometimes apply permissive CORS defaults. No OPTIONS preflight has been executed yet. The 206 on root suggests Range/content-range handling distinct from the app origin — this layer may have different CORS policy than app.box.com.
+verify_steps: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/` then `curl -sD- -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
+impact: If cloud.app.box.com reflects arbitrary origins with credentials, an attacker could read embedded preview content cross-origin, potentially exfiltrating file previews visible to the victim. Severity: Medium-High
+testability: PASSIVE
+[HYP] Object-store 206 layer exposes signed-URL download endpoints at dl.boxcloud.com
+class: BUSLOGIC
+asset: dl.boxcloud.com
+confidence: 30
+reasoning: dl.boxcloud.com consistently returns 404 for robots.txt, root, and random paths — consistent with an object-store edge that only serves content for paths matching a signed-URL pattern (e.g., /api/2.0/files/{id}/content). The cloud.app.box.com 206/200 alternation and dl.boxcloud.com 404s suggest these share CDN infrastructure. If signed URLs have insufficient path traversal checks or token-reuse windows, file content may be accessible.
+verify_steps: HEAD requests to dl.boxcloud.com/api/2.0/files/content and dl.boxcloud.com/download with Range headers to test content-layer behavior
+impact: Unauthorized file content access. Severity: High if token bypass confirmed.
+testability: HUMAN_ONLY
+[PARKED] OAuth token endpoint exposure @ cloud.app.box.com: No evidence of /oauth2/token or similar endpoints; 404s on random paths. Requires authenticated session to probe further.
+[NEXT] PREFLIGHT: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
+[NEXT] ORIGIN-GET: `curl -sD- -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
