@@ -735,3 +735,4 @@ verify_steps: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Ac
 impact: If cloud.app.box.com reflects attacker origins or exposes Authorization headers, an attacker could exfiltrate embedded content views or file preview data cross-origin. Severity: Medium-High.
 testability: PASSIVE
 [NEXT] PREFLIGHT: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
+## 2026-08-19 10:59:36 UTC account.box.com (ling3)
