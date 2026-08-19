@@ -111,3 +111,6 @@ https://cloud.app.box.com/representation -> HTTP 404
 https://cloud.app.box.com/app-assets -> HTTP 404
 https://cloud.app.box.com/simpleshare -> HTTP 403
 https://cloud.app.box.com/services -> 200
+
+## 2026-08-19 22:02:09 UTC app.box.com
+https://cloud.app.box.com/ -> 200

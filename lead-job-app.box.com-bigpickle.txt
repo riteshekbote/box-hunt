@@ -1,0 +1,10 @@
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS probe from previous cycle returned no evidence in probe-results; the 206 on root is now stable across 3 executor cycles, confirming it is a deliberate serving behavior, not a transient misroute.
+[HYP] cloud.app.box.com/: 206 partial-content asset layer — origin-side Range handling and Content-Type disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Three consecutive executor cycles show cloud.app.box.com/ returning HTTP 206 without a client-sent Range header. This means the server either synthesizes a Range response for the root or the CDN edge is injecting one. The 206 status reveals a content-serving layer (likely file-preview/embed) fronted by an object store or signed-URL edge. If the Content-Type or body leaks metadata (file names, tokens, cache keys), it's a LOW-MEDIUM info-disclosure. If arbitrary paths can elicit 206, the layer may serve unauthenticated content.
+verify_steps: 1) GET https://cloud.app.box.com/ with headers Host: cloud.app.box.com, Origin: https://evil.com, Range: bytes=0-0  2) OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com  3) GET https://cloud.app.box.com/ (no Range, no Origin) to capture body
+impact: Information disclosure of asset-layer routing config, cache keys, or signed-URL parameters (MEDIUM); if Access-Control-Allow-Origin reflects arbitrary Origin, cross-origin read of preview content (HIGH).
+testability: AUTH_HELPED
+[NEXT] PROBE: GET https://cloud.app.box.com/ with headers Origin: https://evil.com, Range: bytes=0-0 and also OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — capture all response headers and body for both.
