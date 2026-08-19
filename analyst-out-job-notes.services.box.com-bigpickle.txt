@@ -1,34 +1,55 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] REJECTED dl.boxcloud.com surface: All probes consistently 404. Dead end.
-[LEARN] REJECTED upload.box.com surface: All probes consistently 404. Dead end.
-
-[NEW] cloud.app.box.com: Root oscillates 200/206 — need header capture to identify backend type
-[HYP] Object-store Range misconfiguration
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 65
-reasoning: 206 Partial Content at root indicates object storage with Range support. If no Content-Range header is returned, this may be a misconfigured default handler returning arbitrary file content. The 200/206 oscillation suggests load balancer hitting different backends with different configs.
-evidence_needed: Full response headers including Content-Range, Content-Length, Accept-Ranges, Content-Type, Server on 206 response
-verify_steps: HEAD https://cloud.app.box.com/ (capture all headers), GET https://cloud.app.box.com/ (capture body+headers), OPTIONS https://cloud.app.box.com/ (CORS policy), Range: bytes=0-100 header test on GET
-impact: If object-store leaks file content or metadata without auth — HIGH
-testability: PASSIVE
-
-[HYP] CORS reflection on preview origin
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 55
-reasoning: cloud.app.box.com is used for embedded content preview. Preview origins often have permissive CORS to allow parent frames to read content. If Access-Control-Allow-Origin reflects attacker origin with credentials, cross-origin data theft is possible.
-evidence_needed: OPTIONS response with custom Origin header showing reflection
-verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, GET https://cloud.app.box.com/ with Origin: https://evil.com
-impact: Cross-origin data theft from authenticated preview sessions — HIGH
-testability: PASSIVE
-
-[NEXT] HEAD https://cloud.app.box.com/ — capture full response headers on next hit
-[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-100 — explicit Range request to trigger 206
-[NEXT] OPTIONS https://cloud.app.box.com/ — CORS preflight policy capture
-[NEXT] GET https://cloud.app.box.com/?bhx-probe=1 — query param may change backend routing
-[NEXT] HEAD https://cloud.app.box.com/robots.txt — HEAD variant may return different status
-[NEXT] GET https://cloud.app.box.com/manifest.json — PWA manifest often unauthenticated
-[NEXT] GET https://cloud.app.box.com/sw.js — service worker endpoint
+[0m$ [0mcurl -s -o /dev/null -w "HTTP/%{http_version} %{http_code}\nContent-Type: %{content_type}\nSize: %{size_download}\nRedirect: %{redirect_url}\n" -H "User-Agent: box-research/1.0" -H "Range: bytes=0-100" --max-time 10 https://cloud.app.box.com/ 2>&1
+HTTP/2 302
+Content-Type: text/html; charset=utf-8
+Size: 0
+Redirect: https://cloud.app.box.com/login
+[0m
+[0m$ [0mcurl -s -D - -o /dev/null --max-time 10 -H "User-Agent: box-research/1.0" https://cloud.app.box.com/ 2>&1
+HTTP/2 302 
+date: Wed, 19 Aug 2026 20:00:08 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=iu6472phn59d6efpeu1ukd8t6m; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=iu6472phn59d6efpeu1ukd8t6m; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a860b48c12514.62967818; expires=Thu, 19 Aug 2027 20:00:08 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=CRED-13218; expires=Wed, 26 Aug 2026 20:00:08 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=41; expires=Thu, 19 Aug 2027 20:00:08 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 43
+location: https://cloud.app.box.com/login
+box-request-id: 1709399ee74aea9db1791ce582e9dc538
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0msleep 4 && curl -s -o /tmp/cloud_manifest.txt -w "HTTP/%{http_version} %{http_code}\nSize: %{size_download}\n" --max-time 10 -H "User-Agent: box-research/1.0" https://cloud.app.box.com/manifest.json 2>&1 && cat /tmp/cloud_manifest.txt | head -c 2000 failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[0m
+[0m$ [0msleep 2 && curl -s -D - -o /dev/null --max-time 10 -X OPTIONS -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" https://cloud.app.box.com/ 2>&1
+HTTP/2 204 
+date: Wed, 19 Aug 2026 20:00:17 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+box-request-id: 093ca1c5f5e7e260182004047713198bd
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0msleep 6 && curl -s -o /tmp/cloud_sw.txt -w "HTTP/%{http_version} %{http_code}\nSize: %{size_download}\n" --max-time 10 -H "User-Agent: box-research/1.0" https://cloud.app.box.com/sw.js 2>&1 && cat /tmp/cloud_sw.txt | head -c 2000 failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0msleep 8 && curl -s -o /tmp/cloud_health.txt -w "HTTP/%{http_version} %{http_code}\nSize: %{size_download}\n" --max-time 10 -H "User-Agent: box-research/1.0" https://cloud.app.box.com/health 2>&1 && cat /tmp/cloud_health.txt | head -c 2000 failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
