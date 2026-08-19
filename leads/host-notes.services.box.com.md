@@ -720,3 +720,10 @@ testability: PASSIVE
 ## 2026-08-19 22:25:15 UTC notes.services.box.com (ling3)
 ## 2026-08-19 22:48:00 UTC notes.services.box.com (ling3)
 ## 2026-08-19 23:04:23 UTC notes.services.box.com (bigpickle)
+## 2026-08-19 23:31:14 UTC notes.services.box.com (bigpickle)
+[LEARN] REJECTED dl.boxcloud.com surface: All probes consistently 404. Dead end.
+[LEARN] REJECTED upload.box.com surface: All probes consistently 404. Dead end.
+[NEXT] HEAD https://cloud.app.box.com/ — full response header capture
+[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-100 — explicit Range request to trigger 206
+[NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — CORS preflight policy capture
+[NEXT] GET https://cloud.app.box.com/ with Origin: https://evil.com — CORS reflection on GET
