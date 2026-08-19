@@ -1,19 +1,16 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] api.box.com: Core API — never probed in any cycle; ripe for version/stack disclosure and unauthenticated endpoint enumeration.
-
-[HYP] API error enumeration and version disclosure on api.box.com
-class: MISCONFIG
-asset: api.box.com/
-confidence: 40
-reasoning: api.box.com is the core API and has never been probed in any cycle. Unauthenticated API requests return detailed error responses with version info, internal paths, or debugging metadata. Previous hypotheses for cloud.app.box.com OPTIONS have been parked 6+ cycles — executor cannot run OPTIONS; api.box.com is the freshest high-value target.
-verify_steps: (1) bare GET https://api.box.com/ with UA box-research/1.0 +(research), record full status+headers+body_length; (2) bare GET https://api.box.com/2.0/users/me same UA. 1 req/2s. First 4xx/429/403 -> log and stop that host.
-impact: version/stack disclosure; unauthenticated data exposure via API endpoints; severity depends on what leaks
-testability: PASSIVE
-
-[PARKED] CORS preflight reflection on cloud.app.box.com embedded preview origin: OPTIONS probe requested 7+ consecutive cycles but never executed by the executor; all probe results show only GET requests. Requires OPTIONS-capable probe or header-capturing GET. Parked indefinitely.
-
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root consistently returns 200; all other paths return 404; confirms the asset edge serves content but routing is restricted. Root 200 was confirmed in latest cycle (14:48:04 UTC).
-
-[NEXT] PROBE: bare GET https://api.box.com/ with headers User-Agent: box-research/1.0 +(research), record full status code + all response headers + body_length. 1 req/2s. First 4xx/429/403 -> log and stop api.box.com for this cycle.
+[0m$ [0mcurl -s -o /tmp/api_root.txt -w "HTTP_CODE:%{http_code}\nSIZE:%{size_download}\nCONTENT_TYPE:%{content_type}\nREDIRECT_URL:%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" --max-time 10 -D /tmp/api_root_headers.txt "https://api.box.com/" 2>&1
+HTTP_CODE:401
+SIZE:0
+CONTENT_TYPE:
+REDIRECT_URL:
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcat /tmp/api_root_headers.txt 2>/dev/null || echo "no headers file" failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcat /tmp/api_root.txt 2>/dev/null | head -c 2000 || echo "no body" failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+I'll execute the queued probe against `api.box.com` — a host never tested in any prior cycle.
