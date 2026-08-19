@@ -474,3 +474,4 @@ reasoning: OAuth2 token endpoints are critical auth infrastructure. If misconfig
 verify_steps: curl -D- -o /dev/null -X OPTIONS "https://account.box.com/oauth2/token" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" && curl -D- -o /dev/null "https://account.box.com/oauth2/token" -H "User-Agent: box-research/1.0"
 impact: If token endpoint reflects origin in CORS or allows unauthenticated token issuance, attacker could forge access tokens
 testability: PASSIVE
+## 2026-08-19 10:59:37 UTC dl.boxcloud.com (ling3)
