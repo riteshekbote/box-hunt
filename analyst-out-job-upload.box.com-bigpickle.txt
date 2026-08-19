@@ -1,23 +1,17 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the current state, the primary focus is on cloud.app.box.com. The root oscillation (200 vs 206) continues, with the latest cycle returning 206.
+[LEARN] ACCEPTED: cloud.app.box.com root oscillation confirmed — 206 (2026-08-18 23:32, 01:50), 200 (2026-08-18 23:54). Behavior is non-deterministic, likely load-balancer routing to different handlers.
 
-**Analysis of current hypotheses:**
+[HYP] cloud.app.box.com CORS preflight reflection
+class: MISCONFIG
+asset: cloud.app.box.com (OPTIONS)
+confidence: 60
+reasoning: Root now proves dual-handler oscillation (200/206). Embedded preview origin must accept cross-origin iframe requests from customer sites. If OPTIONS reflects attacker origin with credentials, authenticated preview content readable cross-origin. 206-handler may have different CORS policy than 200-handler.
+evidence_needed: OPTIONS response headers — specifically Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Methods
+verify_steps: `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.com`, `Access-Control-Request-Method: GET`, UA: box-research/1.0 +(research). Status + all response headers.
+impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content from any authenticated user). If reflected without credentials → MEDIUM. If not reflected → LOW.
+testability: PASSIVE
 
-1. **cloud.app.box.com CORS misconfiguration** (confidence 45-50): This is the most promising lead. The oscillation between 200/206 suggests load-balanced backends with potentially different CORS policies. The planned OPTIONS probe with evil.com origin hasn't been executed yet.
-
-2. **Object-store vs whitelist routing** (confidence 45): The 206 responses suggest an object-store layer is active on the root.
-
-**Recommendations:**
-
-1. Execute the planned OPTIONS probe on cloud.app.box.com to test CORS reflection
-2. Probe notes.services.box.com and m.box.com (first contact)
-3. Consider testing Range request variation: `GET https://cloud.app.box.com/` with `Range: bytes=0-0` to force 206 and compare headers with the 200 response
-
-The dl.boxcloud.com and upload.box.com surfaces appear exhausted without authentication. The primary value now lies in:
-- CORS behavior on cloud.app.box.com
-- Potential auth bypass or session handling differences between the oscillating backends
-- notes.services.box.com (real-time collaboration backend) - unexplored surface
-
-The CORS hypothesis should be tested next as it could yield HIGH severity if reflected with credentials.
+[NEXT] PROBE (cloud.app.box.com — CORS preflight): OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET. Status + response headers (Access-Control-Allow-Origin, Allow-Credentials, Access-Control-Allow-Headers). 1 req.
+[NEXT] PROBE (cloud.app.box.com — range-probe root): GET https://cloud.app.box.com/ with Range: bytes=0-0. Status (expect 206) + Content-Range header to map asset layer boundary. 1 req.

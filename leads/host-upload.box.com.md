@@ -665,3 +665,15 @@ testability: PASSIVE
 ## 2026-08-18 23:37:05 UTC upload.box.com (ling3)
 ## 2026-08-18 23:54:49 UTC upload.box.com (ling3)
 ## 2026-08-19 00:31:41 UTC upload.box.com (ling3)
+## 2026-08-19 02:04:09 UTC upload.box.com (bigpickle)
+[LEARN] ACCEPTED: cloud.app.box.com root oscillation confirmed — 206 (2026-08-18 23:32, 01:50), 200 (2026-08-18 23:54). Behavior is non-deterministic, likely load-balancer routing to different handlers.
+[HYP] cloud.app.box.com CORS preflight reflection
+class: MISCONFIG
+asset: cloud.app.box.com (OPTIONS)
+confidence: 60
+reasoning: Root now proves dual-handler oscillation (200/206). Embedded preview origin must accept cross-origin iframe requests from customer sites. If OPTIONS reflects attacker origin with credentials, authenticated preview content readable cross-origin. 206-handler may have different CORS policy than 200-handler.
+verify_steps: `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.com`, `Access-Control-Request-Method: GET`, UA: box-research/1.0 +(research). Status + all response headers.
+impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content from any authenticated user). If reflected without credentials → MEDIUM. If not reflected → LOW.
+testability: PASSIVE
+[NEXT] PROBE (cloud.app.box.com — CORS preflight): OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET. Status + response headers (Access-Control-Allow-Origin, Allow-Credentials, Access-Control-Allow-Headers). 1 req.
+[NEXT] PROBE (cloud.app.box.com — range-probe root): GET https://cloud.app.box.com/ with Range: bytes=0-0. Status (expect 206) + Content-Range header to map asset layer boundary. 1 req.
