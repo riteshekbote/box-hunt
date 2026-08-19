@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-19 05:57:49 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: Root oscillates 200/206 across load-balanced backends. The 206 backend likely serves an object-storage asset with Range support. If Range: bytes=0-0 consistently triggers 206 with partial content, the object-store layer is the one responding and we can enumerate its behavior. The 200 backend is the app shell (SPA). The 206 backend may expose metadata or content.
 verify_steps: HEAD https://cloud.app.box.com/ (capture all headers), GET https://cloud.app.box.com/ (capture body + headers), HEAD https://cloud.app.box.com/robots.txt, GET https://cloud.app.box.com/health, GET https://cloud.app.box.com/.well-known/box-installation, GET https://cloud.app.box.com/app/248/style.css
 impact: If object-store layer leaks bucket metadata or allows Range-based content enumeration — MEDIUM
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-19 10:59:37 UTC notes.services.box.com (ling3)
 ## 2026-08-19 11:26:16 UTC notes.services.box.com (ling3)
 ## 2026-08-19 11:48:12 UTC notes.services.box.com (ling3)
+## 2026-08-19 12:03:32 UTC notes.services.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 
