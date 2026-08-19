@@ -1,41 +1,14 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the current state, I can see you're in the POC phase investigating CORS misconfigurations and object-store routing on `cloud.app.box.com`. The consistent 206 responses at root suggest an active handler.
-
-**Current Hypothesis Status:**
-- Main focus: CORS preflight reflection on cloud.app.box.com (confidence: 60)
-- Supporting: Object-store default handler vs whitelist-routed behavior (confidence: 45)
-
-**Next Recommended Probes (based on [NEXT] lines):**
-
-1. **CORS Preflight Test** (highest priority):
-   ```
-   OPTIONS https://cloud.app.box.com/ 
-   Headers:
-     Origin: https://evil.com
-     Access-Control-Request-Method: GET
-     User-Agent: box-research/1.0 +(research)
-   ```
-   Expected: Check for `Access-Control-Allow-Origin` reflection, `Access-Control-Allow-Credentials`, and `Access-Control-Allow-Headers`.
-
-2. **Range Probe** (to map asset layer boundary):
-   ```
-   GET https://cloud.app.box.com/
-   Headers:
-     Range: bytes=0-0
-     User-Agent: box-research/1.0 +(research)
-   ```
-   Expected: 206 with `Content-Range` header to understand asset layer structure.
-
-**Analysis of Current Evidence:**
-- The root endpoint consistently returns 206, confirming the 206/Range layer fronts the origin root
-- Path-based probes (e.g., `/robots.txt`, random paths) return 404, suggesting either:
-  - Whitelist routing (only specific paths are handled)
-  - Object-store routing with access controls
-  - Different handlers for different path patterns
-
-**Recommendation:**
-Execute the CORS preflight probe first, as it directly tests the highest-confidence hypothesis (60%). If the preflight reflects the attacker origin with credentials, this would be a high-severity vulnerability allowing cross-origin theft of Box preview content.
-
-Would you like me to prepare the exact curl commands for these probes, or should I analyze any specific aspect of the current state further?
+[LEARN] ACCEPTED: cloud.app.box.com root oscillation confirmed — 206 (2026-08-18 23:32, 01:50), 200 (2026-08-18 23:54). Behavior is non-deterministic, likely load-balancer routing to different handlers.
+[HYP] cloud.app.box.com CORS preflight reflection
+class: MISCONFIG
+asset: cloud.app.box.com (OPTIONS)
+confidence: 60
+reasoning: Root now proves dual-handler oscillation (200/206). Embedded preview origin must accept cross-origin iframe requests from customer sites. If OPTIONS reflects attacker origin with credentials, authenticated preview content readable cross-origin. 206-handler may have different CORS policy than 200-handler.
+verify_steps: `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.com`, `Access-Control-Request-Method: GET`, UA: box-research/1.0 +(research). Status + all response headers.
+impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content from any authenticated user). If reflected without credentials → MEDIUM. If not reflected → LOW.
+testability: PASSIVE
+[NEXT] PROBE (cloud.app.box.com — CORS preflight): OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET. Status + response headers (Access-Control-Allow-Origin, Allow-Credentials, Access-Control-Allow-Headers). 1 req.
+[NEXT] PROBE (cloud.app.box.com — range-probe root): GET https://cloud.app.box.com/ with Range: bytes=0-0. Status (expect 206) + Content-Range header to map asset layer boundary. 1 req.
