@@ -1,14 +1,9 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the current state, I see we're in POC phase with several hypotheses on cloud.app.box.com already rejected. The evidence shows:
+Looking at the state: cloud.app.box.com is evidence-closed (whitelist-routed confirmed, all 45-rated hypotheses rejected). The pending [NEXT] items are app.box.com/robots.txt and cloud.app.box.com Range probe.
 
-- cloud.app.box.com root returns 200/206 (pinned asset)
-- Random paths return 404 (whitelist-routed confirmed)
-- dl.boxcloud.com and upload.box.com robots.txt both 404
-- app.box.com/robots.txt not yet tested
-
-Based on this evidence and the ranked hypotheses, here are the next steps:
+app.box.com/robots.txt is the highest-value next probe — it's the only in-scope host not yet checked for path disclosure.
 
 [NEXT] GET https://app.box.com/robots.txt — check for path disclosure or admin endpoints
 [NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure
@@ -18,7 +13,7 @@ class: MISCONFIG
 asset: app.box.com/robots.txt
 confidence: 30
 reasoning: Enterprise apps often leak internal paths in robots.txt. app.box.com is the primary web app and only host in scope not yet probed for robots.txt.
-evidence_needed: Response body containing Disallow directives with internal paths
+evidence_needed: Response body with Disallow/Allow directives revealing internal paths
 verify_steps: GET https://app.box.com/robots.txt
 impact: Information disclosure of admin panels, API routes, or internal paths; aids further targeted probing
 testability: PASSIVE
@@ -28,7 +23,7 @@ class: MISCONFIG
 asset: cloud.app.box.com/
 confidence: 25
 reasoning: The 200/206 responses suggest Range support. Checking Content-Range header might reveal total file size of the pinned asset.
-evidence_needed: Content-Range header with total file size
+evidence_needed: Content-Range header with total-size field in response
 verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0
 impact: Information disclosure of asset size; low severity but confirms asset characteristics
 testability: PASSIVE

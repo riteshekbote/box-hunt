@@ -551,3 +551,22 @@ reasoning: The 200/206 responses suggest Range support. Checking Content-Range h
 verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0
 impact: Information disclosure of asset size; low severity but confirms asset characteristics
 testability: PASSIVE
+## 2026-08-19 16:47:31 UTC api.box.com (bigpickle)
+[NEXT] GET https://app.box.com/robots.txt — check for path disclosure or admin endpoints
+[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure
+[HYP] app.box.com robots.txt information disclosure
+class: MISCONFIG
+asset: app.box.com/robots.txt
+confidence: 30
+reasoning: Enterprise apps often leak internal paths in robots.txt. app.box.com is the primary web app and only host in scope not yet probed for robots.txt.
+verify_steps: GET https://app.box.com/robots.txt
+impact: Information disclosure of admin panels, API routes, or internal paths; aids further targeted probing
+testability: PASSIVE
+[HYP] cloud.app.box.com Content-Range size disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 25
+reasoning: The 200/206 responses suggest Range support. Checking Content-Range header might reveal total file size of the pinned asset.
+verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0
+impact: Information disclosure of asset size; low severity but confirms asset characteristics
+testability: PASSIVE
