@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-18 21:13:10 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: Three consecutive cycles confirm root returns 206 Partial Content on bare GET with no Range header. All sub-paths return 404, confirming root is uniquely routed. The 206-without-Range pattern is characteristic of object-storage default responses when a zero-byte or placeholder object exists at the bucket root. If the body contains XML (e.g. ListObjects), this would be an information disclosure of bucket structure.
 verify_steps: GET https://cloud.app.box.com/ (capture body + Content-Type), HEAD https://cloud.app.box.com/ (capture all headers including Content-Range, Accept-Ranges, Server), OPTIONS https://cloud.app.box.com/ (capture CORS headers)
 impact: If body is XML bucket listing → HIGH (internal asset enumeration). If body is app shell rendered as 206 → LOW (just misconfigured status code). If Content-Range exposes file size → MEDIUM (information leakage).
 testability: PASSIVE
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-19 03:06:15 UTC notes.services.box.com (ling3)
 ## 2026-08-19 03:54:35 UTC notes.services.box.com (ling3)
 ## 2026-08-19 04:24:51 UTC notes.services.box.com (ling3)
+## 2026-08-19 04:58:59 UTC notes.services.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
