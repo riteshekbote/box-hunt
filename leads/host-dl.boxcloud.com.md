@@ -476,3 +476,4 @@ impact: If token endpoint reflects origin in CORS or allows unauthenticated toke
 testability: PASSIVE
 ## 2026-08-19 10:59:37 UTC dl.boxcloud.com (ling3)
 ## 2026-08-19 11:26:16 UTC dl.boxcloud.com (ling3)
+## 2026-08-19 11:48:13 UTC dl.boxcloud.com (ling3)
