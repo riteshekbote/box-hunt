@@ -1,16 +1,15 @@
 [0m
 > build · big-pickle
 [0m
-[0m$ [0mcurl -s -o /tmp/api_root.txt -w "HTTP_CODE:%{http_code}\nSIZE:%{size_download}\nCONTENT_TYPE:%{content_type}\nREDIRECT_URL:%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" --max-time 10 -D /tmp/api_root_headers.txt "https://api.box.com/" 2>&1
-HTTP_CODE:401
-SIZE:0
-CONTENT_TYPE:
-REDIRECT_URL:
+[0m$ [0mcurl -s -o /tmp/api_box_root.txt -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://api.box.com/"
+401
+[0m
+[0m$ [0mcurl -s -D /tmp/api_box_root_headers.txt -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://api.box.com/"
+(no output)
 [0m
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcat /tmp/api_root_headers.txt 2>/dev/null || echo "no headers file" failed
+[0m✗ [0mRead /tmp/api_box_root.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcat /tmp/api_root.txt 2>/dev/null | head -c 2000 || echo "no body" failed
+[0m✗ [0mRead /tmp/api_box_root_headers.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.
-I'll execute the queued probe against `api.box.com` — a host never tested in any prior cycle.
