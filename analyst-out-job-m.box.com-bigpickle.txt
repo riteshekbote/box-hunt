@@ -1,10 +1,9 @@
 [0m
 > build · big-pickle
 [0m
-I'll execute the probe on api.box.com as specified in the [NEXT] instruction.
-[0m$ [0mcurl -s -o /tmp/api_box_root.txt -w "%{http_code}|%{size_download}" -H "User-Agent: box-research/1.0 +(research)" "https://api.box.com/" 2>&1
+[0m$ [0mcurl -sS -o /tmp/api_box_root.txt -w "%{http_code}|%{size_download}" -D /tmp/api_box_root_hdrs.txt -A "box-research/1.0 +(research)" --max-time 10 "https://api.box.com/" 2>&1
 401|0
 [0m
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/api_box_headers.txt -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://api.box.com/" 2>&1 && cat /tmp/api_box_headers.txt failed
+[0m✗ [0mRead /tmp/api_box_root_hdrs.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.

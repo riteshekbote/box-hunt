@@ -741,3 +741,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root consistently returns 200; all other paths return 404; confirms the asset edge serves content but routing is restricted. Root 200 was confirmed in latest cycle (18:50:23 UTC).
 [NEXT] PROBE: bare GET https://api.box.com/ with headers User-Agent: box-research/1.0 +(research), record full status code + all response headers + body_length. 1 req/2s. First 4xx/429/403 -> log and stop api.box.com for this cycle.
 ## 2026-08-19 19:47:32 UTC m.box.com (bigpickle)
+## 2026-08-19 20:00:21 UTC m.box.com (bigpickle)
