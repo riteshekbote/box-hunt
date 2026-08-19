@@ -441,3 +441,4 @@ testability: PASSIVE
 [PARKED] CORS misconfiguration on cloud.app.box.com preview origin: Confirmed wildcard `*` CORS without credentials support across both cloud.app.box.com and api.box.com. Cookie/session exfil impossible via this vector.
 [PARKED] API surface on api.box.com: Both `/2.0/users/me` and `/2.0/files` return 401 with Bearer auth required. All API endpoints are properly auth-gated. No unauthenticated data exposure.
 [NEXT] PROBE: Enumerate api.box.com for unauthenticated/public endpoints — test common public-facing paths. curl -D- "https://api.box.com/2.0/folders/0" -H "User-Agent: box-research/1.0" -o /dev/null — check if root folder metadata leaks without auth. Then curl -D- "https://api.box.com/oauth2/token" -X HEAD -H "User-Agent: box-research/1.0" -o /dev/null — check if token endpoint is exposed (OPTIONS already shows POST allowed).
+## 2026-08-19 03:06:15 UTC dl.boxcloud.com (ling3)
