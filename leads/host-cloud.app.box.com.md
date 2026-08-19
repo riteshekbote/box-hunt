@@ -581,3 +581,4 @@ testability: PASSIVE
 [NEXT] GET cloud.app.box.com/ Origin: https://evil.example.com → check Access-Control-Allow-Origin reflection
 [NEXT] OPTIONS cloud.app.box.com/ Origin: https://evil.example.com → check preflight reflection + allowed methods
 [NEXT] GET cloud.app.box.com/ Origin: https://evil.example.com → check if Authorization header exposed via Access-Control-Expose-Headers
+## 2026-08-19 15:22:29 UTC cloud.app.box.com (ling3)
