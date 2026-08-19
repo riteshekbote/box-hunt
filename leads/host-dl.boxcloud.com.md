@@ -452,3 +452,4 @@ testability: PASSIVE
 [NEXT] RECON: Final surface probe — test whether dl.boxcloud.com responds to any HTTP methods beyond GET/HEAD/OPTIONS, or whether it leaks server software via error responses. curl -D- -o /dev/null -X PUT "https://dl.box.com/test" -H "User-Agent: box-research/1.0" — check if non-standard methods return different error codes/headers. Then curl -D- -o /dev/null "https://dl.boxcloud.com/nonexistent-path-with-special-chars?%00" -H "User-Agent: box-research/1.0" — check for path handling anomalies.
 ## 2026-08-19 04:24:50 UTC dl.boxcloud.com (ling3)
 ## 2026-08-19 04:58:55 UTC dl.boxcloud.com (ling3)
+## 2026-08-19 05:29:33 UTC dl.boxcloud.com (ling3)
