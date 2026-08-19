@@ -576,3 +576,8 @@ testability: PASSIVE
 ## 2026-08-19 13:02:38 UTC cloud.app.box.com (ling3)
 ## 2026-08-19 13:50:30 UTC cloud.app.box.com (ling3)
 ## 2026-08-19 14:18:58 UTC cloud.app.box.com (ling3)
+## 2026-08-19 14:56:28 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com: POC cycle — testing CORS reflection + OPTIONS surface on 206 layer
+[NEXT] GET cloud.app.box.com/ Origin: https://evil.example.com → check Access-Control-Allow-Origin reflection
+[NEXT] OPTIONS cloud.app.box.com/ Origin: https://evil.example.com → check preflight reflection + allowed methods
+[NEXT] GET cloud.app.box.com/ Origin: https://evil.example.com → check if Authorization header exposed via Access-Control-Expose-Headers
