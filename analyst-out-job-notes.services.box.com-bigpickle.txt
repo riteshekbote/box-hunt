@@ -1,79 +1,34 @@
 [0m
 > build · big-pickle
 [0m
-[0m# [0mTodos
-[•] Advance cloud.app.box.com POC: capture body on 206 vs 200 cycles, test new sub-paths
-[ ] Check completed notes.services.box.com probes for new findings
-[0m
-[0m# [0mTodos
-[✓] Advance cloud.app.box.com POC: capture body on 206 vs 200 cycles, test new sub-paths
-[ ] Check completed notes.services.box.com probes for new findings
-[0m
-The oscillation pattern (206→200→206) confirms load-balanced backends. Sub-paths all 404 — need to test Range requests and more path variations to determine if the 206 layer fronts the whole origin or just root.
+[LEARN] REJECTED dl.boxcloud.com surface: All probes consistently 404. Dead end.
+[LEARN] REJECTED upload.box.com surface: All probes consistently 404. Dead end.
 
-[NEW] cloud.app.box.com/: Root 200/206 oscillation persists — latest cycle 206 (05:41 UTC). All sub-paths return 404.
-[HYP] Object-store range header on root — does Range: bytes=0-0 elicit 206 with partial body vs full app shell?
+[NEW] cloud.app.box.com: Root oscillates 200/206 — need header capture to identify backend type
+[HYP] Object-store Range misconfiguration
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 60
-reasoning: Root oscillates 200/206 across load-balanced backends. The 206 backend likely serves an object-storage asset with Range support. If Range: bytes=0-0 consistently triggers 206 with partial content, the object-store layer is the one responding and we can enumerate its behavior. The 200 backend is the app shell (SPA). The 206 backend may expose metadata or content.
-evidence_needed: Full response headers on 206 cycle (Content-Range, Content-Length, Content-Type, Accept-Ranges). Body content on 206 vs 200.
-verify_steps: HEAD https://cloud.app.box.com/ (capture all headers), GET https://cloud.app.box.com/ (capture body + headers), HEAD https://cloud.app.box.com/robots.txt, GET https://cloud.app.box.com/health, GET https://cloud.app.box.com/.well-known/box-installation, GET https://cloud.app.box.com/app/248/style.css
-impact: If object-store layer leaks bucket metadata or allows Range-based content enumeration — MEDIUM
+confidence: 65
+reasoning: 206 Partial Content at root indicates object storage with Range support. If no Content-Range header is returned, this may be a misconfigured default handler returning arbitrary file content. The 200/206 oscillation suggests load balancer hitting different backends with different configs.
+evidence_needed: Full response headers including Content-Range, Content-Length, Accept-Ranges, Content-Type, Server on 206 response
+verify_steps: HEAD https://cloud.app.box.com/ (capture all headers), GET https://cloud.app.box.com/ (capture body+headers), OPTIONS https://cloud.app.box.com/ (CORS policy), Range: bytes=0-100 header test on GET
+impact: If object-store leaks file content or metadata without auth — HIGH
 testability: PASSIVE
 
-[PARKED] Query-param discriminator hypothesis: Executor has dropped query-param probes for 8+ consecutive cycles. Requires manual curl.
-[PARKED] CORS misconfiguration on 206 asset layer: Executor cannot send custom Origin header. Requires manual curl.
-[LEARN] REJECTED upload.box.com surface: 14+ consecutive probes all 404. Strict allowlist. Dead end permanently.
-[LEARN] REJECTED dl.boxcloud.com surface: 10+ consecutive probes all 404. Locked down. Dead end permanently.
-
-[NEXT] HEAD https://cloud.app.box.com/ — capture all response headers (Content-Type, Content-Range, Content-Length, Accept-Ranges, Server, X-*) to characterize which backend is serving
-[NEXT] GET https://cloud.app.box.com/ — retrieve body to see if 206 cycle delivers partial content or full app shell
-[NEXT] HEAD https://cloud.app.box.com/robots.txt — test if sub-paths get 206 on the object-store backend
-[NEXT] GET https://cloud.app.box.com/health — test for health/debug endpoints that might reveal backend config
-[NEXT] GET https://cloud.app.box.com/.well-known/box-installation — test for Box-specific metadata endpoint
-[NEXT] GET https://cloud.app.box.com/app/248/style.css — test for versioned static asset path (SPA chunk naming pattern)
-[NEXT] OPTIONS https://cloud.app.box.com/ — capture CORS policy (different handler may respond)
-[NEXT] GET https://cloud.app.box.com/static/ — test for static asset prefix on 206 backend
-[NEXT] GET https://cloud.app.box.com/manifest.json — test for PWA manifest endpoint
-[NEXT] GET https://cloud.app.box.com/sw.js — test for service worker (often exposed on SPA origins)
-Let me refine — some of my [NEXT] lines overlap with previously queued but unexecuted probes. Let me provide only fresh probes.
-
-[NEW] cloud.app.box.com/: Root 200/206 oscillation persists — latest 206 (05:41 UTC). All tested sub-paths (/ROBOTS.TXT, /robots, /bhx-*) return 404. Sub-path probes from prior cycles (/health, /status, /v1/, /api/, /robots.txt, /robots.txt/, /%2e/, /..;, /static/) were queued but NOT seen in executor results — likely consumed silently.
-
-[HYP] cloud.app.box.com root 206: object-store origin serving partial content with Range support
+[HYP] CORS reflection on preview origin
 class: MISCONFIG
 asset: cloud.app.box.com/
-confidence: 60
-reasoning: Root oscillates 200/206 across load-balanced backends. The 206 responses indicate an object-storage origin returning partial content (HTTP Range semantics). Sub-paths all return 404, suggesting the 206 layer only handles exact root or very specific paths. Without header capture, we cannot determine if the 206 body is a file fragment or misrouted app shell.
-evidence_needed: Full response headers on a 206 cycle (Content-Range, Content-Length, Accept-Ranges, Content-Type, Server). Body content comparison 206 vs 200.
-verify_steps: HEAD https://cloud.app.box.com/ — capture all headers on next hit. GET https://cloud.app.box.com/ — capture body+headers. OPTIONS https://cloud.app.box.com/ — CORS policy on 206 layer.
-impact: If object-store layer leaks bucket metadata or allows Range-based content enumeration — MEDIUM
+confidence: 55
+reasoning: cloud.app.box.com is used for embedded content preview. Preview origins often have permissive CORS to allow parent frames to read content. If Access-Control-Allow-Origin reflects attacker origin with credentials, cross-origin data theft is possible.
+evidence_needed: OPTIONS response with custom Origin header showing reflection
+verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, GET https://cloud.app.box.com/ with Origin: https://evil.com
+impact: Cross-origin data theft from authenticated preview sessions — HIGH
 testability: PASSIVE
 
-[HYP] cloud.app.box.com static asset SPA-chunk routing — versioned paths may bypass 404 whitelist
-class: MISCONFIG
-asset: cloud.app.box.com/app/248/style.css
-confidence: 40
-reasoning: SPA apps commonly use versioned chunk paths (e.g. /app/{buildId}/style.css). If the 206 backend serves static assets but not arbitrary paths, a versioned asset path might return 200 with real content rather than 404. The buildId is unknown, so this is speculative.
-evidence_needed: Any non-404 response from a versioned static asset path.
-verify_steps: GET https://cloud.app.box.com/app/248/style.css, GET https://cloud.app.box.com/static/js/main.js, GET https://cloud.app.box.com/manifest.json, GET https://cloud.app.box.com/sw.js
-impact: If SPA chunks are accessible without auth, attacker can enumerate app structure and find API endpoints/secrets — LOW
-testability: PASSIVE
-
-[PARKED] Query-param discriminator hypothesis: Executor dropped query-param probes for 8+ cycles. Requires manual curl with custom Origin.
-[PARKED] CORS misconfiguration on 206 asset layer: Executor cannot send custom Origin header. Requires manual curl.
-
-[LEARN] REJECTED upload.box.com surface: 14+ consecutive probes all 404. Strict allowlist. Dead end.
-[LEARN] REJECTED dl.boxcloud.com surface: 10+ consecutive probes all 404. Locked down. Dead end.
-
-[NEXT] HEAD https://cloud.app.box.com/ — capture full response headers (Content-Range, Content-Length, Accept-Ranges, Content-Type, Server) on next root hit to characterize the 206 backend
-[NEXT] GET https://cloud.app.box.com/ — capture response body and headers to compare 200 app shell vs 206 partial content
-[NEXT] OPTIONS https://cloud.app.box.com/ — capture CORS policy; may hit different backend
-[NEXT] GET https://cloud.app.box.com/robots.txt — retest sub-path (prior queue may not have executed)
-[NEXT] GET https://cloud.app.box.com/app/248/style.css — SPA versioned asset path test
-[NEXT] GET https://cloud.app.box.com/static/js/main.js — common SPA entry point
-[NEXT] GET https://cloud.app.box.com/manifest.json — PWA manifest (often unauthenticated)
-[NEXT] GET https://cloud.app.box.com/sw.js — service worker (often unauthenticated)
-[NEXT] GET https://cloud.app.box.com/favicon.ico — standard static asset; may reveal asset-layer routing
-[NEXT] GET https://cloud.app.box.com/health — health endpoint test
+[NEXT] HEAD https://cloud.app.box.com/ — capture full response headers on next hit
+[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-100 — explicit Range request to trigger 206
+[NEXT] OPTIONS https://cloud.app.box.com/ — CORS preflight policy capture
+[NEXT] GET https://cloud.app.box.com/?bhx-probe=1 — query param may change backend routing
+[NEXT] HEAD https://cloud.app.box.com/robots.txt — HEAD variant may return different status
+[NEXT] GET https://cloud.app.box.com/manifest.json — PWA manifest often unauthenticated
+[NEXT] GET https://cloud.app.box.com/sw.js — service worker endpoint
