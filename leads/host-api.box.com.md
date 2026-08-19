@@ -587,3 +587,23 @@ testability: PASSIVE
 ## 2026-08-19 22:48:16 UTC api.box.com (ling3)
 ## 2026-08-19 23:04:09 UTC api.box.com (ling3)
 ## 2026-08-19 23:31:50 UTC api.box.com (ling3)
+## 2026-08-19 23:49:26 UTC api.box.com (bigpickle)
+[NEW] app.box.com/robots.txt: Reveals internal paths including /app-api/split-proxy and /app-gallery-v2/api
+[HYP] app.box.com /app-api/split-proxy SSRF potential
+class: SSRF
+asset: app.box.com/app-api/split-proxy
+confidence: 35
+reasoning: robots.txt explicitly lists /app-api/split-proxy as an allowed path. "split-proxy" naming suggests an internal proxy service that could be abused for SSRF if it accepts user-controlled URLs or parameters.
+verify_steps: GET https://app.box.com/app-api/split-proxy, GET https://app.box.com/app-api/split-proxy/ with various query params
+impact: SSRF to internal Box services, potential access to metadata endpoints or internal APIs; HIGH severity
+testability: PASSIVE
+[HYP] app.box.com /app-gallery-v2/api information disclosure
+class: MISCONFIG
+asset: app.box.com/app-gallery-v2/api
+confidence: 30
+reasoning: robots.txt explicitly allows this API path. Gallery APIs often serve metadata about apps/integrations and may leak internal identifiers or configuration without auth.
+verify_steps: GET https://app.box.com/app-gallery-v2/api
+impact: Information disclosure of internal app gallery data; MEDIUM severity
+testability: PASSIVE
+[NEXT] GET https://app.box.com/app-api/split-proxy — check proxy endpoint behavior
+[NEXT] GET https://app.box.com/app-gallery-v2/api — check API response
