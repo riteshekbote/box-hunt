@@ -553,3 +553,4 @@ testability: PASSIVE
 [NEW] cloud.app.box.com/robots.txt (capture headers + body for fingerprinting)
 [NEW] cloud.app.box.com/sitemap.xml (capture headers + body for structure)
 ## 2026-08-18 23:55:23 UTC cloud.app.box.com (ling3)
+## 2026-08-19 00:31:41 UTC cloud.app.box.com (ling3)
