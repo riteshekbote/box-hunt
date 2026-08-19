@@ -623,3 +623,4 @@ impact: Default handler misconfiguration could allow path traversal or content a
 testability: PASSIVE
 [NEXT] HEAD https://cloud.app.box.com/ with Origin: https://evil.com header to check CORS + get response headers
 ## 2026-08-19 16:52:09 UTC app.box.com (bigpickle)
+## 2026-08-19 17:10:33 UTC app.box.com (ling3)
