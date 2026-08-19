@@ -461,3 +461,16 @@ testability: PASSIVE
 ## 2026-08-19 09:07:11 UTC dl.boxcloud.com (ling3)
 ## 2026-08-19 09:45:10 UTC dl.boxcloud.com (ling3)
 ## 2026-08-19 10:04:27 UTC dl.boxcloud.com (ling3)
+## 2026-08-19 10:39:10 UTC dl.boxcloud.com (bigpickle)
+[LEARN] SURFACE-EXHAUSTED @ dl.boxcloud.com: All unauthenticated probes return 404. CDN is a pure authenticated content delivery layer with no unauthenticated surface. Moving to new host.
+[PARKED] All dl.boxcloud.com hypotheses: CDN properly gates all content behind signed URLs/tokens. No unauthenticated data exposure possible.
+[NEXT] PROBE: Method handling on dl.boxcloud.com — test if non-standard methods leak server software or return different error codes. curl -D- -o /dev/null -X PUT "https://dl.boxcloud.com/test" -H "User-Agent: box-research/1.0" && curl -D- -o /dev/null -X DELETE "https://dl.boxcloud.com/test" -H "User-Agent: box-research/1.0" && curl -D- -o /dev/null -X PATCH "https://dl.boxcloud.com/test" -H "User-Agent: box-research/1.0"
+[NEW] dl.boxcloud.com: Surface exhausted — pivot to account.box.com (auth plane: login, OAuth, SSO, tokens, sessions)
+[HYP] OAuth token endpoint exposure
+class: OATH
+asset: account.box.com/oauth2/token
+confidence: 30
+reasoning: OAuth2 token endpoints are critical auth infrastructure. If misconfigured, could allow token issuance without proper validation. Previous api.box.com testing showed token endpoint exists.
+verify_steps: curl -D- -o /dev/null -X OPTIONS "https://account.box.com/oauth2/token" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" && curl -D- -o /dev/null "https://account.box.com/oauth2/token" -H "User-Agent: box-research/1.0"
+impact: If token endpoint reflects origin in CORS or allows unauthenticated token issuance, attacker could forge access tokens
+testability: PASSIVE

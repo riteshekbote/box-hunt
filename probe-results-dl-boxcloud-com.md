@@ -8,3 +8,6 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 
 ## 2026-08-19 03:54:55 UTC dl.boxcloud.com
 https://dl.boxcloud.com/nonexistent-path-with-special-chars?%00 -> HTTP 404
+
+## 2026-08-19 10:39:12 UTC dl.boxcloud.com
+https://dl.boxcloud.com/test -> HTTP 404
