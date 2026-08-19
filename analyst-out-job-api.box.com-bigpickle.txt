@@ -1,29 +1,96 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the state: cloud.app.box.com is evidence-closed (whitelist-routed confirmed, all 45-rated hypotheses rejected). The pending [NEXT] items are app.box.com/robots.txt and cloud.app.box.com Range probe.
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/robots.txt
+200 text/plain 2187
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" -H "Range: bytes=0-0" --max-time 10 --connect-timeout 5 https://cloud.app.box.com/
+302 text/html; charset=utf-8 0
+[0m
+[0m$ [0mcurl -s -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/robots.txt
+User-agent: Twitterbot
+Disallow: /
+Allow: /representation  # Twitter needs to be able to display file thumbnails in social media cards; this prevents those assets from being blocked.
+Allow: /app-assets  # Twitter needs to be able to display the Box logo in social media cards; this prevents those assets from being blocked.
+Allow: /$
+Allow: /sitemap.xml$
+Allow: /login
+Allow: /simpleshare
+Allow: /services
+Allow: /reset
+Allow: /signup
+Allow: /cdn  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /sites  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /platform # Platform static assets (Box Elements) share a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /s/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /shared/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /v/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /app-center
+Allow: /integrations
+Allow: /enduser
+Allow: /fonts
+Allow: /_assets/img/favicons
+Allow: /app-api/split-proxy
+Allow: /app-gallery-v2/api
 
-app.box.com/robots.txt is the highest-value next probe — it's the only in-scope host not yet checked for path disclosure.
+User-agent: *
+Disallow: /
+Disallow: /signup/collablink/
+Allow: /$
+Allow: /sitemap.xml$
+Allow: /login
+Allow: /simpleshare
+Allow: /services
+Allow: /reset
+Allow: /signup
+Allow: /cdn  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /sites  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /platform # Platform static assets (Box Elements) share a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /s/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /shared/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /v/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /app-center
+Allow: /integrations
+Allow: /enduser
+Allow: /fonts
+Allow: /_assets/img/favicons
+Allow: /app-api/split-proxy
+Allow: /app-gallery-v2/api
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download} redirect:%{redirect_url}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://cloud.app.box.com/
+302 text/html; charset=utf-8 0 redirect:https://cloud.app.box.com/login
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/app-api/split-proxy
+404 text/plain 18
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/app-gallery-v2/api
+404 text/html; charset=UTF-8 0
+[0m
+Good findings. `app.box.com/robots.txt` reveals interesting internal paths. `cloud.app.box.com/` now returns 302→/login (behavior change from previous 200/206).
 
-[NEXT] GET https://app.box.com/robots.txt — check for path disclosure or admin endpoints
-[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure
-
-[HYP] app.box.com robots.txt information disclosure
-class: MISCONFIG
-asset: app.box.com/robots.txt
-confidence: 30
-reasoning: Enterprise apps often leak internal paths in robots.txt. app.box.com is the primary web app and only host in scope not yet probed for robots.txt.
-evidence_needed: Response body with Disallow/Allow directives revealing internal paths
-verify_steps: GET https://app.box.com/robots.txt
-impact: Information disclosure of admin panels, API routes, or internal paths; aids further targeted probing
-testability: PASSIVE
-
-[HYP] cloud.app.box.com Content-Range size disclosure
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 25
-reasoning: The 200/206 responses suggest Range support. Checking Content-Range header might reveal total file size of the pinned asset.
-evidence_needed: Content-Range header with total-size field in response
-verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0
-impact: Information disclosure of asset size; low severity but confirms asset characteristics
-testability: PASSIVE
+Let me probe the interesting paths discovered:
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/enduser
+404 text/html; charset=utf-8 23644
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/app-center
+200 text/html; charset=utf-8 25981
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/integrations
+200 text/html; charset=utf-8 25980
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/simpleshare
+301 text/html; charset=utf-8 0
+[0m
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code} %{content_type} %{size_download}\n" -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 https://app.box.com/services
+301 text/html; charset=utf-8 0
+[0m
+[0m$ [0mcurl -s -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 -D /tmp/headers.txt https://app.box.com/app-api/split-proxy 2>/dev/null | head -c 500
+404 page not found
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcat /tmp/headers.txt 2>/dev/null failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[0m
+[0m$ [0mcurl -s -H "User-Agent: box-research/1.0" --max-time 10 --connect-timeout 5 -D /tmp/headers2.txt https://app.box.com/app-api/split-proxy/test 2>/dev/null | head -c 500
+404 page not found
+[0m
