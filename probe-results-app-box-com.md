@@ -97,3 +97,17 @@ https://cloud.app.box.com/ -> 206
 
 ## 2026-08-19 16:15:04 UTC app.box.com
 https://cloud.app.box.com/ -> 206
+
+## 2026-08-19 16:52:36 UTC app.box.com
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 200
+https://app.box.com -> 206
+https://cloud.app.box.com/sitemap.xml -> 206
+https://cloud.app.box.com/robots.txt -> 206
+https://cloud.app.box.com/crossdomain.xml -> 206
+https://cloud.app.box.com/embed -> 206
+https://cloud.app.box.com/?list-type=2 -> 206
+https://cloud.app.box.com/representation -> HTTP 404
+https://cloud.app.box.com/app-assets -> HTTP 404
+https://cloud.app.box.com/simpleshare -> HTTP 403
+https://cloud.app.box.com/services -> 200
