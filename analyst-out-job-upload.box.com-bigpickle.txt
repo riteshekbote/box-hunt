@@ -1,24 +1,14 @@
 [0m
 > build · big-pickle
 [0m
-I'll execute the two pending probes on `cloud.app.box.com` to advance the CORS hypothesis.
+[0m# [0mTodos
+[•] CORS preflight: OPTIONS cloud.app.box.com with evil Origin
+[ ] Range-probe root: GET cloud.app.box.com/ with Range header
+[ ] Evaluate results and emit [HYP]/[NEXT] blocks
+[0m
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -o /dev/null -w "%{http_code}" -D /tmp/options_headers.txt \
-  -H "Origin: https://evil.com" \
-  -H "Access-Control-Request-Method: GET" \
-  -H "User-Agent: box-research/1.0 +(research)" \
-  -X OPTIONS https://cloud.app.box.com/ && \
-echo "" && \
-sleep 2 && \
-curl -s -o /tmp/range_body.txt -w "%{http_code}" -D /tmp/range_headers.txt \
-  -H "Range: bytes=0-0" \
-  -H "User-Agent: box-research/1.0 +(research)" \
-  https://cloud.app.box.com/ && \
-echo "" && \
-echo "--- OPTIONS HEADERS ---" && \
-cat /tmp/options_headers.txt && \
-echo "--- RANGE HEADERS ---" && \
-cat /tmp/range_headers.txt && \
-echo "--- RANGE BODY (first 100 bytes) ---" && \
-dd if=/tmp/range_body.txt bs=1 count=100 2>/dev/null | xxd | head -5 failed
+[0m✗ [0mcurl -s -o /dev/null -w "STATUS:%{http_code}\nSIZE:%{size_download}\nCONTENT_TYPE:%{content_type}\n" -D /tmp/cors-headers.txt -X OPTIONS https://cloud.app.box.com/ -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 +(research)" 2>&1 && echo "---RESPONSE HEADERS---" && cat /tmp/cors-headers.txt failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0msleep 3 && curl -s -o /tmp/range-body.txt -w "STATUS:%{http_code}\nSIZE:%{size_download}\nCONTENT_TYPE:%{content_type}\n" -D /tmp/range-headers.txt https://cloud.app.box.com/ -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" 2>&1 && echo "---RESPONSE HEADERS---" && cat /tmp/range-headers.txt && echo "---BODY---" && cat /tmp/range-body.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.
