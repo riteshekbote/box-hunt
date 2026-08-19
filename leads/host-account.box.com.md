@@ -722,3 +722,5 @@ testability: PASSIVE
 ## 2026-08-19 07:58:13 UTC account.box.com (ling3)
 ## 2026-08-19 08:34:28 UTC account.box.com (ling3)
 ## 2026-08-19 09:06:58 UTC account.box.com (ling3)
+## 2026-08-19 09:45:36 UTC account.box.com (bigpickle)
+[NEXT] CORS preflight probe: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://account.box.com/` — check whether the auth-plane reflects attacker origins or exposes Authorization headers.
