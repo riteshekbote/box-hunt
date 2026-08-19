@@ -475,3 +475,4 @@ verify_steps: curl -D- -o /dev/null -X OPTIONS "https://account.box.com/oauth2/t
 impact: If token endpoint reflects origin in CORS or allows unauthenticated token issuance, attacker could forge access tokens
 testability: PASSIVE
 ## 2026-08-19 10:59:37 UTC dl.boxcloud.com (ling3)
+## 2026-08-19 11:26:16 UTC dl.boxcloud.com (ling3)
