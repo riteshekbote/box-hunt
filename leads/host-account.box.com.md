@@ -725,3 +725,13 @@ testability: PASSIVE
 ## 2026-08-19 09:45:36 UTC account.box.com (bigpickle)
 [NEXT] CORS preflight probe: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://account.box.com/` — check whether the auth-plane reflects attacker origins or exposes Authorization headers.
 ## 2026-08-19 10:04:25 UTC account.box.com (ling3)
+## 2026-08-19 10:39:00 UTC account.box.com (bigpickle)
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 45
+reasoning: cloud.app.box.com returned 206 (partial content) in earlier cycles and 200 in the latest run. This 206/200 variance suggests a content-serving layer that may have different CORS policies than the main app. No OPTIONS preflight probe has been sent to cloud.app.box.com yet.
+verify_steps: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/` then `curl -sD- -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
+impact: If cloud.app.box.com reflects attacker origins or exposes Authorization headers, an attacker could exfiltrate embedded content views or file preview data cross-origin. Severity: Medium-High.
+testability: PASSIVE
+[NEXT] PREFLIGHT: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`

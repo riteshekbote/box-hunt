@@ -1,15 +1,14 @@
 [0m
 > build · big-pickle
 [0m
-## Analysis
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 45
+reasoning: cloud.app.box.com returned 206 (partial content) in earlier cycles and 200 in the latest run. This 206/200 variance suggests a content-serving layer that may have different CORS policies than the main app. No OPTIONS preflight probe has been sent to cloud.app.box.com yet.
+evidence_needed: Access-Control-Allow-Origin header value in response to attacker-controlled Origin, or reflection of Origin in response headers.
+verify_steps: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/` then `curl -sD- -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
+impact: If cloud.app.box.com reflects attacker origins or exposes Authorization headers, an attacker could exfiltrate embedded content views or file preview data cross-origin. Severity: Medium-High.
+testability: PASSIVE
 
-My host is account.box.com. I'm in POC phase with substantial probe history. Let me continue advancing on account.box.com rather than re-probing app.box.com (which is a different asset).
-
-The last probes from this cycle show the executor confirming:
-- `cloud.app.box.com/` → 206 (asset layer responding)
-- All dl.boxcloud.com paths → 404
-- All upload.box.com paths → 404
-
-For account.box.com, I should continue the CORS/method surface probing since I haven't yet probed it for CORS misconfiguration.
-
-[NEXT] CORS preflight probe: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://account.box.com/` — check whether the auth-plane reflects attacker origins or exposes Authorization headers.
+[NEXT] PREFLIGHT: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
