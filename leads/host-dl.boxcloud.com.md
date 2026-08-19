@@ -487,3 +487,4 @@ testability: PASSIVE
 [NEXT] PROBE: Pivot to `account.box.com` — the auth plane (login, OAuth, SSO, tokens, sessions). Start with surface enumeration: `curl -D- -o /dev/null "https://account.box.com/robots.txt" -H "User-Agent: box-research/1.0"` — check for robots.txt with internal paths. Then `curl -D- -o /dev/null -X OPTIONS "https://account.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0"` — map CORS policy on the auth plane root. Then `curl -D- -o /dev/null "https://account.box.com/login" -H "User-Agent: box-research/1.0"` — check if login page is reachable unauthenticated and what headers it returns. Report all status codes and response headers.
 ## 2026-08-19 14:19:47 UTC dl.boxcloud.com (ling3)
 ## 2026-08-19 14:55:59 UTC dl.boxcloud.com (ling3)
+## 2026-08-19 15:27:33 UTC dl.boxcloud.com (ling3)
