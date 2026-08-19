@@ -612,3 +612,13 @@ testability: AUTH_HELPED
 ## 2026-08-19 14:56:29 UTC app.box.com (ling3)
 ## 2026-08-19 15:22:58 UTC app.box.com (ling3)
 ## 2026-08-19 15:53:40 UTC app.box.com (ling3)
+## 2026-08-19 16:15:02 UTC app.box.com (bigpickle)
+[HYP] cloud.app.box.com root response body analysis
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 50
+reasoning: Root path returned 200 (not 206) on latest probe, indicating default handler serves content. Previous probes showed 206 partial content. The change in behavior suggests the root may be serving a default page or there's path-dependent routing. Understanding what's at the root is critical for all other hypotheses.
+verify_steps: HEAD https://cloud.app.box.com/ to see content-type and headers
+impact: Default handler misconfiguration could allow path traversal or content access (MEDIUM)
+testability: PASSIVE
+[NEXT] HEAD https://cloud.app.box.com/ with Origin: https://evil.com header to check CORS + get response headers
