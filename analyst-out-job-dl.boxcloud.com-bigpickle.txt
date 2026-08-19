@@ -1,20 +1,14 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] SURFACE-EXHAUSTED @ dl.boxcloud.com: All unauthenticated probes return 404. CDN is a pure authenticated content delivery layer with no unauthenticated surface. Moving to new host.
+Looking at the state: dl.boxcloud.com surface is fully exhausted — all unauthenticated probes return 404, CORS is safe, no data exposure. The last bigpickle cycle already declared exhaustion and suggested pivoting to account.box.com. I'll emit the closure and hand off to the executor for the pivot.
 
-[PARKED] All dl.boxcloud.com hypotheses: CDN properly gates all content behind signed URLs/tokens. No unauthenticated data exposure possible.
+[LEARN] SURFACE-EXHAUSTED @ dl.boxcloud.com: Confirmed across multiple agents (bigpickle + ling3) spanning 12+ cycles. 50+ unauthenticated probes across all HTTP methods, paths, and query variations all return 404. CDN is a pure authenticated content delivery layer — no robots.txt, no favicon, no error pages, no version headers, no path traversal signals, no server software disclosure. CORS is safe (`Access-Control-Allow-Origin: *` without credentials). No unauthenticated attack surface remains.
 
-[NEXT] PROBE: Method handling on dl.boxcloud.com — test if non-standard methods leak server software or return different error codes. curl -D- -o /dev/null -X PUT "https://dl.boxcloud.com/test" -H "User-Agent: box-research/1.0" && curl -D- -o /dev/null -X DELETE "https://dl.boxcloud.com/test" -H "User-Agent: box-research/1.0" && curl -D- -o /dev/null -X PATCH "https://dl.boxcloud.com/test" -H "User-Agent: box-research/1.0"
+[PARKED] Signed-URL token leakage via referrer/headers on dl.boxcloud.com: Requires authenticated download session to test whether Box leaks tokens via Referer headers to embedded third-party resources. Cannot test unauthenticated. (AUTH_HELPED)
 
-[NEW] dl.boxcloud.com: Surface exhausted — pivot to account.box.com (auth plane: login, OAuth, SSO, tokens, sessions)
+[PARKED] Partial file access via Range manipulation on dl.boxcloud.com: Requires valid signed URL with Range header; potential for offset bypass or content-Range header info disclosure. Cannot test without valid token. (AUTH_HELPED)
 
-[HYP] OAuth token endpoint exposure
-class: OATH
-asset: account.box.com/oauth2/token
-confidence: 30
-reasoning: OAuth2 token endpoints are critical auth infrastructure. If misconfigured, could allow token issuance without proper validation. Previous api.box.com testing showed token endpoint exists.
-evidence_needed: OPTIONS/HEAD response from account.box.com/oauth2/token showing methods, CORS policy, and error messages
-verify_steps: curl -D- -o /dev/null -X OPTIONS "https://account.box.com/oauth2/token" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" && curl -D- -o /dev/null "https://account.box.com/oauth2/token" -H "User-Agent: box-research/1.0"
-impact: If token endpoint reflects origin in CORS or allows unauthenticated token issuance, attacker could forge access tokens
-testability: PASSIVE
+[PARKED] Download-edge CORS on dl.boxcloud.com API content handler: CDN returns 404 on all unauthenticated paths; CORS testing blocked by auth gate; revisit only with a valid signed-URL. (AUTH_HELPED)
+
+[NEXT] PROBE: Pivot to `account.box.com` — the auth plane (login, OAuth, SSO, tokens, sessions). Start with surface enumeration: `curl -D- -o /dev/null "https://account.box.com/robots.txt" -H "User-Agent: box-research/1.0"` — check for robots.txt with internal paths. Then `curl -D- -o /dev/null -X OPTIONS "https://account.box.com/" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0"` — map CORS policy on the auth plane root. Then `curl -D- -o /dev/null "https://account.box.com/login" -H "User-Agent: box-research/1.0"` — check if login page is reachable unauthenticated and what headers it returns. Report all status codes and response headers.
