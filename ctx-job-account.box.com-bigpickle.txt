@@ -37,34 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-18 08:17:55 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: notes.services.box.com/
-confidence: 30
-reasoning: Redirect to services.app.box.com suggests notes.services.box.com may expose internal service endpoints. First probe shows 302 with Envoy headers. Need to check for API endpoints, health checks, or documentation.
-verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/robots.txt` then `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api`
-impact: Could reveal internal service structure or APIs. Severity: Low-Medium.
-testability: PASSIVE
-[NEXT] RECON: `curl -sD- https://notes.services.box.com/robots.txt` (1 request, observe status and content)
-## 2026-08-17 22:58:43 UTC account.box.com (ling3)
-## 2026-08-17 23:20:18 UTC account.box.com (ling3)
-## 2026-08-17 23:41:25 UTC account.box.com (ling3)
-## 2026-08-17 23:57:24 UTC account.box.com (ling3)
-## 2026-08-18 00:55:45 UTC account.box.com (ling3)
-## 2026-08-18 02:10:29 UTC account.box.com (ling3)
-## 2026-08-18 03:07:31 UTC account.box.com (bigpickle)
-[NEW] notes.services.box.com/robots.txt: Confirmed 302 to services.app.box.com with Envoy/Google headers (from last cycle)
-[HYP] notes.services.box.com: Service endpoint enumeration
-class: MISCONFIG
-asset: notes.services.box.com
-confidence: 40
-reasoning: The 302 redirect to services.app.box.com with Envoy headers suggests this is a service mesh endpoint. Need to check for common paths (/api, /health, /v1, /internal) that might bypass the redirect.
-verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api`, `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/health`, `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/v1`
-impact: Could reveal internal service structure or debug endpoints. Severity: Low-Medium.
-testability: PASSIVE
-[NEXT] PROBE: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/api && curl -sD- -H "User-Agent: box-research/1.0 (research)" https://notes.services.box.com/health`
-## 2026-08-18 03:53:56 UTC account.box.com (ling3)
-## 2026-08-18 04:21:57 UTC account.box.com (ling3)
-## 2026-08-18 04:56:53 UTC account.box.com (bigpickle)
-## 2026-08-18 05:22:11 UTC account.box.com (ling3)
 ## 2026-08-18 05:50:05 UTC account.box.com (ling3)
 ## 2026-08-18 06:17:34 UTC account.box.com (ling3)
 ## 2026-08-18 07:07:45 UTC account.box.com (ling3)
@@ -97,10 +69,38 @@ testability: PASSIVE
 ## 2026-08-18 16:01:13 UTC account.box.com (ling3)
 ## 2026-08-18 16:37:57 UTC account.box.com (ling3)
 ## 2026-08-18 17:01:11 UTC account.box.com (ling3)
+## 2026-08-18 17:32:54 UTC account.box.com (bigpickle)
+[NEW] m.box.com/: Permanent 301 to `https://app.box.com/` — zero distinct surface, no unique headers, no separate session logic exposed.
+[LEARN] REJECTED MISCONFIG @ m.box.com: Mobile subdomain is a simple 301 redirect to app.box.com with no distinct rendering/session logic, headers, or endpoints. Exhausted.
+[NEXT] RECON: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://app.box.com/` to re-baseline the primary web app headers after the m.box.com redirect chain, and look for any set-cookie or frame-ancestors differences.
+## 2026-08-18 17:56:41 UTC account.box.com (ling3)
+## 2026-08-18 18:27:56 UTC account.box.com (ling3)
+## 2026-08-18 19:06:32 UTC account.box.com (ling3)
+## 2026-08-18 19:35:16 UTC account.box.com (ling3)
+## 2026-08-18 19:52:30 UTC account.box.com (ling3)
+## 2026-08-18 20:07:36 UTC account.box.com (ling3)
+## 2026-08-18 20:36:32 UTC account.box.com (ling3)
+## 2026-08-18 20:54:48 UTC account.box.com (ling3)
+## 2026-08-18 21:12:31 UTC account.box.com (ling3)
+## 2026-08-18 21:37:01 UTC account.box.com (ling3)
+## 2026-08-18 21:54:43 UTC account.box.com (ling3)
+## 2026-08-18 22:08:22 UTC account.box.com (ling3)
+## 2026-08-18 22:38:22 UTC account.box.com (ling3)
+## 2026-08-18 22:56:23 UTC account.box.com (ling3)
+## 2026-08-18 23:14:43 UTC account.box.com (ling3)
+## 2026-08-18 23:37:06 UTC account.box.com (ling3)
+## 2026-08-18 23:56:43 UTC account.box.com (ling3)
+## 2026-08-19 00:31:39 UTC account.box.com (ling3)
+## 2026-08-19 02:03:49 UTC account.box.com (ling3)
+## 2026-08-19 03:06:14 UTC account.box.com (ling3)
+## 2026-08-19 03:54:35 UTC account.box.com (ling3)
+## 2026-08-19 04:24:50 UTC account.box.com (ling3)
+## 2026-08-19 04:59:08 UTC account.box.com (ling3)
+## 2026-08-19 05:30:05 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
-## RANKED 2026-08-18 15:41:55 UTC
+## RANKED 2026-08-19 03:55:02 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -113,7 +113,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
-## RANKED 2026-08-18 16:02:16 UTC
+## RANKED 2026-08-19 04:48:22 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -126,7 +126,7 @@ testability: PASSIVE
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 - [40] cloud.app.box.com/: upload.box.com trailing-slash vs bare-path discriminator: whether the gateway's 404 is emitted by a path-normalizing app edge or a flat object/bucket front, keyed on `/robots.txt/` vs `/robots.txt` (from host-upload.box.com.md)
 
-## RANKED 2026-08-18 16:45:13 UTC
+## RANKED 2026-08-19 05:41:23 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -154,7 +154,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-18 15:41:55 UTC (executor)
+## 2026-08-19 03:55:02 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -170,8 +170,8 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-18 16:02:16 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
+## 2026-08-19 04:48:22 UTC (executor)
+https://cloud.app.box.com/ -> 200 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
@@ -186,7 +186,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-18 16:45:13 UTC (executor)
+## 2026-08-19 05:41:23 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404

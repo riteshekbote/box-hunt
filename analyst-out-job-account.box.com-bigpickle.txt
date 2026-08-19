@@ -1,17 +1,31 @@
 [0m
 > build · big-pickle
 [0m
-[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 (research)" https://m.box.com/ 2>&1 | head -80
-HTTP/2 301 
-cache-control: private
-location: https://app.box.com/
-content-length: 0
-date: Tue, 18 Aug 2026 17:32:48 GMT
-content-type: text/html; charset=UTF-8
-alt-svc: h3=":443"; ma=2592000
-[0m
-[NEW] m.box.com/: Permanent 301 to `https://app.box.com/` — zero distinct surface, no unique headers, no separate session logic exposed.
+Looking at the current state, I'm in plan mode (read-only). Let me analyze the evidence and plan the next probe.
 
-[LEARN] REJECTED MISCONFIG @ m.box.com: Mobile subdomain is a simple 301 redirect to app.box.com with no distinct rendering/session logic, headers, or endpoints. Exhausted.
+Key observations from probe results:
+- `cloud.app.box.com/` consistently returns 206 (partial content) - this is the most interesting lead
+- `dl.boxcloud.com` returns 404 on all paths - looks like a CDN requiring signed URLs
+- `upload.box.com` returns 404 on all paths - likely requires auth tokens
 
-[NEXT] RECON: `curl -sD- -H "User-Agent: box-research/1.0 (research)" https://app.box.com/` to re-baseline the primary web app headers after the m.box.com redirect chain, and look for any set-cookie or frame-ancestors differences.
+The highest-confidence hypotheses are about CORS misconfiguration on `cloud.app.box.com`. This makes sense as a preview/embedding origin.
+
+## Recommended Next Probe
+
+**Test CORS on cloud.app.box.com:**
+
+```bash
+curl -sD- -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/
+```
+
+Then OPTIONS preflight:
+```bash
+curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/
+```
+
+This will reveal:
+1. Whether `Access-Control-Allow-Origin` reflects attacker origin (misconfiguration)
+2. Whether any sensitive headers are exposed
+3. Whether the 206/asset layer has different CORS behavior than expected
+
+Should I proceed with executing these probes?
