@@ -727,3 +727,4 @@ testability: PASSIVE
 [NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-100 — explicit Range request to trigger 206
 [NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — CORS preflight policy capture
 [NEXT] GET https://cloud.app.box.com/ with Origin: https://evil.com — CORS reflection on GET
+## 2026-08-19 23:49:01 UTC notes.services.box.com (ling3)
