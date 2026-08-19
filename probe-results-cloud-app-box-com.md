@@ -120,3 +120,6 @@ https://cloud.app.box.com/login -> 200
 https://cloud.app.box.com/?list-type=2&prefix=&max-keys=1 -> 200
 https://cloud.app.box.com/robots.txt -> 206
 https://cloud.app.box.com/sitemap.xml -> 206
+
+## 2026-08-19 07:58:55 UTC cloud.app.box.com
+https://cloud.app.box.com/` -> HTTP 404
