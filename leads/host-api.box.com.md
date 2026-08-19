@@ -515,3 +515,4 @@ testability: PASSIVE
 [PARKED] All 45-rated cloud.app.box.com hypotheses: evidence-closed with definitive 404/206/ACAO:* observations.
 [NEXT] GET https://app.box.com/robots.txt — retrieve and analyze for path disclosures
 [NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure on the pinned root asset
+## 2026-08-19 07:22:30 UTC api.box.com (ling3)
