@@ -597,3 +597,13 @@ testability: PASSIVE
 ## 2026-08-19 11:26:14 UTC app.box.com (ling3)
 ## 2026-08-19 11:48:41 UTC app.box.com (ling3)
 ## 2026-08-19 12:03:31 UTC app.box.com (ling3)
+## 2026-08-19 13:02:54 UTC app.box.com (bigpickle)
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 45
+reasoning: Previous probes show cloud.app.box.com returns 206/200 responses, indicating it's an active asset server. CORS misconfigurations are common on preview/embedded content origins where developers need to allow cross-origin access. The 206 partial content suggests it might be serving file previews or embedded content.
+verify_steps: 
+impact: Cross-origin read of preview content, potential token leakage if Authorization header exposed (HIGH)
+testability: AUTH_HELPED
+[NEXT] PROBE: HEAD https://cloud.app.box.com/ with Origin: https://evil.com header
