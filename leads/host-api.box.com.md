@@ -570,3 +570,4 @@ reasoning: The 200/206 responses suggest Range support. Checking Content-Range h
 verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0
 impact: Information disclosure of asset size; low severity but confirms asset characteristics
 testability: PASSIVE
+## 2026-08-19 17:10:35 UTC api.box.com (ling3)
