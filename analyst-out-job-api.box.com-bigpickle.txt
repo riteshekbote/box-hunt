@@ -1,22 +1,8 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Object-store default handler hypothesis REJECTED — root returns 200/206 but all random paths (bhx-xp4k7-m9f3q, ROBOTS.TXT, bhx-p3n7r/robots.txt, robots) return 404. This is a whitelist-routed asset server serving only pinned paths, NOT a catch-all default handler. No further probe can change this.
-
-[PARKED] Object-store default handler vs whitelist-routed: Definitively resolved — whitelist-routed. All 45-rated variants on this asset are now evidence-closed.
-
-[NEXT] GET https://app.box.com/robots.txt — last untested host surface in scope; check for path disclosure, disallowed paths, or info leak
-
-[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total file size disclosure on the pinned root asset
-
-[HYP] robots.txt information disclosure on app.box.com
-class: MISCONFIG
-asset: app.box.com/robots.txt
-confidence: 25
-reasoning: app.box.com is the primary web app and the only host in scope not yet probed for robots.txt. Enterprise apps often leak internal paths, admin endpoints, or API routes in robots.txt disallow directives. If present, this reveals attack surface for further investigation.
-evidence_needed: HTTP 200 with Disallow/Allow directives listing internal paths
-verify_steps: GET https://app.box.com/robots.txt — examine body for path disclosures
-impact: Information disclosure of internal routes, admin panels, or API endpoints; aids further targeted probing. Low-Medium severity.
-testability: PASSIVE
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Object-store default handler hypothesis definitively REJECTED — random paths all 404, root 200/206 is pinned asset. Whitelist-routed confirmed.
+[PARKED] All 45-rated cloud.app.box.com hypotheses: evidence-closed with definitive 404/206/ACAO:* observations.
 
 [NEXT] GET https://app.box.com/robots.txt — retrieve and analyze for path disclosures
+[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure on the pinned root asset

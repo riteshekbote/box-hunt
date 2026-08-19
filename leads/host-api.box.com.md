@@ -510,3 +510,8 @@ impact: Information disclosure of internal routes, admin panels, or API endpoint
 testability: PASSIVE
 [NEXT] GET https://app.box.com/robots.txt — retrieve and analyze for path disclosures
 ## 2026-08-19 05:56:39 UTC api.box.com (ling3)
+## 2026-08-19 06:32:55 UTC api.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Object-store default handler hypothesis definitively REJECTED — random paths all 404, root 200/206 is pinned asset. Whitelist-routed confirmed.
+[PARKED] All 45-rated cloud.app.box.com hypotheses: evidence-closed with definitive 404/206/ACAO:* observations.
+[NEXT] GET https://app.box.com/robots.txt — retrieve and analyze for path disclosures
+[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure on the pinned root asset
