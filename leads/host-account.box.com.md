@@ -773,3 +773,4 @@ testability: HUMAN_ONLY
 [PARKED] OAuth token endpoint exposure @ cloud.app.box.com: No evidence of /oauth2/token or similar endpoints; 404s on random paths. Requires authenticated session to probe further.
 [NEXT] PREFLIGHT: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
 [NEXT] ORIGIN-GET: `curl -sD- -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
+## 2026-08-19 19:20:38 UTC account.box.com (ling3)
