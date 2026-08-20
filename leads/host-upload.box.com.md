@@ -762,3 +762,4 @@ verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0 — check if 
 impact: If object-store default serves arbitrary keys → HIGH (file disclosure via Range). If only pinned assets → LOW.
 testability: PASSIVE
 ## 2026-08-20 08:20:06 UTC upload.box.com (ling3)
+## 2026-08-20 08:59:51 UTC upload.box.com (ling3)
