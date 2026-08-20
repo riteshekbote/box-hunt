@@ -754,3 +754,17 @@ testability: PASSIVE
 ## 2026-08-20 15:19:40 UTC notes.services.box.com (ling3)
 ## 2026-08-20 15:52:14 UTC notes.services.box.com (ling3)
 ## 2026-08-20 16:17:09 UTC notes.services.box.com (ling3)
+## 2026-08-20 16:53:36 UTC notes.services.box.com (bigpickle)
+[NEW] cloud.app.box.com: HEAD probe confirms 206 — supports partial-content/object-store hypothesis
+[HYP] CORS reflection on cloud.app.box.com with attacker-controlled Origin
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 60
+reasoning: cloud.app.box.com is an embedded preview iframe. Preview origins commonly reflect Origin header to allow parent-frame content access. If Access-Control-Allow-Origin reflects arbitrary origin with Access-Control-Allow-Credentials, attacker can exfiltrate authenticated preview session data via XHR.
+verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com; GET https://cloud.app.box.com/ with Origin: https://evil.com
+impact: Cross-origin exfiltration of authenticated preview content — HIGH
+testability: PASSIVE
+[NEXT] HEAD https://cloud.app.box.com/ — full response header capture including CORS, HSTS, CSP headers
+[NEXT] GET https://cloud.app.box.com/ with Origin: https://evil.com and Range: bytes=0-100 — combined CORS + Range probe
+[NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — preflight CORS policy capture
+[NEXT] GET https://cloud.app.box.com/ with Origin: https://evil.com — non-preflight CORS reflection test
