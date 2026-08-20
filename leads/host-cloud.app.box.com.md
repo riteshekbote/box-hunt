@@ -640,3 +640,18 @@ testability: PASSIVE
 ## 2026-08-20 14:51:10 UTC cloud.app.box.com (ling3)
 ## 2026-08-20 15:19:40 UTC cloud.app.box.com (ling3)
 ## 2026-08-20 15:52:14 UTC cloud.app.box.com (ling3)
+## 2026-08-20 16:17:18 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com: CORS header baseline never actually captured — all prior cycles emitted probe lines but executor batch did not include Origin-bearing requests
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin or exposes Authorization)
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 35
+reasoning: Root consistently returns 206, confirming the asset/preview layer fronts the origin. However no cycle has yet returned actual CORS header values — every executor batch ran only plain GETs without Origin header. The hypothesis is untested, not refuted.
+verify_steps: |
+impact: If ACAO reflects arbitrary Origin, attacker page can read preview content cross-origin; Medium-High
+testability: PASSIVE
+[LEARN] REJECTEDBUSLOGIC @ dl.boxcloud.com: All probe paths return 404 consistently across 4+ cycles — origin appears to serve no content without signed path/token. Exhausted.
+[LEARN] REJECTEDBUSLOGIC @ upload.box.com: All probe paths return 404 — upload API requires auth and does not leak via path fuzzing. Exhausted.
+[NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, User-Agent: box-research/1.0 — capture full response headers, specifically Access-Control-Allow-Origin and Access-Control-Expose-Headers
+[NEXT] OPTIONS cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, Access-Control-Request-Method: GET, User-Agent: box-research/1.0 — capture preflight CORS headers
+[NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, User-Agent: box-research/1.0 — baseline response headers without attacker Origin for comparison
