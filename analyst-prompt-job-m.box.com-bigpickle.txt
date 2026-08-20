@@ -37,22 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-19 19:20:59 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: api.box.com is the core API and has never been probed in any cycle. Unauthenticated API requests return detailed error responses with version info, internal paths, or debugging metadata. Previous hypotheses for cloud.app.box.com OPTIONS have been parked 6+ cycles — executor cannot run OPTIONS; api.box.com is the freshest high-value target.
-verify_steps: (1) bare GET https://api.box.com/ with UA box-research/1.0 +(research), record full status+headers+body_length; (2) bare GET https://api.box.com/2.0/users/me same UA. 1 req/2s. First 4xx/429/403 -> log and stop that host.
-impact: version/stack disclosure; unauthenticated data exposure via API endpoints; severity depends on what leaks
-testability: PASSIVE
-[PARKED] CORS preflight reflection on cloud.app.box.com embedded preview origin: OPTIONS probe requested 7+ consecutive cycles but never executed by the executor; all probe results show only GET requests. Requires OPTIONS-capable probe or header-capturing GET. Parked indefinitely.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root consistently returns 200; all other paths return 404; confirms the asset edge serves content but routing is restricted. Root 200 was confirmed in latest cycle (14:48:04 UTC).
-[NEXT] PROBE: bare GET https://api.box.com/ with headers User-Agent: box-research/1.0 +(research), record full status code + all response headers + body_length. 1 req/2s. First 4xx/429/403 -> log and stop api.box.com for this cycle.
-## 2026-08-19 07:58:14 UTC m.box.com (ling3)
-## 2026-08-19 08:34:27 UTC m.box.com (ling3)
-## 2026-08-19 09:06:57 UTC m.box.com (ling3)
-## 2026-08-19 09:45:11 UTC m.box.com (ling3)
-## 2026-08-19 10:04:27 UTC m.box.com (ling3)
-## 2026-08-19 10:38:47 UTC m.box.com (ling3)
-## 2026-08-19 10:59:37 UTC m.box.com (ling3)
-## 2026-08-19 11:26:13 UTC m.box.com (ling3)
-## 2026-08-19 11:48:14 UTC m.box.com (ling3)
 ## 2026-08-19 12:03:33 UTC m.box.com (ling3)
 ## 2026-08-19 13:02:37 UTC m.box.com (ling3)
 ## 2026-08-19 13:50:29 UTC m.box.com (ling3)
@@ -97,10 +81,26 @@ testability: PASSIVE
 ## 2026-08-20 02:42:43 UTC m.box.com (ling3)
 ## 2026-08-20 03:28:30 UTC m.box.com (ling3)
 ## 2026-08-20 04:07:36 UTC m.box.com (ling3)
+## 2026-08-20 04:48:57 UTC m.box.com (bigpickle)
+## 2026-08-20 05:16:47 UTC m.box.com (ling3)
+## 2026-08-20 05:47:52 UTC m.box.com (ling3)
+## 2026-08-20 06:17:59 UTC m.box.com (ling3)
+## 2026-08-20 07:09:26 UTC m.box.com (ling3)
+## 2026-08-20 07:53:18 UTC m.box.com (ling3)
+## 2026-08-20 08:20:07 UTC m.box.com (ling3)
+## 2026-08-20 09:00:01 UTC m.box.com (ling3)
+## 2026-08-20 09:36:49 UTC m.box.com (ling3)
+## 2026-08-20 10:03:54 UTC m.box.com (ling3)
+## 2026-08-20 10:40:28 UTC m.box.com (ling3)
+## 2026-08-20 11:02:06 UTC m.box.com (ling3)
+## 2026-08-20 11:34:46 UTC m.box.com (ling3)
+## 2026-08-20 11:56:18 UTC m.box.com (ling3)
+## 2026-08-20 12:31:58 UTC m.box.com (ling3)
+## 2026-08-20 13:28:53 UTC m.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 
-## RANKED 2026-08-20 01:48:01 UTC
+## RANKED 2026-08-20 11:58:05 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -113,7 +113,7 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 
-## RANKED 2026-08-20 03:07:24 UTC
+## RANKED 2026-08-20 13:07:45 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -126,7 +126,7 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 
-## RANKED 2026-08-20 03:55:02 UTC
+## RANKED 2026-08-20 13:55:43 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -154,7 +154,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-20 01:48:01 UTC (executor)
+## 2026-08-20 11:58:05 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -170,7 +170,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-20 03:07:24 UTC (executor)
+## 2026-08-20 13:07:45 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -186,7 +186,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-20 03:55:02 UTC (executor)
+## 2026-08-20 13:55:43 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
