@@ -1,30 +1,46 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the state: POC phase, cloud.app.box.com consistently returns 206 on root. The CORS preflight probes from last cycle weren't captured in results. I need to execute those probes now.
+Looking at the current state, I'll analyze the pending probes and hypotheses for **cloud.app.box.com**.
 
-Let me submit the CORS preflight probe and the range probe to verify the hypotheses:
+## Current Analysis
 
-[NEXT] PROBE (cloud.app.box.com — CORS preflight): `curl -s -D- -X OPTIONS https://cloud.app.box.com/ -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 +(research)"` — Capture status + all `Access-Control-*` headers.
+**Pending probes from last cycle:**
+1. **CORS preflight** (OPTIONS with evil.com Origin) — not yet executed
+2. **Range probe** (GET with `Range: bytes=0-0`) — not yet executed
 
-[NEXT] PROBE (cloud.app.box.com — Range root): `curl -s -D- https://cloud.app.box.com/ -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)"` — Expect 206 + `Content-Range` header revealing asset layer boundary.
+**Evidence so far:**
+- Root consistently returns **206** (last 3 cycles: 07:52, 08:52, 09:47 UTC)
+- Random paths return **404** (routed, not open object-store)
+- Root oscillation (200 vs 206) was previously confirmed but recent probes show stable 206
 
-[HYP] CORS preflight reflection on cloud.app.box.com asset layer
-class: MISCONFIG
-asset: cloud.app.box.com (OPTIONS)
-confidence: 55
-reasoning: Root consistently returns 206, confirming asset/object-store layer fronts this origin. Embedded preview origin likely needs CORS for cross-origin iframe reads from customer sites. If the 206 handler reflects attacker Origin with credentials, authenticated preview content is readable cross-origin. The non-deterministic 200/206 oscillation suggests multiple backend handlers with potentially different CORS policies.
-evidence_needed: OPTIONS response headers — specifically Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Headers
-verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET, UA: box-research/1.0 +(research)
-impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content). If reflected without credentials → MEDIUM. If not reflected → LOW/parked.
-testability: PASSIVE
+**Ranked hypotheses (all at 45 confidence):**
+- CORS misconfiguration variants (multiple entries)
+- Object-store default handler vs whitelist-routed
+- Method/CORS surface on 206 asset layer
 
-[HYP] Object-store default handler exposes arbitrary paths via Range
-class: MISCONFIG
-asset: cloud.app.box.com (arbitrary paths)
-confidence: 40
-reasoning: Root returns 206 which is typical of object-store/S3-style default handlers. If arbitrary paths also hit this handler, any guessed file key could be partially downloaded via Range requests. Random nonce paths return 404, suggesting some routing exists, but the boundary between routed vs. defaulted is unclear.
-evidence_needed: Response to GET with Range header on root showing Content-Range with file size
-verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0 — check if Content-Range reveals total object size
-impact: If object-store default serves arbitrary keys → HIGH (file disclosure via Range). If only pinned assets → LOW.
-testability: PASSIVE
+## Recommended Next Steps (when plan mode exits)
+
+**Priority 1 — CORS preflight (highest value):**
+```
+curl -s -D- -X OPTIONS https://cloud.app.box.com/ \
+  -H "Origin: https://evil.com" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "User-Agent: box-research/1.0 +(research)"
+```
+Check for: `Access-Control-Allow-Origin`, `Access-Control-Allow-Credentials`
+
+**Priority 2 — Range boundary mapping:**
+```
+curl -s -D- https://cloud.app.box.com/ \
+  -H "Range: bytes=0-0" \
+  -H "User-Agent: box-research/1.0 +(research)"
+```
+Check for: `Content-Range: bytes 0-0/XXXXX` (reveals total asset size)
+
+**Confidence adjustment:**
+- If CORS reflects origin with credentials → raise to 80, impact HIGH
+- If CORS reflects without credentials → raise to 60, impact MEDIUM
+- If no CORS headers → PARKED at 45
+
+Both probes are **PASSIVE** and within scope rules. Want me to execute them when plan mode exits?
