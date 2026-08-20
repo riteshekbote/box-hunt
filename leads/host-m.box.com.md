@@ -825,3 +825,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/ with User-Agent: box-research/1.0 +(research) plus Origin: https://example.com — record whether Access-Control-Allow-Origin / Allow-Credentials appear in response. Read-only GET, no preflight required. Same stop-rule.
 [NEXT] PROBE: GET https://api.box.com/ with User-Agent: box-research/1.0 +(research) and Accept: application/json — record status, all headers, body_length + first 200 chars of body. Queued last cycle but absent from all executor result sets; treat as never-executed, not a repeat. First 4xx/429/403 -> log & stop api.box.com this cycle.
 ## 2026-08-20 22:58:15 UTC m.box.com (ling3)
+## 2026-08-20 23:23:29 UTC m.box.com (ling3)
