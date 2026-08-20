@@ -1,15 +1,28 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS probe from previous cycle returned no evidence in probe-results; the 206 on root is now stable across 3 executor cycles, confirming it is a deliberate serving behavior, not a transient misroute.
+[NEW] cloud.app.box.com: 206 on root confirmed stable across 3+ cycles — serving layer active
+[NEW] dl.boxcloud.com: all root/path probes return 404 — likely path-only asset CDN
+[NEW] upload.box.com: /api/2.0/files/content returns 404 (method-blocked, not CORS)
 
-[HYP] cloud.app.box.com/: 206 partial-content asset layer — origin-side Range handling and Content-Type disclosure
+[HYP] cloud.app.box.com: CORS reflection on 206 asset layer
 class: MISCONFIG
 asset: cloud.app.box.com/
 confidence: 55
-reasoning: Three consecutive executor cycles show cloud.app.box.com/ returning HTTP 206 without a client-sent Range header. This means the server either synthesizes a Range response for the root or the CDN edge is injecting one. The 206 status reveals a content-serving layer (likely file-preview/embed) fronted by an object store or signed-URL edge. If the Content-Type or body leaks metadata (file names, tokens, cache keys), it's a LOW-MEDIUM info-disclosure. If arbitrary paths can elicit 206, the layer may serve unauthenticated content.
-evidence_needed: Full response headers (Content-Type, Content-Range, Content-Length, Cache-Control, Access-Control-Allow-Origin) and response body from cloud.app.box.com/ via HEAD+GET with Origin.
-verify_steps: 1) GET https://cloud.app.box.com/ with headers Host: cloud.app.box.com, Origin: https://evil.com, Range: bytes=0-0  2) OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com  3) GET https://cloud.app.box.com/ (no Range, no Origin) to capture body
-impact: Information disclosure of asset-layer routing config, cache keys, or signed-URL parameters (MEDIUM); if Access-Control-Allow-Origin reflects arbitrary Origin, cross-origin read of preview content (HIGH).
+reasoning: Consistent 206 on root indicates active asset-serving layer. Need to test whether Origin reflection or Access-Control-Allow-Credentials is exposed. Previous probes were execution-limited; new round can capture full header set.
+evidence_needed: Response headers from GET/OPTIONS with attacker-controlled Origin
+verify_steps: 1) HEAD https://cloud.app.box.com/ with Origin: https://evil.com  2) OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com  3) GET https://cloud.app.box.com/ with Range: bytes=0-0 and Origin: https://evil.com
+impact: Cross-origin read of preview/embed content (HIGH)
 testability: AUTH_HELPED
-[NEXT] PROBE: GET https://cloud.app.box.com/ with headers Origin: https://evil.com, Range: bytes=0-0 and also OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — capture all response headers and body for both.
+[NEXT] HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0
+
+[HYP] cloud.app.box.com: Random-path probing to determine whitelist vs default-handler routing
+class: MISCONFIG
+asset: cloud.app.box.com/<random>
+confidence: 45
+reasoning: Root returns 206, but all named random paths return 404. A single random nonce path test can determine if the 206 layer is default or route-pinned. Evidence from cycles shows 404 on /bhx-xp4k7-m9f3q and others.
+evidence_needed: 206 vs 404 on a fresh random path (not reused from executor)
+verify_steps: GET https://cloud.app.box.com/bhx-t7z9k-m2f3q/
+impact: If 206 on random path, the layer fronts entire origin — any file may be retrievable (HIGH)
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/bhx-t7z9k-m2f3q/ with Origin: https://evil.com

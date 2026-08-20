@@ -114,3 +114,7 @@ https://cloud.app.box.com/services -> 200
 
 ## 2026-08-19 22:02:09 UTC app.box.com
 https://cloud.app.box.com/ -> 200
+
+## 2026-08-20 06:18:24 UTC app.box.com
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/bhx-t7z9k-m2f3q/ -> HTTP 404

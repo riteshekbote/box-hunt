@@ -659,3 +659,25 @@ testability: AUTH_HELPED
 ## 2026-08-20 04:49:16 UTC app.box.com (ling3)
 ## 2026-08-20 05:16:47 UTC app.box.com (ling3)
 ## 2026-08-20 05:47:50 UTC app.box.com (ling3)
+## 2026-08-20 06:18:19 UTC app.box.com (bigpickle)
+[NEW] cloud.app.box.com: 206 on root confirmed stable across 3+ cycles — serving layer active
+[NEW] dl.boxcloud.com: all root/path probes return 404 — likely path-only asset CDN
+[NEW] upload.box.com: /api/2.0/files/content returns 404 (method-blocked, not CORS)
+[HYP] cloud.app.box.com: CORS reflection on 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Consistent 206 on root indicates active asset-serving layer. Need to test whether Origin reflection or Access-Control-Allow-Credentials is exposed. Previous probes were execution-limited; new round can capture full header set.
+verify_steps: 1) HEAD https://cloud.app.box.com/ with Origin: https://evil.com  2) OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com  3) GET https://cloud.app.box.com/ with Range: bytes=0-0 and Origin: https://evil.com
+impact: Cross-origin read of preview/embed content (HIGH)
+testability: AUTH_HELPED
+[NEXT] HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0
+[HYP] cloud.app.box.com: Random-path probing to determine whitelist vs default-handler routing
+class: MISCONFIG
+asset: cloud.app.box.com/<random>
+confidence: 45
+reasoning: Root returns 206, but all named random paths return 404. A single random nonce path test can determine if the 206 layer is default or route-pinned. Evidence from cycles shows 404 on /bhx-xp4k7-m9f3q and others.
+verify_steps: GET https://cloud.app.box.com/bhx-t7z9k-m2f3q/
+impact: If 206 on random path, the layer fronts entire origin — any file may be retrievable (HIGH)
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/bhx-t7z9k-m2f3q/ with Origin: https://evil.com
