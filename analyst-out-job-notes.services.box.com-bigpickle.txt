@@ -1,12 +1,43 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] REJECTED dl.boxcloud.com surface: All probes consistently 404. Dead end.
-[LEARN] REJECTED upload.box.com surface: All probes consistently 404. Dead end.
+Looking at the research state, I can see the investigation is stuck at POC phase with consistent 206 responses from cloud.app.box.com but missing the critical evidence needed to advance the hypotheses.
 
-Executing critical probes for cloud.app.box.com hypotheses:
+## Current State Analysis
 
-[NEXT] HEAD https://cloud.app.box.com/ — full response header capture
-[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-100 — explicit Range request to trigger 206
-[NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — CORS preflight policy capture
-[NEXT] GET https://cloud.app.box.com/ with Origin: https://evil.com — CORS reflection on GET
+**What we know:**
+- cloud.app.box.com root returns 206 consistently
+- All other probes (upload.box.com, dl.boxcloud.com) return 404
+- No response headers have been captured yet
+- Hypotheses are stalled at confidence 45
+
+**What's missing for POC advancement:**
+1. **Response headers** from the 206 (Content-Type, Content-Range, Server, CORS headers)
+2. **Response body** from the 206 (what content is being served?)
+3. **CORS behavior** with attacker Origin headers
+4. **Range header behavior** (does explicit Range request change response?)
+
+## Recommended Next Cycle Plan
+
+Given we're in POC phase, the next probes should focus on capturing the evidence needed to either confirm or eliminate the top hypotheses.
+
+**Priority 1: Capture 206 response details**
+- HEAD request to get headers without body
+- GET with Range: bytes=0-0 to trigger 206 with minimal body
+- Document all response headers
+
+**Priority 2: Test CORS behavior**
+- OPTIONS with attacker Origin to test preflight reflection
+- GET with attacker Origin to test response CORS headers
+
+**Priority 3: Test Range behavior**
+- Multiple Range requests to understand the object-store behavior
+- Test if random paths also return 206 or only root
+
+**Decision Tree:**
+- If 206 returns HTML/JS → XSS hypothesis strengthens
+- If 206 returns binary/file content → object-store misconfiguration
+- If CORS reflects attacker Origin → CORS vulnerability confirmed
+- If no CORS headers → eliminate CORS hypotheses
+
+Would you like me to elaborate on any specific aspect of this plan, or should we proceed with this analysis?
