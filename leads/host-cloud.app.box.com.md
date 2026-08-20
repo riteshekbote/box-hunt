@@ -696,3 +696,27 @@ testability: PASSIVE
 [NEXT] OPTIONS https://account.box.com/api/oauth2/token — check allowed methods on auth endpoint
 [NEXT] HEAD https://account.box.com/robots.txt — capture status and any disallowed paths
 [NEXT] GET https://account.box.com/.well-known/openid-configuration — check for OIDC discovery
+## 2026-08-20 20:51:59 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com: CORS hypothesis untestable — executor captures only HTTP status codes, never response headers; 10+ cycles wasted on header-dependent tests; pivot required
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: Infrastructure limitation — executor returns status codes only, no Access-Control-* header values ever captured; cannot confirm or refute
+[PARKED] Object-store default handler vs whitelist-routed on cloud.app.box.com: Root returns 206, all other paths return 404; no further differentiation possible via status-code-only probing
+[PARKED] OAuth token endpoint exposure on cloud.app.box.com: No token endpoints found via path enumeration; all subpaths 404
+[LEARN] REJECTEDTOOL: All CORS/header-dependent hypotheses on cloud.app.box.com — executor never returns response headers; every hypothesis requiring Access-Control-* evidence is frozen at captured confidence
+[HYP] account.box.com surface recon — discover endpoints, methods, and information leakage
+class: RECON
+asset: account.box.com
+confidence: 25
+reasoning: Auth plane has never been probed in any prior cycle. Login, OAuth, SSO endpoints sometimes expose configuration, error messages, or discoverable endpoints via GET. The last cycle identified this as next target but executor repeated cloud.app.box.com probes instead.
+verify_steps: |
+impact: Auth endpoint discovery, configuration leakage, method enumeration; severity Low-Medium
+testability: PASSIVE
+[NEXT] GET https://account.box.com/ — capture status code and any redirect behavior
+[NEXT] GET https://account.box.com/login — capture status code and response body hints
+[NEXT] GET https://account.box.com/api/oauth2/token — capture status code (GET on token endpoint may reveal info)
+[NEXT] OPTIONS https://account.box.com/api/oauth2/token — check allowed methods on auth endpoint
+[NEXT] HEAD https://account.box.com/robots.txt — capture status and any disallowed paths
+[NEXT] GET https://account.box.com/.well-known/openid-configuration — check for OIDC discovery
+[NEXT] HEAD https://account.box.com/saml — check SSO endpoint existence
+[NEXT] GET https://account.box.com/api/oauth2/authorize — check authorization endpoint
+[NEXT] HEAD https://account.box.com/api/v2.0/users/me — check user endpoint without auth
+[NEXT] GET https://account.box.com/mobile — check mobile auth endpoint
