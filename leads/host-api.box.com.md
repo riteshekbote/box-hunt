@@ -615,3 +615,35 @@ testability: PASSIVE
 ## 2026-08-20 04:49:20 UTC api.box.com (ling3)
 ## 2026-08-20 05:16:51 UTC api.box.com (ling3)
 ## 2026-08-20 05:47:51 UTC api.box.com (ling3)
+## 2026-08-20 06:18:38 UTC api.box.com (bigpickle)
+[NEXT] GET https://app.box.com/app-api/split-proxy — check if proxy endpoint accepts URL parameters or reveals internal routing
+[NEXT] GET https://app.box.com/app-gallery-v2/api — check if gallery API exposes metadata without auth
+[NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — test CORS preflight reflection
+[NEW] app.box.com: robots.txt reveals /app-api/split-proxy and /app-gallery-v2/api paths; both untested
+[HYP] app.box.com /app-api/split-proxy SSRF potential
+class: SSRF
+asset: app.box.com/app-api/split-proxy
+confidence: 35
+reasoning: robots.txt explicitly allows this path. "split-proxy" naming suggests internal proxy service that could accept user-controlled URLs or parameters for SSRF.
+verify_steps: GET https://app.box.com/app-api/split-proxy, GET https://app.box.com/app-api/split-proxy?target=http://169.254.169.254
+impact: SSRF to internal Box services, metadata endpoint access; HIGH severity
+testability: PASSIVE
+[HYP] app.box.com /app-gallery-v2/api information disclosure
+class: MISCONFIG
+asset: app.box.com/app-gallery-v2/api
+confidence: 30
+reasoning: robots.txt explicitly allows this API path. Gallery APIs often serve metadata about apps/integrations without auth.
+verify_steps: GET https://app.box.com/app-gallery-v2/api
+impact: Information disclosure of internal app gallery data; MEDIUM severity
+testability: PASSIVE
+[HYP] cloud.app.box.com CORS misconfiguration
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 45
+reasoning: 206 responses on root suggest asset layer. Testing if Access-Control-Allow-Origin reflects attacker Origin or exposes Authorization header.
+verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, GET https://cloud.app.box.com/ with Origin: https://evil.com
+impact: Cross-origin data theft from preview assets; HIGH severity
+testability: PASSIVE
+[NEXT] GET https://app.box.com/app-api/split-proxy — check proxy endpoint behavior
+[NEXT] GET https://app.box.com/app-gallery-v2/api — check API response
+[NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — test CORS preflight reflection

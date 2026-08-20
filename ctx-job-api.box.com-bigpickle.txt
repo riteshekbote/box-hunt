@@ -37,34 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-19 06:32:55 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-19 13:50:29 UTC api.box.com (ling3)
-## 2026-08-19 14:18:58 UTC api.box.com (ling3)
-## 2026-08-19 14:55:59 UTC api.box.com (ling3)
-## 2026-08-19 15:22:28 UTC api.box.com (ling3)
-## 2026-08-19 15:51:59 UTC api.box.com (ling3)
-## 2026-08-19 16:15:53 UTC api.box.com (bigpickle)
-[NEXT] GET https://app.box.com/robots.txt — check for path disclosure or admin endpoints
-[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure
-[HYP] app.box.com robots.txt information disclosure
-class: MISCONFIG
-asset: app.box.com/robots.txt
-confidence: 30
-reasoning: Enterprise apps often leak internal paths in robots.txt. app.box.com is the primary web app and only host in scope not yet probed for robots.txt.
-verify_steps: GET https://app.box.com/robots.txt
-impact: Information disclosure of admin panels, API routes, or internal paths; aids further targeted probing
-testability: PASSIVE
-[HYP] cloud.app.box.com Content-Range size disclosure
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 25
-reasoning: The 200/206 responses suggest Range support. Checking Content-Range header might reveal total file size of the pinned asset.
-verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0
-impact: Information disclosure of asset size; low severity but confirms asset characteristics
-testability: PASSIVE
-## 2026-08-19 16:47:31 UTC api.box.com (bigpickle)
-[NEXT] GET https://app.box.com/robots.txt — check for path disclosure or admin endpoints
-[NEXT] GET https://cloud.app.box.com/ with Range: bytes=0-0 — check Content-Range header for total size disclosure
-[HYP] app.box.com robots.txt information disclosure
 class: MISCONFIG
 asset: app.box.com/robots.txt
 confidence: 30
@@ -97,10 +69,38 @@ testability: PASSIVE
 ## 2026-08-19 22:48:16 UTC api.box.com (ling3)
 ## 2026-08-19 23:04:09 UTC api.box.com (ling3)
 ## 2026-08-19 23:31:50 UTC api.box.com (ling3)
+## 2026-08-19 23:49:26 UTC api.box.com (bigpickle)
+[NEW] app.box.com/robots.txt: Reveals internal paths including /app-api/split-proxy and /app-gallery-v2/api
+[HYP] app.box.com /app-api/split-proxy SSRF potential
+class: SSRF
+asset: app.box.com/app-api/split-proxy
+confidence: 35
+reasoning: robots.txt explicitly lists /app-api/split-proxy as an allowed path. "split-proxy" naming suggests an internal proxy service that could be abused for SSRF if it accepts user-controlled URLs or parameters.
+verify_steps: GET https://app.box.com/app-api/split-proxy, GET https://app.box.com/app-api/split-proxy/ with various query params
+impact: SSRF to internal Box services, potential access to metadata endpoints or internal APIs; HIGH severity
+testability: PASSIVE
+[HYP] app.box.com /app-gallery-v2/api information disclosure
+class: MISCONFIG
+asset: app.box.com/app-gallery-v2/api
+confidence: 30
+reasoning: robots.txt explicitly allows this API path. Gallery APIs often serve metadata about apps/integrations and may leak internal identifiers or configuration without auth.
+verify_steps: GET https://app.box.com/app-gallery-v2/api
+impact: Information disclosure of internal app gallery data; MEDIUM severity
+testability: PASSIVE
+[NEXT] GET https://app.box.com/app-api/split-proxy — check proxy endpoint behavior
+[NEXT] GET https://app.box.com/app-gallery-v2/api — check API response
+## 2026-08-20 00:02:18 UTC api.box.com (ling3)
+## 2026-08-20 01:42:26 UTC api.box.com (ling3)
+## 2026-08-20 02:42:44 UTC api.box.com (ling3)
+## 2026-08-20 03:28:44 UTC api.box.com (ling3)
+## 2026-08-20 04:07:55 UTC api.box.com (ling3)
+## 2026-08-20 04:49:20 UTC api.box.com (ling3)
+## 2026-08-20 05:16:51 UTC api.box.com (ling3)
+## 2026-08-20 05:47:51 UTC api.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 
-## RANKED 2026-08-19 22:36:27 UTC
+## RANKED 2026-08-20 04:48:42 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -113,7 +113,7 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 
-## RANKED 2026-08-19 22:56:33 UTC
+## RANKED 2026-08-20 05:42:19 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -126,7 +126,7 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
 - [40] cloud.app.box.com/: upload.box.com upload-API method/CORS surface via OPTIONS preflight (from host-upload.box.com.md)
 
-## RANKED 2026-08-19 23:34:15 UTC
+## RANKED 2026-08-20 06:02:44 UTC
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -154,7 +154,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-19 22:36:27 UTC (executor)
+## 2026-08-20 04:48:42 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -170,7 +170,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-19 22:56:33 UTC (executor)
+## 2026-08-20 05:42:19 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
@@ -186,7 +186,7 @@ https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
-## 2026-08-19 23:34:15 UTC (executor)
+## 2026-08-20 06:02:44 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
