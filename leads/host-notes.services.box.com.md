@@ -768,3 +768,4 @@ testability: PASSIVE
 [NEXT] GET https://cloud.app.box.com/ with Origin: https://evil.com and Range: bytes=0-100 — combined CORS + Range probe
 [NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — preflight CORS policy capture
 [NEXT] GET https://cloud.app.box.com/ with Origin: https://evil.com — non-preflight CORS reflection test
+## 2026-08-20 17:16:12 UTC notes.services.box.com (ling3)
