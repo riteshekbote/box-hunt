@@ -717,3 +717,4 @@ verify_steps: 1) HEAD https://cloud.app.box.com/ with headers: Origin: https://e
 impact: If Origin is reflected with credentials, attacker can cross-origin read preview/embed assets served by this layer (HIGH). If Allow-Methods is wide, preflight succeeds for any method.
 testability: PASSIVE
 [NEXT] HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0
+## 2026-08-20 20:51:57 UTC app.box.com (ling3)
