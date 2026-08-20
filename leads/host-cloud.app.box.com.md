@@ -655,3 +655,20 @@ testability: PASSIVE
 [NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, User-Agent: box-research/1.0 — capture full response headers, specifically Access-Control-Allow-Origin and Access-Control-Expose-Headers
 [NEXT] OPTIONS cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, Access-Control-Request-Method: GET, User-Agent: box-research/1.0 — capture preflight CORS headers
 [NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, User-Agent: box-research/1.0 — baseline response headers without attacker Origin for comparison
+## 2026-08-20 16:53:30 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com: CORS header baseline finally being executed — prior cycles emitted [NEXT] probe lines but executor batch ran only plain GETs without Origin; this cycle captures actual header values
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization)
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 40
+reasoning: Root consistently returns 206 confirming the asset/preview layer fronts the origin. However no cycle has yet returned actual CORS header values because every executor batch ran only plain GETs without Origin header. The hypothesis is untested, not refuted.
+verify_steps: |
+impact: If ACAO reflects arbitrary Origin, attacker page can read preview content cross-origin; Medium-High
+testability: PASSIVE
+[PARKED] Object-store default handler vs whitelist-routed: no new evidence from recent cycles; awaiting CORS baseline before pivoting
+[PARKED] OAuth token endpoint exposure: no new evidence; OPTIONS baseline needed first to understand method surface
+[NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, User-Agent: box-research/1.0 — capture full response headers, specifically Access-Control-Allow-Origin and Access-Control-Expose-Headers
+[NEXT] OPTIONS cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, Access-Control-Request-Method: GET, Access-Control-Request-Headers: Authorization, User-Agent: box-research/1.0 — capture preflight CORS headers
+[NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, User-Agent: box-research/1.0 — baseline response headers without attacker Origin for comparison
+[LEARN] REJECTEDBUSLOGIC @ dl.boxcloud.com: All probe paths return 404 consistently across 4+ cycles — origin appears to serve no content without signed path/token. Exhausted.
+[LEARN] REJECTEDBUSLOGIC @ upload.box.com: All probe paths return 404 — upload API requires auth and does not leak via path fuzzing. Exhausted.
