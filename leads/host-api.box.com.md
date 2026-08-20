@@ -607,3 +607,4 @@ impact: Information disclosure of internal app gallery data; MEDIUM severity
 testability: PASSIVE
 [NEXT] GET https://app.box.com/app-api/split-proxy — check proxy endpoint behavior
 [NEXT] GET https://app.box.com/app-gallery-v2/api — check API response
+## 2026-08-20 00:02:18 UTC api.box.com (ling3)
