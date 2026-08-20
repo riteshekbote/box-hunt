@@ -761,3 +761,4 @@ reasoning: Root returns 206 which is typical of object-store/S3-style default ha
 verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0 — check if Content-Range reveals total object size
 impact: If object-store default serves arbitrary keys → HIGH (file disclosure via Range). If only pinned assets → LOW.
 testability: PASSIVE
+## 2026-08-20 08:20:06 UTC upload.box.com (ling3)
