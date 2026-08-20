@@ -673,3 +673,4 @@ testability: PASSIVE
 [LEARN] REJECTEDBUSLOGIC @ dl.boxcloud.com: All probe paths return 404 consistently across 4+ cycles — origin appears to serve no content without signed path/token. Exhausted.
 [LEARN] REJECTEDBUSLOGIC @ upload.box.com: All probe paths return 404 — upload API requires auth and does not leak via path fuzzing. Exhausted.
 ## 2026-08-20 17:16:37 UTC cloud.app.box.com (ling3)
+## 2026-08-20 17:47:05 UTC cloud.app.box.com (ling3)
