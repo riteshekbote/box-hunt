@@ -563,3 +563,4 @@ testability: PASSIVE
 [NEXT] PROBE: curl -s -D- "https://cloud.app.box.com/robots.txt" -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-robots-body && echo "---ROBOTS-HEADERS---" && sleep 2 && cat /tmp/cloud-robots-body | head -c 500 && echo "---ROBOTS-BODY---" && sleep 2 && curl -s -D- "https://cloud.app.box.com/sitemap.xml" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-sitemap-body && echo "---SITEMAP-HEADERS---" && sleep 2 && cat /tmp/cloud-sitemap-body | head -c 500 && echo "---SITEMAP-BODY---"
 ## 2026-08-20 17:46:49 UTC dl.boxcloud.com (ling3)
 ## 2026-08-20 18:14:27 UTC dl.boxcloud.com (bigpickle)
+## 2026-08-20 18:59:23 UTC dl.boxcloud.com (ling3)
