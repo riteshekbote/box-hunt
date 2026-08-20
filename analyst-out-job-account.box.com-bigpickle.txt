@@ -1,19 +1,40 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com: OAuth2 `/api/oauth2/token` preflight returns `*` wildcard with POST+auth headers but no credentials — safe per CORS spec
-[LEARN] REJECTED XSS-in-redirect_uri @ cloud.app.box.com: Need to verify if `redirect_uri=javascript:alert(1)` is reflected verbatim or sanitized in the HTML payload. Previous cycles confirmed param reflection in `Box.prefetchedData.errorParams` JSON but haven't tested JS protocol injection specifically.
-[HYP] Reflected parameter injection via redirect_uri in OAuth2 authorize page
-class: XSS
-asset: cloud.app.box.com/api/oauth2/authorize
-confidence: 30
-reasoning: All query parameters (`redirect_uri`, `state`, `scope`, `client_id`) are reflected in `Box.prefetchedData.errorParams` JSON embedded in the HTML. JSON-embedded values in script context may be exploitable if not properly escaped (e.g., `</script>` or quote-break in redirect_uri). No JS-protocol or HTML-context test has been run yet.
-evidence_needed: Response body of authorize endpoint with crafted redirect_uri containing `</script><script>alert(1)</script>` or similar payload
-verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E&response_type=code" 2>&1 | head -80`
-impact: If reflected unescaped in HTML/script context, DOM-based XSS leading to session theft. Severity: Critical
-testability: PASSIVE
+# BOX BUG BOUNTY — Scope Analysis
 
-[NEXT] XSS-REFLECT: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E&response_type=code"`
-[NEXT] XSS-REFLECT2: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=\\%22%3E%3Cimg+src=x+onerror=alert(1)%3E&response_type=code"`
-[NEXT] OAUTH-CLIENTS: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=boxsdk&redirect_uri=https://evil.example.com/callback&response_type=code"`
-[NEXT] OAUTH-CLIENTS2: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=https://evil.example.com/callback&response_type=code"`
+## Key Findings
+
+### ✅ In-Scope Hosts (8 total)
+| Host | Purpose | Phase |
+|------|---------|-------|
+| `upload.box.com` | File upload pipeline | PLATFORM |
+| `notes.services.box.com` | Box Notes backend | PLATFORM |
+| `m.box.com` | Mobile web app | WEB |
+| `dl.boxcloud.com` | File download CDN | CDN |
+| `cloud.app.box.com` | Embedded content views | PLATFORM |
+| `app.box.com` | Primary web app | WEB |
+| `api.box.com` | Core API | API |
+| `account.box.com` | Auth plane | AUTH |
+
+### 🚫 Hard Forbidden
+- `signrequest.com` — **HONEYPOT** (visiting bans IP)
+- `sr-staging-1.com` — Partner staging, out of scope
+- Any `*.box.com` content outside the 8 hosts above
+
+### 📋 Rules Summary
+1. **READ-ONLY**: GET/HEAD/OPTIONS only — no POST/PUT/PATCH/DELETE
+2. **No account actions**: No creation, uploads, writes, OAuth submission
+3. **Politeness**: 1 req/2s, ≤60/cycle, specific User-Agent
+4. **Fail-stop**: First 4xx/429/403 → stop probing that host
+5. **No redirects**: Never follow to third-party origins
+6. **Phased approach**: RECON → SURFACE → HYPOTHESIS → POC
+
+### ⚠️ Important Notes
+- Documentation sites (`developer.box.com`, `support.box.com`) are readable for research
+- AUTH_HELPED/HUMAN_ONLY items are parked — don't attempt without explicit permission
+- All hypotheses must include confidence scores and evidence requirements
+
+---
+
+**What specific analysis or next steps do you need help with?**
