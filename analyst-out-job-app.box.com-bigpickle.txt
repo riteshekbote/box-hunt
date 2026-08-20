@@ -1,13 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -o /tmp/cloud_head.txt -w "%{http_code}" -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/" 2>&1; echo "---HEAD---"; cat /tmp/cloud_head.txt failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -o /tmp/cloud_range.txt -w "\nHTTP_CODE:%{http_code}\nSIZE:%{size_download}" -H "Origin: https://evil.com" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/" 2>&1; echo "---GET-RANGE---"; cat /tmp/cloud_range.txt failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -o /tmp/cloud_random.txt -w "\nHTTP_CODE:%{http_code}\nSIZE:%{size_download}" -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/bhx-t7z9k-m2f3q/" 2>&1; echo "---RANDOM---"; cat /tmp/cloud_random.txt failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-Looking at the evidence: `cloud.app.box.com/` consistently returns 206 across 3+ cycles while all random paths return 404. We're in POC phase — need to capture full headers (especially CORS) on the 206 response. Executing the three pending probes now.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Random paths (bhx-xp4k7-m9f3q, bhx-t7z9k-m2f3q) return 404 consistently across cycles — the 206 layer is route-pinned to known static assets, NOT a default handler fronting the origin.
+
+[NEW] dl.boxcloud.com: All probes (root, robots.txt, favicon.ico, random nonce) return 404 — this CDN requires valid signed/tokenized paths; not explorable without credentials.
+
+[HYP] cloud.app.box.com: CORS reflection on 206 asset-layer root
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Root returns stable 206 across 20+ cycles. The asset layer serves content but no CORS probe has been executed against the root with attacker Origin in the actual HEAD/GET/OPTIONS requests. The random-path 404s confirm this is pinned routing, not open default — but the pinned root endpoint itself may still reflect Origin headers or leak Authorization. Need direct header capture.
+evidence_needed: Full response headers from HEAD and OPTIONS on cloud.app.box.com/ with Origin: https://evil.com — specifically Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Methods, and any Authorization/Auth headers.
+verify_steps: 1) HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0  2) OPTIONS https://cloud.app.box.com/ with headers: Origin: https://evil.com, Access-Control-Request-Method: GET, User-Agent: box-research/1.0  3) GET https://cloud.app.box.com/ with headers: Origin: https://evil.com, Range: bytes=0-0, User-Agent: box-research/1.0
+impact: If Origin is reflected with credentials, attacker can cross-origin read preview/embed assets served by this layer (HIGH). If Allow-Methods is wide, preflight succeeds for any method.
+testability: PASSIVE
+
+[NEXT] HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0

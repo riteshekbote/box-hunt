@@ -705,3 +705,15 @@ testability: PASSIVE
 ## 2026-08-20 18:59:24 UTC app.box.com (ling3)
 ## 2026-08-20 19:31:47 UTC app.box.com (ling3)
 ## 2026-08-20 19:57:09 UTC app.box.com (ling3)
+## 2026-08-20 20:22:04 UTC app.box.com (bigpickle)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Random paths (bhx-xp4k7-m9f3q, bhx-t7z9k-m2f3q) return 404 consistently across cycles — the 206 layer is route-pinned to known static assets, NOT a default handler fronting the origin.
+[NEW] dl.boxcloud.com: All probes (root, robots.txt, favicon.ico, random nonce) return 404 — this CDN requires valid signed/tokenized paths; not explorable without credentials.
+[HYP] cloud.app.box.com: CORS reflection on 206 asset-layer root
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Root returns stable 206 across 20+ cycles. The asset layer serves content but no CORS probe has been executed against the root with attacker Origin in the actual HEAD/GET/OPTIONS requests. The random-path 404s confirm this is pinned routing, not open default — but the pinned root endpoint itself may still reflect Origin headers or leak Authorization. Need direct header capture.
+verify_steps: 1) HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0  2) OPTIONS https://cloud.app.box.com/ with headers: Origin: https://evil.com, Access-Control-Request-Method: GET, User-Agent: box-research/1.0  3) GET https://cloud.app.box.com/ with headers: Origin: https://evil.com, Range: bytes=0-0, User-Agent: box-research/1.0
+impact: If Origin is reflected with credentials, attacker can cross-origin read preview/embed assets served by this layer (HIGH). If Allow-Methods is wide, preflight succeeds for any method.
+testability: PASSIVE
+[NEXT] HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0
