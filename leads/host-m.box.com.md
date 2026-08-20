@@ -797,3 +797,4 @@ verify_steps: (1) bare GET https://account.box.com/ with UA box-research/1.0 +(r
 impact: user enumeration, session token leakage, stack disclosure, open redirect; severity depends on response content
 testability: PASSIVE
 [NEXT] PROBE: bare GET https://api.box.com/ with headers User-Agent: box-research/1.0 +(research), record full status code + all response headers + body_length. 1 req/2s. First 4xx/429/403 -> log and stop api.box.com for this cycle.
+## 2026-08-20 16:17:23 UTC m.box.com (ling3)
