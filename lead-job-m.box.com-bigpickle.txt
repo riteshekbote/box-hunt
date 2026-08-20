@@ -1,0 +1,20 @@
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Root consistently returns 206; all random paths return 404. The 206 status with unknown body length on root suggests a content-serving layer (likely CDN/object-store) fronting this origin. Routing is restricted to exact root path only — any deviation yields 404.
+[NEW] api.box.com: Core API — never probed in any cycle; ripe for version/stack disclosure, unauthenticated endpoint enumeration, and error response analysis.
+[NEW] account.box.com: Auth plane — login, OAuth, SSO, tokens — never probed; potential for session/token disclosure, error info leaks, or open redirect surface.
+[HYP] API error enumeration and version disclosure on api.box.com
+class: MISCONFIG
+asset: api.box.com/
+confidence: 40
+reasoning: api.box.com is the core API and has never been probed in any cycle. Unauthenticated API requests typically return detailed error responses with version info, internal paths, or debugging metadata. Previous hypotheses for cloud.app.box.com OPTIONS have been parked 7+ consecutive cycles — executor cannot execute OPTIONS. api.box.com is the freshest high-value target.
+verify_steps: (1) bare GET https://api.box.com/ with UA box-research/1.0 +(research), record full status+headers+body_length; (2) bare GET https://api.box.com/2.0/users/me same UA. 1 req/2s. First 4xx/429/403 -> log and stop that host.
+impact: version/stack disclosure; unauthenticated data exposure via API endpoints; severity depends on what leaks
+testability: PASSIVE
+[HYP] Auth error information disclosure on account.box.com
+class: AUTH
+asset: account.box.com/
+confidence: 35
+reasoning: account.box.com handles login, OAuth, SSO, tokens — never probed. Auth endpoints often leak stack info, user existence, or session details via error messages, response headers, or redirect behavior.
+verify_steps: (1) bare GET https://account.box.com/ with UA box-research/1.0 +(research), record full status+headers+body_length; (2) GET https://account.box.com/api/oauth2/authorize same UA. 1 req/2s. First 4xx/429/403 -> log and stop that host.
+impact: user enumeration, session token leakage, stack disclosure, open redirect; severity depends on response content
+testability: PASSIVE
+[NEXT] PROBE: bare GET https://api.box.com/ with headers User-Agent: box-research/1.0 +(research), record full status code + all response headers + body_length. 1 req/2s. First 4xx/429/403 -> log and stop api.box.com for this cycle.
