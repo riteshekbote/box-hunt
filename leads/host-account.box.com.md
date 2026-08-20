@@ -859,3 +859,4 @@ testability: HUMAN_ONLY
 [NEXT] OAUTH: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=boxsdk&redirect_uri=https://evil.example.com/callback&response_type=code&state=test&scope=root_read"` — test with common/well-known client_ids
 [NEXT] REDIRECT: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/login?redirect_uri=javascript:alert(1)"` — test XSS in redirect_uri reflection
 [NEXT] HOST: `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://app.box.com/api/oauth2/authorize?client_id=test&redirect_uri=https://evil.example.com/callback&response_type=code"` — check if app.box.com has same OAuth2 endpoint behavior
+## 2026-08-20 14:08:23 UTC account.box.com (ling3)
