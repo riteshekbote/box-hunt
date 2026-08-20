@@ -763,3 +763,4 @@ impact: If object-store default serves arbitrary keys → HIGH (file disclosure 
 testability: PASSIVE
 ## 2026-08-20 08:20:06 UTC upload.box.com (ling3)
 ## 2026-08-20 08:59:51 UTC upload.box.com (ling3)
+## 2026-08-20 09:36:50 UTC upload.box.com (ling3)
