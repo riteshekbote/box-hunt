@@ -1,18 +1,21 @@
 [0m
 > build · big-pickle
 [0m
-The executor hasn't yet probed api.box.com. Let me follow the [NEXT] directive and probe it.
-[0m$ [0mcurl -s -o /tmp/api_box_root.txt -w "HTTP_CODE:%{http_code}\nCONTENT_TYPE:%{content_type}\nREDIRECT_URL:%{redirect_url}\nNUM_REDIRECTS:%{num_redirects}\nSIZE_DOWNLOAD:%{size_download}\nTIME_TOTAL:%{time_total}" -H "User-Agent: box-research/1.0 +(research)" -D /tmp/api_box_root_headers.txt -L0 --max-redirs 0 -H "Accept: */*" -H "Accept-Language: en-US,en;q=0.5" https://api.box.com/ 2>&1
+[0m# [0mTodos
+[•] Probe api.box.com bare GET / and /2.0/users/me per last cycle's [NEXT]
+[ ] Read developer.box.com docs for api.box.com endpoint map
+[ ] Analyze probe results, emit hypothesis and next cycle plan
+[0m
+[0m$ [0mcurl -sS -o /tmp/api_box_root.txt -w "HTTP_CODE:%{http_code}\nCONTENT_TYPE:%{content_type}\nSIZE:%{size_download}\nTIME:%{time_total}\n" -H "User-Agent: box-research/1.0 +(research)" "https://api.box.com/" 2>&1; echo "---HEADERS---"; curl -sS -D /tmp/api_box_root_h.txt -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://api.box.com/" 2>&1
 HTTP_CODE:401
 CONTENT_TYPE:
-REDIRECT_URL:
-NUM_REDIRECTS:0
-SIZE_DOWNLOAD:0
-TIME_TOTAL:0.136386
+SIZE:0
+TIME:0.388894
+---HEADERS---
 [0m
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mRead /tmp/api_box_root_headers.txt failed
+[0m✗ [0mcat /tmp/api_box_root_h.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.
 [93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mRead /tmp/api_box_root.txt failed
+[0m✗ [0mcat /tmp/api_box_root.txt failed
 [91m[1mError: [0mThe user rejected permission to use this specific tool call.
