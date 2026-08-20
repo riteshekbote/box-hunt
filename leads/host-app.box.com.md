@@ -718,3 +718,4 @@ impact: If Origin is reflected with credentials, attacker can cross-origin read 
 testability: PASSIVE
 [NEXT] HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0
 ## 2026-08-20 20:51:57 UTC app.box.com (ling3)
+## 2026-08-20 21:14:04 UTC app.box.com (ling3)
