@@ -1,6 +1,39 @@
 [0m
 > build · big-pickle
 [0m
-Looking at the state, dl.boxcloud.com is fully exhausted. The executor has been probing cloud.app.box.com which returns 206 on root — that's the active lead. Let me continue POC-level probing on cloud.app.box.com.
+Based on the exhaustive probe history across 50+ cycles, here is my analysis:
 
-[NEXT] PROBE: CORS + method surface on cloud.app.box.com root (206 origin). Test OPTIONS preflight with attacker Origin, GET with Origin, and HEAD to extract headers: `curl -s -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0" && echo "---OPTIONS-DONE---" && curl -s -D- -o /dev/null "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" && echo "---GET-DONE---" && curl -s -D- -o /dev/null -X HEAD "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0" && echo "---HEAD-DONE---" && curl -s -D- -o /dev/null "https://cloud.app.box.com/.well-known/box-plugin-settings" -H "User-Agent: box-research/1.0" && echo "---WK-DONE---" && curl -s -D- -o /dev/null "https://cloud.app.box.com/api/2.0/users/me" -H "User-Agent: box-research/1.0" && echo "---APIUSERS-DONE---" && curl -s -D- -o /dev/null "https://cloud.app.box.com/oauth2/token" -H "User-Agent: box-research/1.0" && echo "---OAUTH-DONE---"`
+---
+
+## dl.boxcloud.com — ANALYSIS COMPLETE
+
+### Current Status: **EXHAUSTED**
+
+| Metric | Value |
+|--------|-------|
+| Total Probes | 50+ across 2 agents |
+| Success (2xx/3xx) | 0 |
+| 404 Responses | 100% |
+| Unique Paths Tested | All standard + randomized nonces |
+| Methods Tested | GET, HEAD, OPTIONS |
+| CORS Policy | Safe: `Access-Control-Allow-Origin: *` (no credentials) |
+
+### Evidence Summary
+- **No unauthenticated attack surface**: Every probe returns 404 with no information disclosure
+- **No robots.txt, favicon, or error pages**: Zero content paths accessible without auth
+- **No server/software headers**: CDN does not leak version info
+- **No path traversal signals**: Both literal and encoded paths return identical 404s
+- **CORS non-issue**: Wildcard origin without credentials is not exploitable
+
+### PARKED Hypotheses (require authentication)
+1. **Signed-URL token leakage via Referer** — Needs valid signed download URL
+2. **Range header offset bypass** — Needs valid signed URL with Range manipulation
+3. **Download-edge CORS on API handler** — Auth gate blocks CORS testing
+
+### Conclusion
+**No further unauthenticated probing should be conducted on dl.boxcloud.com.** All attack vectors have been systematically tested and either:
+- **REJECTED**: No surface exists (CDN is a pure authenticated content delivery layer)
+- **PARKED**: Potential exists but requires authenticated access to validate
+
+### Recommendation
+**STOP** probing dl.boxcloud.com. Reassign this agent to another host in scope (e.g., `account.box.com`, `upload.box.com`, or `notes.services.box.com`) where unauthenticated surface may still exist.
