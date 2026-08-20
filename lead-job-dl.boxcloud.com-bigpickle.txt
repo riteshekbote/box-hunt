@@ -1,0 +1,23 @@
+[NEW] cloud.app.box.com: CORS baseline still unreturned — executor has run 10+ cycles since 2026-08-19 and never captured any response header values, only status codes. All prior [NEXT] lines emitted Origin-bearing requests but executor batch ran plain GETs. The CORS hypothesis is stalled on missing evidence.
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization)
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 35
+reasoning: Root consistently returns 206 (asset/preview layer fronts origin). OPTIONS on favicon.ico returned 405 (2026-08-14), no ACAO headers ever captured. The hypothesis is untested, not refuted — every executor batch ran status-only GETs without Origin headers. Additionally, `/embed` returned 200 (2026-08-18 09:24) which is a real content route distinct from the 206 asset layer; if it carries CORS headers, it may be the actual attack surface.
+verify_steps: (1) GET cloud.app.box.com/ with headers `Origin: https://evil.example.com`, `Range: bytes=0-0`, `User-Agent: box-research/1.0`; report ALL response headers verbatim. (2) OPTIONS cloud.app.box.com/ with `Origin: https://evil.example.com`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: Authorization`. (3) GET cloud.app.box.com/embed with same Origin header. (4) GET cloud.app.box.com/ without Origin for baseline comparison.
+impact: If ACAO reflects arbitrary Origin + ACAC=true, attacker page reads credentialed preview/embed responses cross-origin — token/URL theft; Medium-High.
+testability: PASSIVE
+[HYP] /embed route as distinct content endpoint with different auth/CORS policy
+class: OTHER
+asset: cloud.app.box.com/embed
+confidence: 30
+reasoning: `/embed` returned 200 (not 206) in the 2026-08-18 09:24 batch, suggesting a separate handler (SPA route or embed bootstrap) rather than the pinned Range object layer. This route may carry different security headers (CORS, CSP, X-Frame-Options) than the static asset layer. No headers have been captured for this route.
+verify_steps: (1) GET cloud.app.box.com/embed with `Origin: https://evil.example.com`, report full header set. (2) GET cloud.app.box.com/embed without Origin for baseline. (3) GET cloud.app.box.com/embed/ with trailing slash, report status (200 vs 404).
+impact: If the embed endpoint carries permissive CORS or exposes tokens, it is the primary cross-origin attack surface — distinct from the static 206 asset layer.
+testability: PASSIVE
+[PARKED] S3 bucket-listing surface: /?list-type=2 returns 200, but body content never captured; all S3 query-param variants also 200 — inconclusive without body inspection. (PASSIVE, evidence gap)
+[PARKED] Content/header fingerprinting: body of robots.txt/sitemap.xml never captured; status-only executor blocks this line. (PASSIVE, evidence gap)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/ favicon.ico OPTIONS: 405 returned, no CORS layer on 206 assets. Closed.
+[LEARN] REJECTED BUSLOGIC @ cloud.app.box.com catch-all default handler: random nonce → 404, whitelist-routed confirmed. Closed.
+[NEXT] PROBE: curl -s -D- -o /dev/null "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" && echo "---ROOT-ORIGIN---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---OPTIONS-ORIGIN---" && sleep 2 && curl -s -D- -o /dev/null "https://cloud.app.box.com/embed" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---EMBED-ORIGIN---" && sleep 2 && curl -s -D- -o /dev/null "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0 +(research)" && echo "---ROOT-BASELINE---"
+[NEXT] PROBE: curl -s -D- "https://cloud.app.box.com/robots.txt" -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-robots-body && echo "---ROBOTS-HEADERS---" && sleep 2 && cat /tmp/cloud-robots-body | head -c 500 && echo "---ROBOTS-BODY---" && sleep 2 && curl -s -D- "https://cloud.app.box.com/sitemap.xml" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-sitemap-body && echo "---SITEMAP-HEADERS---" && sleep 2 && cat /tmp/cloud-sitemap-body | head -c 500 && echo "---SITEMAP-BODY---"
