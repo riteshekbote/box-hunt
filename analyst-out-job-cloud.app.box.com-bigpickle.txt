@@ -1,8 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com: POC cycle — testing CORS reflection + OPTIONS surface on 206 layer
+[NEW] cloud.app.box.com: CORS reflection test — previous cycles confirmed 206 layer serves origin root; now testing Access-Control-Allow-Origin reflection with attacker Origin
 
-[NEXT] GET cloud.app.box.com/ Origin: https://evil.example.com → check Access-Control-Allow-Origin reflection
-[NEXT] OPTIONS cloud.app.box.com/ Origin: https://evil.example.com → check preflight reflection + allowed methods
-[NEXT] GET cloud.app.box.com/ Origin: https://evil.example.com → check if Authorization header exposed via Access-Control-Expose-Headers
+[HYP] CORS misconfiguration on cloud.app.box.com preview origin
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 45
+reasoning: Prior cycles confirmed the 206 asset layer serves content at root and various paths. CORS headers on this layer could allow cross-origin reads of preview content if Access-Control-Allow-Origin reflects attacker Origin or exposes Authorization header.
+evidence_needed: Access-Control-Allow-Origin header reflecting attacker Origin in response to GET or OPTIONS, or Access-Control-Expose-Headers listing Authorization
+verify_steps: GET cloud.app.box.com/ with Origin: https://evil.example.com → check for ACAO reflection; OPTIONS cloud.app.box.com/ with Origin: https://evil.example.com → check preflight reflection + allowed methods
+impact: Cross-origin read of user preview content via attacker-controlled page, severity Medium-High
+testability: PASSIVE
+
+[NEXT] GET cloud.app.box.com/ Origin: https://evil.example.com User-Agent: box-research/1.0 → check Access-Control-Allow-Origin header for reflection or wildcard
+[NEXT] OPTIONS cloud.app.box.com/ Origin: https://evil.example.com User-Agent: box-research/1.0 → check preflight response for ACAO reflection and Access-Control-Allow-Methods
+[NEXT] GET cloud.app.box.com/ User-Agent: box-research/1.0 → dump full response headers to baseline what CORS/security headers exist without attacker Origin
