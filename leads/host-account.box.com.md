@@ -818,3 +818,4 @@ testability: PASSIVE
 [PARKED] dl.boxcloud.com download-edge CORS: All paths return 404 — no content handler reachable without signed URLs.
 [NEXT] PREFLIGHT: `curl -sD- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
 [NEXT] ORIGIN-GET: `curl -sD- -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 (research)" https://cloud.app.box.com/`
+## 2026-08-20 12:32:26 UTC account.box.com (bigpickle)
