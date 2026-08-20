@@ -647,3 +647,4 @@ testability: PASSIVE
 [NEXT] GET https://app.box.com/app-api/split-proxy — check proxy endpoint behavior
 [NEXT] GET https://app.box.com/app-gallery-v2/api — check API response
 [NEXT] OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com — test CORS preflight reflection
+## 2026-08-20 07:09:34 UTC api.box.com (ling3)
