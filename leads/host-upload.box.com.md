@@ -804,3 +804,4 @@ impact: If debug headers leak token structure → MEDIUM (aids token forgery). I
 testability: PASSIVE
 [NEXT] PROBE (cloud.app.box.com — full 206 inspection): `curl -sS -D /tmp/cab-headers.txt -o /tmp/cab-body.txt https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" && cat /tmp/cab-headers.txt && echo "---BODY---" && cat /tmp/cab-body.txt` — Capture full response headers and body. 1 req.
 [NEXT] PROBE (dl.boxcloud.com — 404 header inspection): `curl -sS -D- https://dl.boxcloud.com/nonexistent-path -H "User-Agent: box-research/1.0 +(research)" -H "Referer: https://evil.com"` — Capture all response headers from 404. 1 req.
+## 2026-08-20 20:21:48 UTC upload.box.com (bigpickle)
