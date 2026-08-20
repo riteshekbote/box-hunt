@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-18 11:05:24 UTC"
 }=== MY LAST LEADS (tail) ===
-confidence: 55
 reasoning: Root consistently returns 206, confirming asset/object-store layer fronts this origin. Embedded preview origin likely needs CORS for cross-origin iframe reads from customer sites. If the 206 handler reflects attacker Origin with credentials, authenticated preview content is readable cross-origin. The non-deterministic 200/206 oscillation suggests multiple backend handlers with potentially different CORS policies.
 verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET, UA: box-research/1.0 +(research)
 impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content). If reflected without credentials → MEDIUM. If not reflected → LOW/parked.
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-20 20:51:43 UTC upload.box.com (ling3)
 ## 2026-08-20 21:14:10 UTC upload.box.com (bigpickle)
 ## 2026-08-20 21:43:30 UTC upload.box.com (ling3)
+## 2026-08-20 22:01:28 UTC upload.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
