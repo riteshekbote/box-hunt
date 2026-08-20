@@ -123,3 +123,6 @@ https://cloud.app.box.com/sitemap.xml -> 206
 
 ## 2026-08-19 07:58:55 UTC cloud.app.box.com
 https://cloud.app.box.com/` -> HTTP 404
+
+## 2026-08-20 10:04:48 UTC cloud.app.box.com
+https://cloud.app.box.com/ -> 206
