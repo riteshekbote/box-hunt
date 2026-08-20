@@ -678,3 +678,21 @@ testability: PASSIVE
 ## 2026-08-20 18:59:24 UTC cloud.app.box.com (ling3)
 ## 2026-08-20 19:32:13 UTC cloud.app.box.com (ling3)
 ## 2026-08-20 19:57:22 UTC cloud.app.box.com (ling3)
+## 2026-08-20 20:22:19 UTC cloud.app.box.com (bigpickle)
+[NEW] cloud.app.box.com: 12+ cycles attempted CORS testing — executor returns status codes only, no header evidence captured; hypothesis remains untestable at current probe granularity
+[PARKED] CORS misconfiguration on cloud.app.box.com: Cannot verify Access-Control-* header values via current executor (returns only status codes, not response headers); confidence frozen at 40, no path to confirmation
+[LEARN] REJECTEDTOOL: CORS header verification on cloud.app.box.com — 10+ cycles emitted [NEXT] Origin-bearing probes but executor only captures HTTP status, never response headers; hypothesis untestable with current infrastructure
+[HYP] account.box.com surface recon — discover endpoints, methods, and information leakage
+class: RECON
+asset: account.box.com
+confidence: 20
+reasoning: Auth plane has not been probed yet. Login/OAuth/SSO endpoints sometimes expose configuration, error messages, or endpoints via GET/HEAD/OPTIONS. Previous cycles focused entirely on cloud.app.box.com and exhausted dl.boxcloud.com/upload.box.com.
+verify_steps: |
+impact: Auth endpoint discovery, configuration leakage, method enumeration; severity Low-Medium
+testability: PASSIVE
+[NEXT] GET https://account.box.com/ — capture status code and any redirect behavior
+[NEXT] GET https://account.box.com/login — capture status code and response
+[NEXT] GET https://account.box.com/api/oauth2/token — capture status code (GET on token endpoint may reveal info)
+[NEXT] OPTIONS https://account.box.com/api/oauth2/token — check allowed methods on auth endpoint
+[NEXT] HEAD https://account.box.com/robots.txt — capture status and any disallowed paths
+[NEXT] GET https://account.box.com/.well-known/openid-configuration — check for OIDC discovery

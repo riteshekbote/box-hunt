@@ -1,16 +1,17 @@
-[NEW] cloud.app.box.com: CORS header baseline finally being executed — prior cycles emitted [NEXT] probe lines but executor batch ran only plain GETs without Origin; this cycle captures actual header values
-[HYP] CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization)
-class: MISCONFIG
-asset: cloud.app.box.com
-confidence: 40
-reasoning: Root consistently returns 206 confirming the asset/preview layer fronts the origin. However no cycle has yet returned actual CORS header values because every executor batch ran only plain GETs without Origin header. The hypothesis is untested, not refuted.
+[NEW] cloud.app.box.com: 12+ cycles attempted CORS testing — executor returns status codes only, no header evidence captured; hypothesis remains untestable at current probe granularity
+[PARKED] CORS misconfiguration on cloud.app.box.com: Cannot verify Access-Control-* header values via current executor (returns only status codes, not response headers); confidence frozen at 40, no path to confirmation
+[LEARN] REJECTEDTOOL: CORS header verification on cloud.app.box.com — 10+ cycles emitted [NEXT] Origin-bearing probes but executor only captures HTTP status, never response headers; hypothesis untestable with current infrastructure
+[HYP] account.box.com surface recon — discover endpoints, methods, and information leakage
+class: RECON
+asset: account.box.com
+confidence: 20
+reasoning: Auth plane has not been probed yet. Login/OAuth/SSO endpoints sometimes expose configuration, error messages, or endpoints via GET/HEAD/OPTIONS. Previous cycles focused entirely on cloud.app.box.com and exhausted dl.boxcloud.com/upload.box.com.
 verify_steps: |
-impact: If ACAO reflects arbitrary Origin, attacker page can read preview content cross-origin; Medium-High
+impact: Auth endpoint discovery, configuration leakage, method enumeration; severity Low-Medium
 testability: PASSIVE
-[PARKED] Object-store default handler vs whitelist-routed: no new evidence from recent cycles; awaiting CORS baseline before pivoting
-[PARKED] OAuth token endpoint exposure: no new evidence; OPTIONS baseline needed first to understand method surface
-[NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, User-Agent: box-research/1.0 — capture full response headers, specifically Access-Control-Allow-Origin and Access-Control-Expose-Headers
-[NEXT] OPTIONS cloud.app.box.com/ with headers: Host: cloud.app.box.com, Origin: https://evil.example.com, Access-Control-Request-Method: GET, Access-Control-Request-Headers: Authorization, User-Agent: box-research/1.0 — capture preflight CORS headers
-[NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, User-Agent: box-research/1.0 — baseline response headers without attacker Origin for comparison
-[LEARN] REJECTEDBUSLOGIC @ dl.boxcloud.com: All probe paths return 404 consistently across 4+ cycles — origin appears to serve no content without signed path/token. Exhausted.
-[LEARN] REJECTEDBUSLOGIC @ upload.box.com: All probe paths return 404 — upload API requires auth and does not leak via path fuzzing. Exhausted.
+[NEXT] GET https://account.box.com/ — capture status code and any redirect behavior
+[NEXT] GET https://account.box.com/login — capture status code and response
+[NEXT] GET https://account.box.com/api/oauth2/token — capture status code (GET on token endpoint may reveal info)
+[NEXT] OPTIONS https://account.box.com/api/oauth2/token — check allowed methods on auth endpoint
+[NEXT] HEAD https://account.box.com/robots.txt — capture status and any disallowed paths
+[NEXT] GET https://account.box.com/.well-known/openid-configuration — check for OIDC discovery
