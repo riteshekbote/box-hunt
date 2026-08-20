@@ -631,3 +631,4 @@ testability: PASSIVE
 [NEXT] GET cloud.app.box.com/ User-Agent: box-research/1.0 → dump full response headers to baseline what CORS/security headers exist without attacker Origin
 ## 2026-08-20 10:04:46 UTC cloud.app.box.com (bigpickle)
 ## 2026-08-20 10:39:40 UTC cloud.app.box.com (ling3)
+## 2026-08-20 11:02:20 UTC cloud.app.box.com (ling3)
