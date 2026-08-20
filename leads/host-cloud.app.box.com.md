@@ -672,3 +672,4 @@ testability: PASSIVE
 [NEXT] GET cloud.app.box.com/ with headers: Host: cloud.app.box.com, User-Agent: box-research/1.0 — baseline response headers without attacker Origin for comparison
 [LEARN] REJECTEDBUSLOGIC @ dl.boxcloud.com: All probe paths return 404 consistently across 4+ cycles — origin appears to serve no content without signed path/token. Exhausted.
 [LEARN] REJECTEDBUSLOGIC @ upload.box.com: All probe paths return 404 — upload API requires auth and does not leak via path fuzzing. Exhausted.
+## 2026-08-20 17:16:37 UTC cloud.app.box.com (ling3)
