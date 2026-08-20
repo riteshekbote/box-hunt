@@ -806,3 +806,4 @@ testability: PASSIVE
 [NEXT] PROBE (dl.boxcloud.com — 404 header inspection): `curl -sS -D- https://dl.boxcloud.com/nonexistent-path -H "User-Agent: box-research/1.0 +(research)" -H "Referer: https://evil.com"` — Capture all response headers from 404. 1 req.
 ## 2026-08-20 20:21:48 UTC upload.box.com (bigpickle)
 ## 2026-08-20 20:51:43 UTC upload.box.com (ling3)
+## 2026-08-20 21:14:10 UTC upload.box.com (bigpickle)
