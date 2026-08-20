@@ -681,3 +681,4 @@ verify_steps: GET https://cloud.app.box.com/bhx-t7z9k-m2f3q/
 impact: If 206 on random path, the layer fronts entire origin — any file may be retrievable (HIGH)
 testability: PASSIVE
 [NEXT] GET https://cloud.app.box.com/bhx-t7z9k-m2f3q/ with Origin: https://evil.com
+## 2026-08-20 07:09:30 UTC app.box.com (ling3)
