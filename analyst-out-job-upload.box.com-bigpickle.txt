@@ -1,14 +1,30 @@
 [0m
 > build · big-pickle
 [0m
-[LEARN] ACCEPTED: cloud.app.box.com root oscillation confirmed — 206 (2026-08-18 23:32, 01:50), 200 (2026-08-18 23:54). Behavior is non-deterministic, likely load-balancer routing to different handlers.
-[HYP] cloud.app.box.com CORS preflight reflection
+Looking at the state: POC phase, cloud.app.box.com consistently returns 206 on root. The CORS preflight probes from last cycle weren't captured in results. I need to execute those probes now.
+
+Let me submit the CORS preflight probe and the range probe to verify the hypotheses:
+
+[NEXT] PROBE (cloud.app.box.com — CORS preflight): `curl -s -D- -X OPTIONS https://cloud.app.box.com/ -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 +(research)"` — Capture status + all `Access-Control-*` headers.
+
+[NEXT] PROBE (cloud.app.box.com — Range root): `curl -s -D- https://cloud.app.box.com/ -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)"` — Expect 206 + `Content-Range` header revealing asset layer boundary.
+
+[HYP] CORS preflight reflection on cloud.app.box.com asset layer
 class: MISCONFIG
 asset: cloud.app.box.com (OPTIONS)
-confidence: 60
-reasoning: Root now proves dual-handler oscillation (200/206). Embedded preview origin must accept cross-origin iframe requests from customer sites. If OPTIONS reflects attacker origin with credentials, authenticated preview content readable cross-origin. 206-handler may have different CORS policy than 200-handler.
-verify_steps: `OPTIONS https://cloud.app.box.com/` with headers `Origin: https://evil.com`, `Access-Control-Request-Method: GET`, UA: box-research/1.0 +(research). Status + all response headers.
-impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content from any authenticated user). If reflected without credentials → MEDIUM. If not reflected → LOW.
+confidence: 55
+reasoning: Root consistently returns 206, confirming asset/object-store layer fronts this origin. Embedded preview origin likely needs CORS for cross-origin iframe reads from customer sites. If the 206 handler reflects attacker Origin with credentials, authenticated preview content is readable cross-origin. The non-deterministic 200/206 oscillation suggests multiple backend handlers with potentially different CORS policies.
+evidence_needed: OPTIONS response headers — specifically Access-Control-Allow-Origin, Access-Control-Allow-Credentials, Access-Control-Allow-Headers
+verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET, UA: box-research/1.0 +(research)
+impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content). If reflected without credentials → MEDIUM. If not reflected → LOW/parked.
 testability: PASSIVE
-[NEXT] PROBE (cloud.app.box.com — CORS preflight): OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET. Status + response headers (Access-Control-Allow-Origin, Allow-Credentials, Access-Control-Allow-Headers). 1 req.
-[NEXT] PROBE (cloud.app.box.com — range-probe root): GET https://cloud.app.box.com/ with Range: bytes=0-0. Status (expect 206) + Content-Range header to map asset layer boundary. 1 req.
+
+[HYP] Object-store default handler exposes arbitrary paths via Range
+class: MISCONFIG
+asset: cloud.app.box.com (arbitrary paths)
+confidence: 40
+reasoning: Root returns 206 which is typical of object-store/S3-style default handlers. If arbitrary paths also hit this handler, any guessed file key could be partially downloaded via Range requests. Random nonce paths return 404, suggesting some routing exists, but the boundary between routed vs. defaulted is unclear.
+evidence_needed: Response to GET with Range header on root showing Content-Range with file size
+verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0 — check if Content-Range reveals total object size
+impact: If object-store default serves arbitrary keys → HIGH (file disclosure via Range). If only pinned assets → LOW.
+testability: PASSIVE

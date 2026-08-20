@@ -742,3 +742,22 @@ testability: PASSIVE
 ## 2026-08-20 05:47:52 UTC upload.box.com (ling3)
 ## 2026-08-20 06:17:59 UTC upload.box.com (ling3)
 ## 2026-08-20 07:09:23 UTC upload.box.com (ling3)
+## 2026-08-20 07:53:42 UTC upload.box.com (bigpickle)
+[NEXT] PROBE (cloud.app.box.com — CORS preflight): `curl -s -D- -X OPTIONS https://cloud.app.box.com/ -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 +(research)"` — Capture status + all `Access-Control-*` headers.
+[NEXT] PROBE (cloud.app.box.com — Range root): `curl -s -D- https://cloud.app.box.com/ -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)"` — Expect 206 + `Content-Range` header revealing asset layer boundary.
+[HYP] CORS preflight reflection on cloud.app.box.com asset layer
+class: MISCONFIG
+asset: cloud.app.box.com (OPTIONS)
+confidence: 55
+reasoning: Root consistently returns 206, confirming asset/object-store layer fronts this origin. Embedded preview origin likely needs CORS for cross-origin iframe reads from customer sites. If the 206 handler reflects attacker Origin with credentials, authenticated preview content is readable cross-origin. The non-deterministic 200/206 oscillation suggests multiple backend handlers with potentially different CORS policies.
+verify_steps: OPTIONS https://cloud.app.box.com/ with Origin: https://evil.com, Access-Control-Request-Method: GET, UA: box-research/1.0 +(research)
+impact: If reflected with credentials → HIGH (cross-origin theft of Box preview content). If reflected without credentials → MEDIUM. If not reflected → LOW/parked.
+testability: PASSIVE
+[HYP] Object-store default handler exposes arbitrary paths via Range
+class: MISCONFIG
+asset: cloud.app.box.com (arbitrary paths)
+confidence: 40
+reasoning: Root returns 206 which is typical of object-store/S3-style default handlers. If arbitrary paths also hit this handler, any guessed file key could be partially downloaded via Range requests. Random nonce paths return 404, suggesting some routing exists, but the boundary between routed vs. defaulted is unclear.
+verify_steps: GET https://cloud.app.box.com/ with Range: bytes=0-0 — check if Content-Range reveals total object size
+impact: If object-store default serves arbitrary keys → HIGH (file disclosure via Range). If only pinned assets → LOW.
+testability: PASSIVE
