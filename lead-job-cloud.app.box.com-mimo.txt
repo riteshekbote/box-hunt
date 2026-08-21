@@ -1,0 +1,35 @@
+[LEARN] REJECTED api.box.com CORS reflection: 401 response with no CORS headers on unauthenticated requests. Even with Access-Control-Request-Method preflight header, no CORS headers returned. api.box.com is secure against Origin reflection.
+[LEARN] REJECTED app.box.com API path CORS: /api/2.0/folders/0 returns 401 with no CORS headers. Same as api.box.com.
+[LEARN] REJECTED cloud.app.box.com /s/test123 SPA shell: Returns 404 (not 206). The SPA shell requires valid token format or specific path patterns.
+[NEW] api.box.com OPTIONS preflight returns wildcard CORS (access-control-allow-origin: *) with Authorization header allowed — significant misconfiguration but actual GET responses have no CORS headers, limiting exploitability.
+[CONFIRMED] app.box.com/api/2.0/internal/* has wildcard CORS on actual responses (not just preflight) — this is more permissive than api.box.com.
+[CONFIRMED] api.box.com OAuth token endpoint has wildcard CORS: `access-control-allow-origin: *` on400 responses. The endpoint processes requests and returns structured JSON errors (`invalid_client`, `invalid_request`). While not directly exploitable without valid client credentials, this means if an attacker could obtain an authorization_code through XSS or open redirect on a public OAuth app, they could exchange it for a Bearer token cross-origin.
+class: MISCONFIG
+asset: api.box.com/oauth2/token
+confidence: 72
+reasoning: OPTIONS preflight allows all methods + Authorization header with wildcard CORS. GET/POST to /oauth2/token returns 400 with `access-control-allow-origin: *` and structured JSON errors. The endpoint actively processes requests (not a 404/403). Same behavior on app.box.com/api/oauth2/token. Without valid client credentials, the token exchange fails with `invalid_client`. This is a defense-in-depth concern — wildcard CORS should not be on an OAuth token endpoint.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://api.box.com/oauth2/token"` — confirms preflight allows Authorization + all methods. `curl -s -H "Origin: https://evil.example.com" "https://api.box.com/oauth2/token"` — confirms 400 with wildcard CORS and JSON error body.
+impact: Wildcard CORS on OAuth token endpoint allows cross-origin token exchange if attacker obtains valid authorization_code + client credentials. Severity: Low-Medium (requires chaining with auth-code theft).
+testability: PASSIVE
+[CONFIRMED] app.box.com/api/2.0/internal/* has wildcard CORS on actual 401 responses: All tested internal paths (`/shared_items`, `/user`, `/enterprise`, `/folders/0`, `/collaborations`, `/metadata`, `/search`, `/events`, `/users/me`) return 401 with `access-control-allow-origin: *` and `vary: Origin`. Non-internal paths (`/api/2.0/users/me`, `/api/2.0/folders/0`) return 401 WITHOUT CORS headers. api.box.com returns 401 without CORS headers on actual responses (only OPTIONS has wildcard).
+class: MISCONFIG
+asset: app.box.com/api/2.0/internal/*
+confidence: 80
+reasoning: The internal API gateway applies wildcard CORS to all `/internal/` prefixed routes on actual responses, not just preflight. The `vary: Origin` header suggests the server intends to vary by origin but defaults to wildcard instead. All endpoints require Bearer token auth (401), preventing unauthenticated access. However, if an attacker chains with XSS to steal a Bearer token, wildcard CORS would allow cross-origin reading of internal API responses.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items"` — confirms wildcard CORS on 401. `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/users/me"` — confirms NO CORS on non-internal 401.
+impact: Wildcard CORS on internal API paths. If Bearer token is compromised via XSS or other chain, attacker can read internal API responses cross-origin. Severity: Low (defense-in-depth, requires chaining).
+testability: PASSIVE
+[PARKED] dl.boxcloud.com download CDN: All paths return 404 with no CORS headers. Server is nginx, x-envoy-upstream-service-time: 0. OPTIONS preflight also returns 404. The CDN requires valid signed URLs for content access. No attack surface without valid tokens.
+[PARKED] cloud.app.box.com app-api/internal routes: `/app-api/enduserapp/current-user` returns 404. Not directly routable from outside.
+[PARKED] account.box.com/enterprise/sso: Returns 404. No surface.
+[PARKED] cloud.app.box.com API proxy: `/api/2.0/users/me` returns empty body (likely 302 redirect to login internally). No CORS headers.
+[LEARN] ACCEPTED MISCONFIG @ api.box.com/oauth2/token: Wildcard CORS on OAuth token endpoint. OPTIONS allows Authorization header + all methods. GET returns structured JSON error. Severity: Low-Medium.
+[LEARN] ACCEPTED MISCONFIG @ app.box.com/api/2.0/internal/*: Wildcard CORS on actual 401 responses (not just preflight). Non-internal paths have no CORS on 401. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com: No CORS headers, all paths return 404. CDN requires signed URLs. No surface.
+[LEARN] REJECTED dl.boxcloud.com API surface: All tested paths return 404 with no CORS headers. The download CDN has no accessible API endpoints without valid signed URLs.
+[LEARN] REJECTED cloud.app.box.com app-api direct access: Internal API routes not accessible from outside.
+[LEARN] REJECTED account.box.com/enterprise/sso: 404, no surface.
+[LEARN] REJECTED account.box.com/start CORS: 405, no CORS reflection (consistent with prior finding).
+[NEXT] RECON: `curl -s -H "User-Agent: box-research/1.0" "https://developer.box.com/reference/" 2>&1 | head -20` — check developer docs for any information about internal API endpoints or OAuth flow
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/internal/shared_items" -H "Authorization: Bearer test" 2>&1` — test if CORS headers change with invalid Bearer token
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items" -H "Authorization: Bearer test" 2>&1` — test app.box.com internal with invalid token
