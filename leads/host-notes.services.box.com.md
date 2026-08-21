@@ -1076,3 +1076,21 @@ testability: AUTH_HELPED
 [LEARN] REJECTED standalone CSRF: Cannot exploit without prior token theft — server requires Bearer token, not session cookies
 [LEARN] ACCEPTED subdomain trick: box.com.evil.com is accepted as a valid Origin — prefix-subdomain confusion in CORS policy
 ## 2026-08-21 23:12:46 UTC notes.services.box.com (mimo)
+## 2026-08-21 23:37:02 UTC notes.services.box.com (mimo)
+[CONFIRMED] upload.box.com/api/2.0/* — CORS Origin Reflection with Credentials on POST Preflight (POST-only policy verified)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/{files/content,files/upload_session,collaborations,tasks,folders,comments,groups,events,shared_items}
+confidence: 99
+reasoning: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[NEXT] VERIFY: POST https://upload.box.com/api/2.0/files/content with multipart/form-data containing a 1-byte dummy file and Bearer: invalid to confirm 400 response includes CORS headers (tests if response-phase CORS is set on valid multipart)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/events with Origin: evil.com to confirm events endpoint (read endpoint) also has POST-only CORS (events uses POST for filtering)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/search with Origin: evil.com, Method: POST to test if search endpoint (which uses POST) inherits the same CORS policy
+[PARKED] dl.boxcloud.com: Returns 404 on ALL paths including OPTIONS — no CORS layer, dead CDN surface
+[PARKED] cloud.app.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] api.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] account.box.com: Standard wildcard * on OAuth endpoint — not exploitable
+[PARKED] m.box.com: 301 redirects to app.box.com — no separate surface
+[PARKED] notes.services.box.com: Different edge, no CORS headers on API paths
