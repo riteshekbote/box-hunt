@@ -37,17 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 18:47:25 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-20 16:53:02 UTC api.box.com (ling3)
-## 2026-08-20 17:15:56 UTC api.box.com (ling3)
-## 2026-08-20 17:47:00 UTC api.box.com (ling3)
-## 2026-08-20 18:13:56 UTC api.box.com (bigpickle)
-## 2026-08-20 18:59:23 UTC api.box.com (ling3)
-## 2026-08-20 19:32:01 UTC api.box.com (ling3)
-## 2026-08-20 19:57:37 UTC api.box.com (ling3)
-## 2026-08-20 20:21:42 UTC api.box.com (ling3)
-## 2026-08-20 20:51:46 UTC api.box.com (ling3)
-## 2026-08-20 21:14:04 UTC api.box.com (ling3)
-## 2026-08-20 21:43:53 UTC api.box.com (ling3)
 ## 2026-08-20 22:01:28 UTC api.box.com (ling3)
 ## 2026-08-20 22:34:32 UTC api.box.com (ling3)
 ## 2026-08-20 22:58:31 UTC api.box.com (ling3)
@@ -97,6 +86,17 @@ verify_steps: 7xGET with UA "box-research/1.0 +(research)", pause 2s between, st
 impact: Recon-grade — any new 206 route becomes a candidate for content/Range-handling review; _debug/health could leak version info. Low severity unless a route exposes config.
 testability: PASSIVE
 [NEXT] PROBE: 7xGET with UA "box-research/1.0 +(research)", 2s apart, stop on 403/429:
+## 2026-08-21 18:56:15 UTC api.box.com (mimo)
+[NEW] dl.boxcloud.com: 404 on all probed paths (/, /robots.txt, /favicon.ico) — download edge is inert or gated by signed tokens only.
+[HYP] Extend pinned-asset whitelist — test additional Box-specific paths on cloud.app.box.com 206 layer
+class: OTHER
+asset: cloud.app.box.com/{favicon.svg,embed.html,preview.html,api/embed,box-icon.png,_debug,health}
+confidence: 35
+reasoning: Six confirmed pinned assets exist (root, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed). Broader enumeration of Box-specific well-known paths is cheap and may reveal additional routable endpoints with configuration/version data.
+verify_steps: 7xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) /favicon.svg (2) /embed.html (3) /preview.html (4) /api/embed (5) /box-icon.png (6) /_debug (7) /health — record status per path.
+impact: Recon-grade — new routes become candidates for content review; _debug/health could leak version info.
+testability: PASSIVE
+[NEXT] PROBE: 7xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)

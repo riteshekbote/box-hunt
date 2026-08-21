@@ -735,3 +735,4 @@ verify_steps: 7xGET with UA "box-research/1.0 +(research)", 2s apart, stop on fi
 impact: Recon-grade — new routes become candidates for content review; _debug/health could leak version info.
 testability: PASSIVE
 [NEXT] PROBE: 7xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
+## 2026-08-21 19:19:58 UTC api.box.com (mimo)
