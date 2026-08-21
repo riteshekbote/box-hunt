@@ -892,3 +892,34 @@ testability: AUTH_HELPED
 [LEARN] CONFIRMED OTHER @ m.box.com: Pure redirect layer to app.box.com — no unique surface
 [LEARN] CONFIRMED OTHER @ upload.box.com: Internal service, no unauthenticated surface
 [NEXT] PROBE: Focus on cloud.app.box.com — test additional SPA catch-all paths that might expose different data than app.box.com. 3xGET with UA "box-research/1.0 +(research)", 2s pause: (1) cloud.app.box.com/shared/{test-token} (2) cloud.app.box.com/preview/{test-token} (3) cloud.app.box.com/embed/{test-token} — check if these catch-all SPA routes embed different Box.prefetchedData or expose shared-link metadata
+## 2026-08-21 23:39:54 UTC api.box.com (mimo)
+[NEW] cloud.app.box.com/robots.txt: 200 with crawler rules — reveals allowed paths: `/representation`, `/app-assets`, `/login`, `/simpleshare`; Twitterbot fully blocked
+[NEW] cloud.app.box.com/simpleshare: 301 redirect to `http://sites.box.com/apps/web/simpleshare/` — HTTP (not HTTPS) downgrade to external sites.box.com subdomain
+[NEW] cloud.app.box.com/login: 301 redirect to `cloud.account.box.com/login` — cross-domain auth portal discovery
+[NEW] cloud.app.box.com/embed/*: Catch-all SPA route — returns 200 with full embed widget and Box.prefetchedData for ANY path segment; user input URL-encoded in JSON (safe)
+[NEW] cloud.app.box.com/folder/*, /file/*, /collections: All 302 redirect to `cloud.account.box.com/login?redirect_url=<path>` — cross-domain login redirect chain
+[NEW] cloud.account.box.com: NEW SUBDOMAIN discovered via redirect chain — distinct from account.box.com; serves as auth portal for cloud.app.box.com
+[NEW] cloud.app.box.com OPTIONS on /app-api/*: Returns `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Methods: DELETE, HEAD, GET, OPTIONS, POST, PUT` — wildcard CORS preflight with ALL write methods on API endpoints
+[HYP] cloud.app.box.com CORS preflight/response mismatch — wildcard ACAO:* on OPTIONS but no CORS headers on GET responses
+class: MISCONFIG
+asset: cloud.app.box.com (all paths)
+confidence: 60
+reasoning: OPTIONS preflight returns ACAO:* with DELETE/POST/PUT allowed on all paths including /app-api/enduserapp/current-user. However, actual GET responses include NO CORS headers. This CDN/origin mismatch means the wildcard preflight is non-functional today. If the origin ever adds CORS headers (e.g., for a new API feature), the overly permissive preflight would immediately enable cross-origin data theft of the full anonymous user object and all unauthenticated API responses.
+verify_steps: 3xGET with Origin: https://evil.com, UA "box-research/1.0 +(research)", 2s apart: (1) /app-api/enduserapp/current-user (2) /app-api/split-proxy (3) /app-gallery-v2/api — confirm no ACAO header in any response
+impact: Low-Medium — not currently exploitable, but fragile posture indicates future risk if CORS is added to origin responses. Severity upgradeable if any subdomain XSS or cookie injection is found.
+testability: PASSIVE
+[HYP] cloud.app.box.com /embed/ URL reflection in JSON context — potential DOM XSS vector
+class: XSS
+asset: cloud.app.box.com/embed/{user-input}
+confidence: 30
+reasoning: User-controlled path segment is reflected inside Box.prefetchedData.url, displayedURL, originalURL, and message JSON fields within a <script> block. The server URL-encodes the input (e.g., %22 for ", %3C for <), keeping it safe inside the JSON string. However, the embed.js widget from cdn01.boxcdn.net parses this JSON and may process the URL for rendering. If the client-side code decodes the URL-encoded values before DOM insertion, DOM XSS could be possible.
+verify_steps: Fetch https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js and search for prefetchedData URL handling
+impact: Medium — if client-side decoding enables XSS, attacker could execute JS in embed context (limited by CSP/same-origin)
+testability: PASSIVE
+[PARKED] cloud.app.box.com /representation path: 404 with x-robots-tag: noindex — listed in robots.txt Allow but returns empty; likely requires query params or specific file IDs
+[PARKED] cloud.app.box.com /simpleshare HTTP downgrade: 301 to http://sites.box.com — HTTP downgrade is a low-severity finding on an external subdomain not in scope
+[PARKED] cloud.account.box.com login redirect: redirect_url parameter is server-controlled (not reflected from user input) — no open redirect vector found in read-only testing
+[LEARN] CONFIRMED MISCONFIG @ cloud.app.box.com: OPTIONS returns ACAO:* with all methods on all paths, but GET responses never include CORS headers — CDN/origin mismatch confirmed
+[LEARN] CONFIRMED OTHER @ cloud.app.box.com /embed/*: User input is URL-encoded in JSON context, not raw — no direct XSS via HTML injection; DOM XSS depends on client-side handling
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com /folder/0, /file/1, /collections: 302 redirect to cloud.account.box.com/login — redirect_url is server-controlled, no user input reflection
+[NEXT] PROBE: Read embed.js client-side code to test DOM XSS hypothesis. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — check for URL decoding and DOM insertion of prefetchedData (2) cloud.app.box.com/embed/test-token — re-confirm linkedRequestId uniqueness (3) cloud.app.box.com/representation/0 — test if /representation is a file preview path that needs a file ID
