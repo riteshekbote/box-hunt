@@ -802,3 +802,14 @@ verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) m.box.
 impact: Low — if identical to account.box.com, no new attack surface; if different, could reveal mobile-specific auth handling
 testability: PASSIVE
 [NEXT] PROBE: 3xGET m.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/oauth2/authorize (2) /app-api/split-proxy (3) /enduser
+## 2026-08-21 22:02:24 UTC api.box.com (mimo)
+[NEW] notes.services.box.com: New surface — Box Notes backend with real-time collaboration and content sync, not yet probed
+[HYP] notes.services box.com real-time collaboration surface
+class: OTHER
+asset: notes.services.box.com
+confidence: 35
+reasoning: notes.services.box.com is described as "Box Notes backend; real-time collaboration, content sync" — distinct from the primary web app and API. Real-time collaboration often involves WebSockets, long-polling, or Server-Sent Events, which may have different authentication, CORS, or session handling than standard HTTP endpoints. No probes have been conducted on this host yet.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) / (2) /robots.txt (3) /api/ — record status codes and note any WebSocket upgrade headers, collaboration-specific paths, or authentication requirements
+impact: Recon-grade — discovering real-time collaboration endpoints could reveal session handling flaws, CORS misconfigurations, or authentication bypass opportunities in the Notes feature
+testability: PASSIVE
+[NEXT] PROBE: 3xGET notes.services.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) / (2) /robots.txt (3) /api/
