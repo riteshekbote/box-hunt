@@ -155,3 +155,17 @@ https://cloud.app.box.com/ -> 206
 https://cloud.app.box.com/api/2.0/files/12345 -> HTTP 401
 https://cloud.app.box.com/login?redirect_url=https%3A%2F%2Fevil.com -> 206
 https://cloud.app.box.com/login?redirect_url=https%3A%2F%2Fevil.com%2Fsteal-token -> 206
+
+## 2026-08-21 19:46:33 UTC app.box.com
+https://app.box.com/api/2.0/events -> HTTP 401
+https://app.box.com/ -> 206
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
+https://app.box.com/login -> 206
+https://services.app.box.com/ -> 206
+https://app.box.com/sp/ -> HTTP 404
+https://app.box.com/developer/ -> HTTP 404
+https://app.box.com/invited/ -> HTTP 404
+https://app.box.com/login/reset -> 206
+https://app.box.com/login/sso -> 206
+https://app.box.com/shared/action/download?shared_link=test -> HTTP 404
+https://app.box.com/app/integrations -> 206
