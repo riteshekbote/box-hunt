@@ -997,3 +997,27 @@ evidence:
 verify_steps: N/A — already verified
 impact: LOW-MEDIUM (information disclosure). Cross-origin readable page exposes: client-side API keys (Amplitude, SplitIO), 80+ feature flags revealing product roadmap, preview library version (3.79.0) and token timeout, realtime subscriber IDs, and micro-frontend module versions. The `errorParams` reflection of attacker-controlled `redirect_uri` and `state` demonstrates user input embedding in page content. No cookies sent cross-origin. JSON encoding prevents injection/XSS from reflected params.
 testability: PASSIVE
+## 2026-08-21 21:53:02 UTC upload.box.com (mimo)
+[LEARN] REJECTED XSS @ account.box.com/api/oauth2/authorize: Payload `<script>alert(1)</script>` injected as client_id is properly JSON-encoded in `errorParams`. The `<\/script>` escaping prevents script-tag breakout in `<script>` data state. No DOM XSS via this vector.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com HTML pages: Origin reflection confirmed on `/login`, `/login/reset`, `/api/oauth2/authorize`, `/api/oauth2/authorize/data`. Reflects `Origin: null` too. Never sends `access-control-allow-credentials: true`. `/signup` does NOT reflect Origin — different handler.
+[CONFIRMED] account.box.com HTML-page CORS reflection without credentials
+class: MISCONFIG
+asset: account.box.com (HTML-serving paths: /login, /login/reset, /api/oauth2/authorize, /api/oauth2/authorize/data)
+confidence: 85
+reasoning: Every HTML page on account.box.com (except /signup) reflects any attacker Origin in access-control-allow-origin without access-control-allow-credentials. This allows cross-origin `fetch()` reads of the page body. The body contains Box.config (requestToken, runtimeMetadata, pendoAnalyticsAPIKey, billing.creditCardCreationURL) and errorParams reflecting attacker-controlled clientId/redirectUri/state. The /api/oauth2/authorize/data JSON endpoint ALSO reflects Origin — confirming the policy applies to both HTML and JSON content types. No credentials sent cross-origin limits impact.
+evidence: [This cycle] Confirmed on 4 paths. /signup excluded. `Origin: null` reflected. No `access-control-allow-credentials` on any response.
+verify_steps: N/A — already verified
+impact: LOW-MEDIUM (information disclosure). Cross-origin readable unauthenticated page content leaks client-side API keys (Amplitude, SplitIO, Pendo), feature flags, deployment metadata (us-west4-prod, k8s), and attacker-controlled parameter reflection. Cannot steal sessions (no credentials). Cannot inject XSS (JSON-encoded in <script> block).
+testability: PASSIVE
+[PARKED] account.box.com OAuth redirect_uri open redirect: The /api/oauth2/authorize endpoint accepts arbitrary redirect_uri values and reflects them in errorParams. With a valid client_id, the server may redirect to the attacker's URI post-authorization. Cannot test without a real client_id.
+testability: HUMAN_ONLY
+[PARKED] notes.services.box.com Express.js backend: Returns CSRF cookies and frame-ancestors CSP allowing only app.box.com. No CORS headers on responses. Backend is at services.app.box.com. Cannot probe further without authenticated access to Notes-specific API paths.
+testability: HUMAN_ONLY
+[PARKED] dl.boxcloud.com download proxy: All paths return 404. No CORS headers. The download-proxy service appears to require signed tokens that we cannot construct.
+testability: HUMAN_ONLY
+[PARKED] upload.box.com: Root and /api/2.0/files/content return 404. The upload pipeline appears to be behind authenticated SPA routes only.
+testability: HUMAN_ONLY
+[LEARN] ACCEPTED MISCONFIG @ api.box.com/app.box.com/cloud.app.box.com: Wildcard `access-control-allow-origin: *` with `vary: Origin` on OPTIONS preflight only. GET responses NEVER include CORS headers. api.box.com explicitly includes `access-control-allow-headers: Authorization` in preflight. This is defense-in-depth correctly implemented — preflight grants broad approval but response layer blocks cross-origin reads.
+[NEXT] PROBE (account.box.com — additional paths CORS): `curl -s -D- "https://account.box.com/s/d" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" 2>&1 | grep -i "access-control"` — test shared-item page. 1 req.
+[NEXT] PROBE (notes.services.box.com — API exploration): `curl -s -D- "https://notes.services.box.com/notes/api/2.0/notes" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" 2>&1 | head -30` — test Notes API paths. 1 req.
+[NEXT] PROBE (account.box.com — OAuth token endpoint): `curl -s -D- -X OPTIONS "https://account.box.com/api/oauth2/token" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Authorization" -H "User-Agent: box-research/1.0" 2>&1 | head -30` — check if token endpoint has different CORS. 1 req.
