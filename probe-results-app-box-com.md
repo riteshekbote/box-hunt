@@ -224,3 +224,15 @@ https://cloud.app.box.com/api/oauth2/authorize?response_type=code -> 206
 ## 2026-08-21 22:53:31 UTC app.box.com
 https://cloud.app.box.com/app-api/enduserapp/current-user -> 200
 https://cloud.app.box.com/api/oauth2/authorize?response_type=code -> 206
+
+## 2026-08-21 23:14:04 UTC app.box.com
+https://cloud.app.box.com/api/oauth2/authorize?response_type=code -> 206
+https://cloud.app.box.com/app-api/enduserapp/current-user -> 200
+https://cloud.app.box.com/api/oauth2/authorize?response_type=code&client_id=test_client_id -> 206
+https://cloud.app.box.com${path -> ERR <urlopen error [Errno -2] Name or service not known>
+https://cloud.app.box.com/api/oauth2/token -> HTTP 400
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/api/oauth2/revoke -> HTTP 400
+https://cloud.app.box.com/graphql -> HTTP 503
+https://cloud.app.box.com/api/oauth2/authorize?response_type=code&redirect_uri=https://evil.com/callback&client_id=test_client -> 206
