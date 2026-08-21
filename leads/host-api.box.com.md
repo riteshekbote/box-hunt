@@ -724,3 +724,14 @@ verify_steps: 7xGET with UA "box-research/1.0 +(research)", pause 2s between, st
 impact: Recon-grade — any new 206 route becomes a candidate for content/Range-handling review; _debug/health could leak version info. Low severity unless a route exposes config.
 testability: PASSIVE
 [NEXT] PROBE: 7xGET with UA "box-research/1.0 +(research)", 2s apart, stop on 403/429:
+## 2026-08-21 18:56:15 UTC api.box.com (mimo)
+[NEW] dl.boxcloud.com: 404 on all probed paths (/, /robots.txt, /favicon.ico) — download edge is inert or gated by signed tokens only.
+[HYP] Extend pinned-asset whitelist — test additional Box-specific paths on cloud.app.box.com 206 layer
+class: OTHER
+asset: cloud.app.box.com/{favicon.svg,embed.html,preview.html,api/embed,box-icon.png,_debug,health}
+confidence: 35
+reasoning: Six confirmed pinned assets exist (root, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed). Broader enumeration of Box-specific well-known paths is cheap and may reveal additional routable endpoints with configuration/version data.
+verify_steps: 7xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) /favicon.svg (2) /embed.html (3) /preview.html (4) /api/embed (5) /box-icon.png (6) /_debug (7) /health — record status per path.
+impact: Recon-grade — new routes become candidates for content review; _debug/health could leak version info.
+testability: PASSIVE
+[NEXT] PROBE: 7xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:

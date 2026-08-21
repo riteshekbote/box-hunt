@@ -1,38 +1,23 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m✱ [0mGlob "**/*.md"[90m 17 matches[0m
-[0m✱ [0mGlob "**/state*"[90m 8 matches[0m
-[0m→ [0mRead leads/host-cloud.app.box.com.md
-[0m→ [0mRead state_cloud.app.box.com.json
-[0m→ [0mRead reports/hypotheses.md
-[0m→ [0mRead reports/hypotheses.md[90m [offset=561][0m
-[0m→ [0mRead probe-results-cloud-app-box-com.md
-[0m→ [0mRead leads/host-cloud.app.box.com.md[90m [offset=534][0m
-[0m→ [0mRead leads/host-api.box.com.md[90m [limit=100][0m
-Let me read the remaining lead file tail and the api.box.com leads to understand full context before emitting output.
-[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: Infrastructure limitation confirmed — executor returns status codes only, never response headers; 10+ cycles emitted Origin-bearing probes but no Access-Control-* values were ever captured. Cannot confirm or refute. Frozen at confidence 40.
+[NEW] dl.boxcloud.com: 404 on all probed paths (/, /robots.txt, /favicon.ico) — download edge is inert or gated by signed tokens only.
 
-[PARKED] S3-compatible bucket-listing on cloud.app.box.com `?list-type=2`: GET /?list-type=2 returns 200 (sometimes 206) across 5+ cycles but response body never captured; status-only probe cannot distinguish S3 XML listing from SPA shell. Frozen at confidence 50.
-
-[LEARN] ACCEPTED OTHER @ cloud.app.box.com: Pinned-asset whitelist now confirmed — robots.txt (206), favicon.ico (206), crossdomain.xml (206), sitemap.xml (206), embed (206), root (200/206). Nonces → 404. Case-sensitive, single-decode normalization, query-agnostic. Route map complete for known assets.
-
-[LEARN] REJECTEDTOOL @ cloud.app.box.com: All CORS/header-dependent hypotheses — executor never returns response headers; every hypothesis requiring Access-Control-* evidence is frozen. Cannot advance without header-capturing infrastructure.
-
-[HYP] Extend pinned-asset whitelist — test additional well-known / Box-specific paths on the 206 Range layer
+[HYP] Extend pinned-asset whitelist — test additional Box-specific paths on cloud.app.box.com 206 layer
 class: OTHER
 asset: cloud.app.box.com/{favicon.svg,embed.html,preview.html,api/embed,box-icon.png,_debug,health}
 confidence: 35
-reasoning: Six confirmed pinned assets exist (root, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed). The whitelist may include additional Box-specific assets (embed.html, preview bootstrap, debug/health endpoints) that are reachable and could reveal configuration or version info. All prior path probing was limited to a small set; broader enumeration is cheap and non-destructive.
-verify_steps: 7xGET with UA "box-research/1.0 +(research)", pause 2s between, stop on first 403/429 (404/206 are route facts): (1) /favicon.svg (2) /embed.html (3) /preview.html (4) /api/embed (5) /box-icon.png (6) /_debug (7) /health — record status per path.
-impact: Recon-grade — any new 206 route becomes a candidate for content/Range-handling review; _debug/health could leak version info. Low severity unless a route exposes config.
+reasoning: Six confirmed pinned assets exist (root, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed). Broader enumeration of Box-specific well-known paths is cheap and may reveal additional routable endpoints with configuration/version data.
+evidence_needed: Status codes for each path; any non-404 widens the known route surface.
+verify_steps: 7xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) /favicon.svg (2) /embed.html (3) /preview.html (4) /api/embed (5) /box-icon.png (6) /_debug (7) /health — record status per path.
+impact: Recon-grade — new routes become candidates for content review; _debug/health could leak version info.
 testability: PASSIVE
 
-[NEXT] PROBE: 7xGET with UA "box-research/1.0 +(research)", 2s apart, stop on 403/429:
-  (1) https://cloud.app.box.com/favicon.svg
-  (2) https://cloud.app.box.com/embed.html
-  (3) https://cloud.app.box.com/preview.html
-  (4) https://cloud.app.box.com/api/embed
-  (5) https://cloud.app.box.com/box-icon.png
-  (6) https://cloud.app.box.com/_debug
-  (7) https://cloud.app.box.com/health
+[NEXT] PROBE: 7xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
+1. GET /favicon.svg
+2. GET /embed.html
+3. GET /preview.html
+4. GET /api/embed
+5. GET /box-icon.png
+6. GET /_debug
+7. GET /health
