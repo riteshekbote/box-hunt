@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-20 17:16:41 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/
 confidence: 35
 reasoning: Root consistently returns 206 (asset/preview layer fronts origin). OPTIONS on favicon.ico returned 405 (2026-08-14), no ACAO headers ever captured. The hypothesis is untested, not refuted — every executor batch ran status-only GETs without Origin headers. Additionally, `/embed` returned 200 (2026-08-18 09:24) which is a real content route distinct from the 206 asset layer; if it carries CORS headers, it may be the actual attack surface.
 verify_steps: (1) GET cloud.app.box.com/ with headers `Origin: https://evil.example.com`, `Range: bytes=0-0`, `User-Agent: box-research/1.0`; report ALL response headers verbatim. (2) OPTIONS cloud.app.box.com/ with `Origin: https://evil.example.com`, `Access-Control-Request-Method: GET`, `Access-Control-Request-Headers: Authorization`. (3) GET cloud.app.box.com/embed with same Origin header. (4) GET cloud.app.box.com/ without Origin for baseline comparison.
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-21 15:17:58 UTC dl.boxcloud.com (ling3)
 ## 2026-08-21 15:50:53 UTC dl.boxcloud.com (ling3)
 ## 2026-08-21 16:15:25 UTC dl.boxcloud.com (ling3)
+## 2026-08-21 16:51:59 UTC dl.boxcloud.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
