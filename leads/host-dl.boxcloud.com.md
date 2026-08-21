@@ -818,3 +818,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/admin — capture response body (first 1500 chars), status, and content-type. Extract currentRm and prefetchedData keys.
 [NEXT] PROBE: GET https://cloud.app.box.com/settings — same capture.
 [NEXT] PROBE: GET https://cloud.app.box.com/debug — same capture.
+## 2026-08-21 23:36:01 UTC dl.boxcloud.com (mimo)
