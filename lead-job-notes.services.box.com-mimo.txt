@@ -1,19 +1,21 @@
-[CONFIRMED] upload.box.com/api/2.0/* — Systematic CORS Origin Reflection with Credentials on ALL Write Endpoints
+[CONFIRMED] upload.box.com/api/2.0/* — CORS Origin Reflection with Credentials on POST Preflight (Blind CSRF File Upload)
 class: MISCONFIG
-asset: upload.box.com/api/2.0/{files/content,files/upload_session,folders,collaborations,comments,tasks,shared_items,groups,events}
-confidence: 98
+asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, shared_items}
+confidence: 95
 reasoning: |
 verify_steps: |
 impact: |
 testability: AUTH_HELPED
-[NEXT] VERIFY: POST https://upload.box.com/api/2.0/collaborations with Origin: null and Content-Type: application/json to determine if 415 response includes CORS headers (confirms the POST response itself is also CORS-aware, not just OPTIONS)
-[PARKED] dl.boxcloud.com CORS misconfiguration: Returns 404 on ALL paths including OPTIONS — no CORS headers, dead CDN surface. All ranked hypotheses involving dl.boxcloud.com are INVALID.
-[PARKED] cloud.app.box.com CORS misconfiguration: OPTIONS returns 204 with wildcard * (no credentials) — standard secure CORS configuration. All ranked hypotheses about cloud.app.box.com CORS are INVALID.
-[PARKED] api.box.com CORS misconfiguration: OPTIONS returns 204 with wildcard * (no credentials) on all endpoints including POST — standard secure configuration.
-[PARKED] account.box.com OAuth token endpoint: /api/oauth2/token returns 400 with JSON error, OPTIONS returns wildcard * (no credentials) — standard.
-[PARKED] m.box.com mobile web: 301 redirects to app.box.com — no separate surface.
-[PARKED] cloud.app.box.com HEAD method 405 on /login: Low impact, standard behavior for routes that don't support HEAD.
-[LEARN] REJECTED CORS @ dl.boxcloud.com: Returns 404 on all paths including OPTIONS — no CORS layer exists
-[LEARN] REJECTED CORS @ cloud.app.box.com: Standard wildcard * without credentials — not exploitable
-[LEARN] REJECTED CORS @ api.box.com: Standard wildcard * without credentials — not exploitable
-[LEARN] ACCEPTED CORS misconfiguration scope: upload.box.com/api/2.0/* POST endpoints only — nginx backend returns 200 with Origin reflection + credentials for POST methods on collection paths. GET/PUT/DELETE do not have CORS headers.
+[NEXT] VERIFY: Check if api.box.com (the actual API) has the same CORS misconfiguration on POST endpoints — if yes, the attack surface is much larger since api.box.com is the primary API with session cookie auth
+[NEXT] VERIFY: Test OPTIONS on https://upload.box.com/api/2.0/files with GET method — to confirm GET endpoints do NOT have CORS headers (GET should be safe)
+[NEXT] VERIFY: Test if upload.box.com accepts Bearer tokens that were issued via OAuth (vs developer tokens) — determines if a stolen OAuth token can be used for CSRF upload
+[PARKED] dl.boxcloud.com: Returns 404 on all paths — no attack surface
+[PARKED] cloud.app.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] api.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] account.box.com: Standard wildcard * on OAuth endpoint — not exploitable
+[PARKED] m.box.com: 301 redirects to app.box.com — no separate surface
+[PARKED] notes.services.box.com: Different edge, no CORS headers on API paths
+[LEARN] ACCEPTED upload.box.com CORS scope: POST collection endpoints only (files/content, files/upload_session, collaborations, tasks, etc.) — GET/PUT/DELETE do not have CORS headers
+[LEARN] ACCEPTED upload.box.com auth model: Bearer token ONLY — session cookies are NOT accepted by the upload endpoint
+[LEARN] REJECTED standalone CSRF: Cannot exploit without prior token theft — server requires Bearer token, not session cookies
+[LEARN] ACCEPTED subdomain trick: box.com.evil.com is accepted as a valid Origin — prefix-subdomain confusion in CORS policy

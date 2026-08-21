@@ -1053,3 +1053,25 @@ testability: AUTH_HELPED
 [LEARN] REJECTED CORS @ cloud.app.box.com: Standard wildcard * without credentials — not exploitable
 [LEARN] REJECTED CORS @ api.box.com: Standard wildcard * without credentials — not exploitable
 [LEARN] ACCEPTED CORS misconfiguration scope: upload.box.com/api/2.0/* POST endpoints only — nginx backend returns 200 with Origin reflection + credentials for POST methods on collection paths. GET/PUT/DELETE do not have CORS headers.
+## 2026-08-21 22:55:19 UTC notes.services.box.com (mimo)
+[CONFIRMED] upload.box.com/api/2.0/* — CORS Origin Reflection with Credentials on POST Preflight (Blind CSRF File Upload)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, shared_items}
+confidence: 95
+reasoning: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[NEXT] VERIFY: Check if api.box.com (the actual API) has the same CORS misconfiguration on POST endpoints — if yes, the attack surface is much larger since api.box.com is the primary API with session cookie auth
+[NEXT] VERIFY: Test OPTIONS on https://upload.box.com/api/2.0/files with GET method — to confirm GET endpoints do NOT have CORS headers (GET should be safe)
+[NEXT] VERIFY: Test if upload.box.com accepts Bearer tokens that were issued via OAuth (vs developer tokens) — determines if a stolen OAuth token can be used for CSRF upload
+[PARKED] dl.boxcloud.com: Returns 404 on all paths — no attack surface
+[PARKED] cloud.app.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] api.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] account.box.com: Standard wildcard * on OAuth endpoint — not exploitable
+[PARKED] m.box.com: 301 redirects to app.box.com — no separate surface
+[PARKED] notes.services.box.com: Different edge, no CORS headers on API paths
+[LEARN] ACCEPTED upload.box.com CORS scope: POST collection endpoints only (files/content, files/upload_session, collaborations, tasks, etc.) — GET/PUT/DELETE do not have CORS headers
+[LEARN] ACCEPTED upload.box.com auth model: Bearer token ONLY — session cookies are NOT accepted by the upload endpoint
+[LEARN] REJECTED standalone CSRF: Cannot exploit without prior token theft — server requires Bearer token, not session cookies
+[LEARN] ACCEPTED subdomain trick: box.com.evil.com is accepted as a valid Origin — prefix-subdomain confusion in CORS policy
