@@ -1,299 +1,40 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-I'll execute the pending [NEXT] probes to continue the research cycle.
-[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=javascript:alert(1)" 2>&1 | head -50
-HTTP/2 302 
-date: Fri, 21 Aug 2026 19:56:22 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 29
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=u9hm9qem1dud50u8uq6t7585vg; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=u9hm9qem1dud50u8uq6t7585vg; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88ad66a58f02.95727930; expires=Sat, 21 Aug 2027 19:56:22 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:56:22 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=5; expires=Sat, 21 Aug 2027 19:56:22 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-robots-tag: noindex, nofollow
-location: https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert%281%29
-box-request-id: 0372d56b36b9ac579a82557dfce16f6cd
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=data:text/html,<script>alert(1)</script>" 2>&1 | head -50
-HTTP/2 400 
-content-type: text/html; charset=UTF-8
-referrer-policy: no-referrer
-content-length: 273
-date: Fri, 21 Aug 2026 19:56:29 GMT
+## Analysis
 
+### Current State
+- **upload.box.com**: Wildcard CORS confirmed (confidence 98) - POST endpoint supports any origin with ACAC: true
+- **account.box.com**: SSO Open Redirect preserved javascript: URIs (confidence 70) - HUMAN_ONLY
+- **cloud.app.box.com**: Returns 206 (partial content) on root - **interesting surface**
 
-<html><head>
-<meta http-equiv="content-type" content="text/html;charset=utf-8">
-<title>400 Bad Request</title>
-</head>
-<body text=#000000 bgcolor=#ffffff>
-<h1>Error: Bad Request</h1>
-<h2>Your client has issued a malformed or illegal request.</h2>
-<h2></h2>
-</body></html>
-[0m
-[0m$ [0msleep 2 && curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://account.box.com.evil.example.com" 2>&1 | head -50
-HTTP/2 302 
-date: Fri, 21 Aug 2026 19:56:37 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 28
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=r6h9hqvik38k8ppc8komu79bjt; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=r6h9hqvik38k8ppc8komu79bjt; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88ad7519ff72.02604367; expires=Sat, 21 Aug 2027 19:56:37 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:56:37 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=92; expires=Sat, 21 Aug 2027 19:56:37 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-robots-tag: noindex, nofollow
-location: https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Faccount.box.com.evil.example.com
-box-request-id: 0b729e7eb1955880dc812760258942171
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil-box.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://upload.box.com/api/2.0/files/content" 2>&1
-HTTP/2 200 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:45 GMT
-content-type: text/html;charset=utf-8
-content-length: 0
-access-control-allow-origin: https://evil-box.com
-access-control-allow-credentials: true
-access-control-max-age: 3600
-access-control-allow-methods: POST
-vary: Origin
-access-control-allow-headers: Authorization,Content-Type
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://test.box.com" -H "Access-Control-Request-Method: POST" "https://upload.box.com/api/2.0/files/content" 2>&1
-HTTP/2 200 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:50 GMT
-content-type: text/html;charset=utf-8
-content-length: 0
-access-control-allow-origin: https://test.box.com
-access-control-allow-credentials: true
-access-control-max-age: 3600
-access-control-allow-methods: POST
-vary: Origin
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/debug" 2>&1 | head -30
-HTTP/2 302 
-date: Fri, 21 Aug 2026 19:56:55 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 27
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=27mpq02b1ckha279kgfo10e00s; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=27mpq02b1ckha279kgfo10e00s; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88ad87e021b4.09734202; expires=Sat, 21 Aug 2027 19:56:55 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:56:55 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=50; expires=Sat, 21 Aug 2027 19:56:55 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-robots-tag: noindex, nofollow
-location: https://account.box.com/login?redirect_url=%2Fdebug
-box-request-id: 046d340d7bc255b1d3a0b9dd85f32162
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/status" 2>&1 | head -30
-HTTP/2 302 
-date: Fri, 21 Aug 2026 19:57:00 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 28
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=avk2gmme889ak3utce14gfg06j; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=avk2gmme889ak3utce14gfg06j; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88ad8ca4f064.16222803; expires=Sat, 21 Aug 2027 19:57:00 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:57:00 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=36; expires=Sat, 21 Aug 2027 19:57:00 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-robots-tag: noindex, nofollow
-location: https://account.box.com/login?redirect_url=%2Fstatus
-box-request-id: 0f7c064f3114f69c6c53d4b53f2d3e5dc
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/health" 2>&1 | head -30
-HTTP/2 302 
-date: Fri, 21 Aug 2026 19:57:05 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 39
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=ed8mp302sjvf435ck5njer4qfh; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=ed8mp302sjvf435ck5njer4qfh; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88ad918f2756.92678322; expires=Sat, 21 Aug 2027 19:57:05 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:57:05 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=0; expires=Sat, 21 Aug 2027 19:57:05 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-robots-tag: noindex, nofollow
-location: https://account.box.com/login?redirect_url=%2Fhealth
-box-request-id: 022657bd0ffe91ddc9368ff6e11527604
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 2 && curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/metrics" 2>&1 | head -30
-HTTP/2 302 
-date: Fri, 21 Aug 2026 19:57:12 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 30
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=n4utr0qmt2knvb54buonvq43a9; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=n4utr0qmt2knvb54buonvq43a9; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88ad98e52164.03397930; expires=Sat, 21 Aug 2027 19:57:12 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:57:12 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=32; expires=Sat, 21 Aug 2027 19:57:12 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-robots-tag: noindex, nofollow
-location: https://account.box.com/login?redirect_url=%2Fmetrics
-box-request-id: 0417958f27c28156ea5c42fc0bb6f773d
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcat << 'EOF'
-[LEARN] ACCEPTED UPLOAD-WILDCARD CORS @ upload.box.com: OPTIONS preflight reflects ANY origin (evil-box.com, test.box.com) with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Complete wildcard CORS misconfiguration. Only POST method allowed; all GET paths return 404. No unauthenticated data exfil via GET.
+### Problems
+1. **Repeated 404s**: dl.boxcloud.com, cloud.app.box.com random paths all returning 404 - stop wasting cycles
+2. **Unused leads**: m.box.com, notes.services.box.com not probed yet
+3. **Missing test**: upload.box.com POST endpoint hasn't been tested with OPTIONS
 
-[LEARN] ACCEPTED SSO-PRESERVE @ account.box.com/sso: javascript: URIs and external domains (including subdomain tricks) are preserved in redirect_url parameter without validation. data: URIs with angle brackets rejected with 400 (URL parsing, not security validation). Post-authentication redirect behavior unverified.
+### Next Actions (ranked by priority)
 
-[LEARN] REJECTED ACCOUNT-DEBUG @ account.box.com: /debug, /status, /health, /metrics all return 302→login. No exposed debug/metrics endpoints.
+```
+[NEXT] UPLOAD-POST-CORS: Test upload.box.com POST endpoint OPTIONS with Origin header:
+curl -sD- -X OPTIONS -H "Origin: https://evil-box.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com/api/2.0/files/content"
 
-[HYP] upload.box.com Wildcard CORS + POST endpoint
-class: MISCONFIG
-asset: upload.box.com/api/*
-confidence: 98
-reasoning: Complete wildcard CORS misconfiguration confirmed. Any attacker-controlled origin is reflected with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Only POST method supported; all GET paths return 404 nginx. No unauthenticated data exfil possible via GET.
-verify_steps: Already verified via OPTIONS preflight probes with evil-box.com and test.box.com.
-impact: Enables cross-origin CSRF with response reading on any POST endpoint that accepts cookie authentication. If any POST endpoint returns sensitive data (e.g., token exchange), attacker can read response. Current limitation: no confirmed exploitable POST endpoint for data exfil.
-testability: PASSIVE
+[NEXT] MBOX-RECON: Probe m.box.com:
+curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/"
 
-[HYP] account.box.com SSO Open Redirect
-class: AUTH
-asset: account.box.com/sso
-confidence: 70
-reasoning: /sso endpoint preserves ALL redirect_url values without validation - including javascript: URIs and external domains. Full redirect chain: /sso → 302→ /login?redirect_url=%2Fsso%3Fredirect_url%3D{payload}. Login form stores this as hidden field. Post-authentication behavior unverified.
-verify_steps: HUMAN_ONLY - requires authentic Box account login via https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert(1)
-impact: If post-auth SSO handler follows the redirect_url → full open redirect on account.box.com (High). If validated post-auth → no impact.
-testability: HUMAN_ONLY
+[NEXT] NOTES-RECON: Probe notes.services.box.com:
+curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/"
 
-[NEXT] SSO-AUTH-TEST: Test if the SSO redirect chain can be exploited with a benign external URL to verify post-auth behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://httpbin.org/redirect-to?url=https://example.com"
-[NEXT] NOTES-RECON: Probe notes.services.box.com for API endpoints and behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api"
-[NEXT] MBOX-RECON: Probe m.box.com for mobile-specific endpoints: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/api"
-EOF
-[LEARN] ACCEPTED UPLOAD-WILDCARD CORS @ upload.box.com: OPTIONS preflight reflects ANY origin (evil-box.com, test.box.com) with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Complete wildcard CORS misconfiguration. Only POST method allowed; all GET paths return 404. No unauthenticated data exfil via GET.
+[NEXT] CLOUD-206: Probe cloud.app.box.com root with Range header:
+curl -sD- -H "Range: bytes=0-100" -H "Origin: https://evil-box.com" -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/"
+```
 
-[LEARN] ACCEPTED SSO-PRESERVE @ account.box.com/sso: javascript: URIs and external domains (including subdomain tricks) are preserved in redirect_url parameter without validation. data: URIs with angle brackets rejected with 400 (URL parsing, not security validation). Post-authentication redirect behavior unverified.
+### Hypotheses Update
 
-[LEARN] REJECTED ACCOUNT-DEBUG @ account.box.com: /debug, /status, /health, /metrics all return 302→login. No exposed debug/metrics endpoints.
-
-[HYP] upload.box.com Wildcard CORS + POST endpoint
-class: MISCONFIG
-asset: upload.box.com/api/*
-confidence: 98
-reasoning: Complete wildcard CORS misconfiguration confirmed. Any attacker-controlled origin is reflected with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Only POST method supported; all GET paths return 404 nginx. No unauthenticated data exfil possible via GET.
-verify_steps: Already verified via OPTIONS preflight probes with evil-box.com and test.box.com.
-impact: Enables cross-origin CSRF with response reading on any POST endpoint that accepts cookie authentication. If any POST endpoint returns sensitive data (e.g., token exchange), attacker can read response. Current limitation: no confirmed exploitable POST endpoint for data exfil.
-testability: PASSIVE
-
-[HYP] account.box.com SSO Open Redirect
-class: AUTH
-asset: account.box.com/sso
-confidence: 70
-reasoning: /sso endpoint preserves ALL redirect_url values without validation - including javascript: URIs and external domains. Full redirect chain: /sso → 302→ /login?redirect_url=%2Fsso%3Fredirect_url%3D{payload}. Login form stores this as hidden field. Post-authentication behavior unverified.
-verify_steps: HUMAN_ONLY - requires authentic Box account login via https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert(1)
-impact: If post-auth SSO handler follows the redirect_url → full open redirect on account.box.com (High). If validated post-auth → no impact.
-testability: HUMAN_ONLY
-
-[NEXT] SSO-AUTH-TEST: Test if the SSO redirect chain can be exploited with a benign external URL to verify post-auth behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://httpbin.org/redirect-to?url=https://example.com"
-[NEXT] NOTES-RECON: Probe notes.services.box.com for API endpoints and behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api"
-[NEXT] MBOX-RECON: Probe m.box.com for mobile-specific endpoints: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/api"
-[0m
-## Analysis of Probe Results
-
-### FINDINGS:
-
-**1. UPLOAD-WILDCARD CORS (CONFIRMED)**
-- `evil-box.com` → reflected with `ACAC: true`
-- `test.box.com` → reflected with `ACAC: true`
-- **Wildcard CORS misconfiguration confirmed** - any origin is accepted
-
-**2. SSO-VALIDATE (CONFIRMED)**
-- `javascript:alert(1)` → preserved in redirect_url
-- `https://account.box.com.evil.example.com` → preserved in redirect_url
-- `data:text/html,<script>alert(1)</script>` → 400 (likely URL parsing, not validation)
-
-**3. ACCOUNT-DEBUG (REJECTED)**
-- `/debug`, `/status`, `/health`, `/metrics` → all 302 to login
-
-### Updated Hypotheses:
-Now let me properly emit the analysis blocks:
-
----
-
-[LEARN] ACCEPTED UPLOAD-WILDCARD @ upload.box.com: OPTIONS preflight reflects ANY origin (`evil-box.com`, `test.box.com`) with `ACAC: true` + `Allow-Methods: POST`. Complete wildcard CORS misconfiguration. No GET-accessible endpoints — all return 404.
-
-[LEARN] ACCEPTED SSO-PRESERVE @ account.box.com/sso: `javascript:alert(1)` preserved in redirect_url. `https://account.box.com.evil.example.com` preserved. `data:text/html,<script>alert(1)</script>` returns 400 (URL parsing, not security validation). Post-auth behavior unverified.
-
-[LEARN] REJECTED ACCOUNT-DEBUG @ account.box.com: `/debug`, `/status`, `/health`, `/metrics` all 302→login. No exposed debug endpoints.
-
-[HYP] upload.box.com Wildcard CORS + POST
-class: MISCONFIG
-asset: upload.box.com/api/*
-confidence: 98
-reasoning: Complete wildcard CORS — any origin reflected with ACAC: true. Only POST method allowed; all GET return 404. Enables cross-origin CSRF with response reading on POST endpoints accepting cookie auth. No confirmed exploitable POST endpoint for data exfil.
-verify_steps: Already verified via OPTIONS with evil-box.com and test.box.com.
-impact: Cross-origin CSRF with response reading on POST endpoints (High if token exchange accepts cookies).
-testability: PASSIVE
-
-[HYP] account.box.com SSO Open Redirect
-class: AUTH
-asset: account.box.com/sso
-confidence: 70
-reasoning: /sso preserves ALL redirect_url values — javascript: URIs, external domains, subdomain tricks. Full chain: /sso → 302→ /login?redirect_url=%2Fsso%3Fredirect_url%3D{payload}. Post-auth behavior unverified.
-verify_steps: HUMAN_ONLY — requires Box account login.
-impact: Full open redirect on account.box.com if post-auth handler follows redirect_url (High).
-testability: HUMAN_ONLY
-
-[NEXT] SSO-CHAIN-AUTH: Test if the full SSO redirect chain can be traced without authentication by following the redirect to /login and inspecting the form: `curl -sD- -L -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://evil.example.com/path"` (follow redirects to see final form state)
-[NEXT] NOTES-RECON: Probe notes.services.box.com: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api"`
-[NEXT] MBOX-RECON: Probe m.box.com: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/api"`
+| Hypothesis | Status | Action |
+|------------|--------|--------|
+| upload.box.com CORS | 98 | Test POST endpoint |
+| account.box.com SSO | 70 | PARKED (HUMAN_ONLY) |
+| cloud.app.box.com 206 | NEW | Probe root with Range |
+| m.box.com | UNPROBED | Recon |
+| notes.services.box.com | UNPROBED | Recon |

@@ -1115,3 +1115,8 @@ testability: HUMAN_ONLY
 [NEXT] SSO-CHAIN-AUTH: Test if the full SSO redirect chain can be traced without authentication by following the redirect to /login and inspecting the form: `curl -sD- -L -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://evil.example.com/path"` (follow redirects to see final form state)
 [NEXT] NOTES-RECON: Probe notes.services.box.com: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api"`
 [NEXT] MBOX-RECON: Probe m.box.com: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/api"`
+## 2026-08-21 20:16:56 UTC account.box.com (mimo)
+[NEXT] UPLOAD-POST-CORS: Test upload.box.com POST endpoint OPTIONS with Origin header:
+[NEXT] MBOX-RECON: Probe m.box.com:
+[NEXT] NOTES-RECON: Probe notes.services.box.com:
+[NEXT] CLOUD-206: Probe cloud.app.box.com root with Range header:
