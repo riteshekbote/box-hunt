@@ -879,3 +879,11 @@ testability: PASSIVE
 [PARKED] dl.boxcloud.com: 404 on all paths. No CORS-relevant surface.
 [PARKED] app.box.com login pages: Origin reflection confirmed but readable content is public login form HTML only; no Access-Control-Allow-Credentials.
 [PARKED] cloud.app.box.com/login: 405 with origin reflection but empty body. No sensitive data.
+## 2026-08-21 21:55:01 UTC app.box.com (mimo)
+class: MISCONFIG
+asset: cloud.account.box.com/api/oauth2/authorize (also cloud.app.box.com/api/oauth2/authorize, account.box.com/api/oauth2/authorize)
+confidence: 70
+reasoning: All three subdomains reflect arbitrary Origin in `Access-Control-Allow-Origin` on the OAuth2 authorize SPA shell response. The response embeds `Box.prefetchedData` containing: runtimeMetadata (us-west4-prod, k8s, prod), internal proxy hostnames (pendo-prod.box.com, pendo-data-prod.box.com — absent from public JS bundles), complete feature flag map, billing.creditCardCreationURL (Zuora), pendoAnalyticsAPIKey, amplitudeAPIKey, requestId, preview.version 3.79.0, full webpack remotes manifest. No `Access-Control-Allow-Credentials` header present on any endpoint — cookies cannot be sent cross-origin. Bearer token probe confirmed: server returns identical SPA shell regardless of Authorization header value.
+verify_steps: GET `https://cloud.account.box.com/api/oauth2/authorize?response_type=code` with `Origin: https://evil.com` — response includes `access-control-allow-origin: https://evil.com` and structured JSON with deployment metadata. No `access-control-allow-credentials` header.
+impact: LOW-MEDIUM. Internal deployment metadata (k8s zone, feature flags, proxy hostnames, billing endpoint URLs, client-side API keys) readable cross-origin from any evil.com page. Without ACA, cookie-bearing requests are blocked. Metadata is already embedded in public JS bundles for authenticated users, but the CORS misconfiguration makes it accessible as structured JSON without JS parsing and includes values not present in public bundles (proxy hostnames, runtimeMetadata).
+testability: PASSIVE

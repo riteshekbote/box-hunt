@@ -190,3 +190,15 @@ https://services.app.box.com/ -> 206
 https://app.box.com -> 206
 https://app.box.com` -> ERR <urlopen error [Errno -2] Name or service not known>
 https://app.box.com/api/2.0/folders/0 -> HTTP 401
+
+## 2026-08-21 21:55:22 UTC app.box.com
+https://services.app.box.com/ -> 206
+https://app.box.com -> 206
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/health -> HTTP 404
+https://cloud.app.box.com/status -> HTTP 404
+https://app.box.com/api/2.0/events -> HTTP 401
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
+https://app.box.com/api/2.0/users/me -> HTTP 401
+https://cloud.app.box.com/api/oauth2/authorize?response_type=code&redirect_uri=https%3A%2F%2Fevil.com%2Fcb -> 206
