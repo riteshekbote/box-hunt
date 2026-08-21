@@ -1,33 +1,58 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-## Analysis: POC Phase Continuation
+[0m✱ [0mGlob "**/*"[90m 100 matches[0m
+[0m→ [0mRead probe-results-cloud-app-box-com.md
+[0m→ [0mRead state_cloud.app.box.com.json
+[0m→ [0mRead leads/host-cloud.app.box.com.md
+[0m→ [0mRead leads/host-cloud.app.box.com.md[90m [offset=535][0m
+[0m→ [0mRead probe-results-next.md
+[0m→ [0mRead analyst-out-job-cloud.app.box.com-mimo.txt
+Based on my analysis of the probe results and the current state of cloud.app.box.com, here is my assessment:
 
-### Current State Assessment
+[NEW] cloud.app.box.com: SPA catch-all confirmed active — any arbitrary path returns HTTP 206 with embedded `Box.config` and `Box.prefetchedData`. Route mapper (`currentRm`) is dynamically derived from URL path.
 
-**Key gaps identified:**
-1. `cloud.app.box.com/` returns 206 but body/headers never captured ("len ?")
-2. `dl.boxcloud.com` 404 headers not inspected for debug leaks
-3. CORS hypotheses remain untested (confidence 45)
+[HYP] cloud.app.box.com SPA route mapper enumeration via path-based probing
+class: MISCONFIG
+asset: cloud.app.box.com/<path>
+confidence: 55
+reasoning: Different URL paths resolve to different `currentRm` values: `/s/test123` → `enduserapp_shared_item_page`, arbitrary paths → `shared_page_vanity_name`. The `prefetchedData` keys change based on path (e.g., `/app-api/enduserapp/shared-item` vs `/app-api/enduserapp/current-user`). This reveals a server-side routing table that could be enumerated by testing path patterns like `/shared/`, `/v/`, `/folders/`.
+evidence_needed: Response body differences (currentRm, prefetchedData keys) across path patterns to map the complete route table.
+verify_steps: `curl -s "https://cloud.app.box.com/shared/test123" -H "User-Agent: box-research/1.0"` and `curl -s "https://cloud.app.box.com/v/test123" -H "User-Agent: box-research/1.0"` — observe different currentRm and prefetchedData keys.
+impact: Route mapper enumeration reveals internal URL structure and API endpoints. Severity: Low (informational).
+testability: PASSIVE
 
-### Priority Probes Needed
+[HYP] cloud.app.box.com SPA server-side API lookup information disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/<path>
+confidence: 50
+reasoning: The SPA performs server-side API lookups before serving content. For `/s/test123`, it called `/app-api/enduserapp/shared-item` which returned `{status:404, errorCode:"sharedNotFound"}`. This confirms the server resolves routes and makes API calls client-side. If other path patterns trigger different API lookups, more internal mappings could be discovered.
+evidence_needed: Different `prefetchedData` responses across path patterns showing which API endpoints are called server-side.
+verify_steps: `curl -s "https://cloud.app.box.com/folders/0" -H "User-Agent: box-research/1.0"` — test if `/folders/` path triggers folder route and reveals different API lookups.
+impact: Server-side API endpoint enumeration. Severity: Low (informational).
+testability: PASSIVE
 
-**[NEXT] cloud.app.box.com — Full 206 inspection:**
-```bash
-curl -sS -D /tmp/cab-headers.txt -o /tmp/cab-body.txt https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" && cat /tmp/cab-headers.txt && echo "---BODY---" && wc -c /tmp/cab-body.txt && head -c 500 /tmp/cab-body.txt
-```
+[HYP] pendo-prod.box.com GCS bucket wildcard CORS with object enumeration potential
+class: MISCONFIG
+asset: pendo-prod.box.com
+confidence: 50
+reasoning: GCS bucket `pendo-static-6297040871555072` serves from pendo-prod.box.com with `access-control-allow-origin: *` and `access-control-expose-headers: *`. All paths return 403 (AccessDenied) because listing is disabled. However, the CORS wildcard means any website can read specific objects if their names are known. The bucket contains Pendo analytics static assets.
+evidence_needed: Known object paths within the bucket that can be read cross-origin.
+verify_steps: `curl -s "https://pendo-prod.box.com/guide/<known-object>" -H "Origin: https://evil.example.com"` — test if specific objects can be read.
+impact: If Pendo guide content or analytics config contains sensitive data (e.g., guide targeting rules, visitor segments), it could be read cross-origin. Severity: Low (defense-in-depth).
+testability: PASSIVE
 
-**[NEXT] dl.boxcloud.com — 404 header inspection:**
-```bash
-curl -sS -D- https://dl.boxcloud.com/nonexistent-path -H "User-Agent: box-research/1.0 +(research)" -H "Referer: https://evil.com"
-```
+[PARKED] cloud.app.box.com `/_assets/` sibling-object enumeration: all tested paths (package-lock.json, conf/, assetsGenerated.json, .env, config.json, webpack.config.js, .git/config) return 404 from GCS. No sensitive sibling objects found.
+[PARKED] account.box.com `/saml` SSO endpoint: HEAD returns 405, exists but not GET/HEAD-accessible.
+[PARKED] account.box.com `_assets/` sibling-object enumeration: all tested paths return 404 from GCS.
+[PARKED] cloud.app.box.com CORS on SPA catch-all: root with Origin returns 302 to /login, not 206. The SPA catch-all for arbitrary paths returns 206 regardless of Origin header presence.
 
-### Hypothesis Updates
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/shared/test123" -H "User-Agent: box-research/1.0"` — test if /shared/ path triggers different route mapper
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/v/test123" -H "User-Agent: box-research/1.0"` — test if /v/ path triggers different route mapper
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/folders/0" -H "User-Agent: box-research/1.0"` — test if /folders/ path triggers folder route
+[NEXT] PROBE: `curl -s -I "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET"` — test CORS preflight on SPA catch-all root
 
-| Asset | Class | Confidence | Status |
-|-------|-------|------------|--------|
-| cloud.app.box.com/ | MISCONFIG | 55 | Needs body/headers |
-| dl.boxcloud.com | MISCONFIG | 35 | Needs header inspection |
-| cloud.app.box.com/ | CORS | 45 | Parked - requires auth |
-
-**Recommendation:** Execute both probes in parallel (2 requests total). The cloud.app.box.com probe will resolve whether the 206 contains exploitable content. The dl.boxcloud.com probe will determine if debug headers leak token structure.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: SPA catch-all confirmed — any arbitrary path returns HTTP 206 with embedded SPA shell containing `Box.config` and `Box.prefetchedData`. Route mapper dynamically derived from URL path. Server-side API lookups performed before serving content.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com: CORS on SPA catch-all root — root with Origin returns 302 to /login, not 206. The SPA catch-all for arbitrary paths returns 206 regardless of Origin header presence.
+[LEARN] ACCEPTED MISCONFIG @ pendo-prod.box.com: GCS bucket `pendo-static-6297040871555072` with wildcard CORS `*` and `access-control-expose-headers: *`. Bucket name leaked in XML error response. All paths return 403 (listing disabled).
+[LEARN] ACCEPTED MISCONFIG @ account.box.com: `/_assets/` GCS bucket access with wildcard CORS `*`. Same bucket `box-prod-static-assets-assets-us` as cloud.app.box.com. `robots.txt` exposes internal path map. `/login` and `/api/oauth2/authorize` reflect attacker Origin WITHOUT credentials.
