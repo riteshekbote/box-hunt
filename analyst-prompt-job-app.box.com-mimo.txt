@@ -35,26 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 21:55:22 UTC"
+  "last_advance": "2026-08-21 22:08:28 UTC"
 }=== MY LAST LEADS (tail) ===
-[NEXT] HEAD https://app.box.com/api/2.0/events with headers: Origin: https://evil.com, User-Agent: box-research/1.0
-## 2026-08-21 20:22:34 UTC app.box.com (mimo)
-[LEARN] ACCEPTED OAuth2 token endpoint wildcard CORS @ cloud.account.box.com: GET/POST response to /api/oauth2/token returns `access-control-allow-origin: *` on actual response body (not just preflight). Response is JSON error for unauthenticated GET. Standard OAuth2 pattern for public SPA clients; security relies on PKCE not CORS. Low impact.
-[LEARN] ACCEPTED app-api endpoint properly secured: cloud.account.box.com/app-api/enduserapp/current-user returns 200 with user profile JSON but NO CORS headers — not readable cross-origin. Properly secured internal API.
-[LEARN] ACCEPTED no Access-Control-Allow-Credentials anywhere: All origin-reflection endpoints (cloud.account.box.com/api/oauth2/authorize, app.box.com/login/*, cloud.app.box.com/login) lack `Access-Control-Allow-Credentials`. Cookies cannot be sent cross-origin, blocking cookie-bearing data exfiltration.
-[LEARN] ACCEPTED cloud.app.box.com/login returns 405 with origin reflection: GET to cloud.app.box.com/login returns 405 with `access-control-allow-origin: evil.com` but empty body. No sensitive data.
-[HYP] OAuth2 authorize SPA shell leaks internal deployment metadata cross-origin
-class: MISCONFIG
-asset: cloud.account.box.com/api/oauth2/authorize
-confidence: 40
-reasoning: The origin-reflected SPA shell response embeds Box.prefetchedData containing: k8s deployment zone (us-west4-prod), internal API endpoint URLs, preview token timeout (3600s), Pendo analytics proxy hosts (pendo-prod.box.com, pendo-data-prod.box.com), feature flag names, and webpack remote manifest with internal CDN paths. No Access-Control-Allow-Credentials means no cookie-bearing reads, but the metadata itself is readable cross-origin from any evil.com page.
-verify_steps: 1) Fetch https://cdn01.boxcdn.net/enduser/app.50c208b371.js and search for pendoAnalyticsProxyContentHost  2) HEAD https://pendo-prod.box.com with Origin: evil.com to check if it's accessible
-impact: LOW. The metadata is already embedded in public JS bundles loaded by any visitor. The CORS misconfiguration just makes it accessible as structured JSON rather than requiring JS parsing. No credential leakage due to missing ACA.
-testability: PASSIVE
-[PARKED] cloud.app.box.com 206 pattern: Executor consistently reports 206 for root, but direct probes show 302->405/301. The 206 likely comes from following redirects and hitting a login SPA shell. No unique attack surface.
-[PARKED] services.app.box.com: Redirects to app.box.com/. No unique surface.
-[PARKED] app.box.com app paths (shared, recent, trash, etc.): Return 405 without CORS headers. No data leakage.
-[NEXT] GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js with User-Agent: box-research/1.0 — check if pendoAnalyticsProxyContentHost/pendoAnalyticsProxyDataHost are in public bundle
 ## 2026-08-21 20:44:26 UTC app.box.com (mimo)
 [LEARN] REJECTED pendo proxy hosts in public JS bundle: grep confirms `pendoAnalyticsProxyContentHost` and `pendoAnalyticsProxyDataHost` do NOT appear in `app.50c208b371.js`. Only `pendoAnalyticsAPIKey` and `pendoId` are present. The proxy hostnames are exclusively in the CORS-reflected `Box.config` JSON.
 [CONFIRMED] OAuth2 authorize SPA shell leaks internal deployment metadata cross-origin
@@ -97,6 +79,24 @@ reasoning: All three subdomains reflect arbitrary Origin in `Access-Control-Allo
 verify_steps: GET `https://cloud.account.box.com/api/oauth2/authorize?response_type=code` with `Origin: https://evil.com` — response includes `access-control-allow-origin: https://evil.com` and structured JSON with deployment metadata. No `access-control-allow-credentials` header.
 impact: LOW-MEDIUM. Internal deployment metadata (k8s zone, feature flags, proxy hostnames, billing endpoint URLs, client-side API keys) readable cross-origin from any evil.com page. Without ACA, cookie-bearing requests are blocked. Metadata is already embedded in public JS bundles for authenticated users, but the CORS misconfiguration makes it accessible as structured JSON without JS parsing and includes values not present in public bundles (proxy hostnames, runtimeMetadata).
 testability: PASSIVE
+## 2026-08-21 22:08:02 UTC app.box.com (mimo)
+[LEARN] ACCEPTED app.box.com/api/2.0/me wildcard CORS: Returns `access-control-allow-origin: *` with `vary: Origin`. No `access-control-allow-credentials`. Standard public API pattern — the endpoint is designed for third-party apps using Bearer tokens, not cookies. Without credentials, any page can read the401 error response but it contains no sensitive data. **Not exploitable** for user data exfiltration.
+[LEARN] ACCEPTED cloud.app.box.com/ now consistently returns 302→/login (not 206). The earlier 206 reports from the executor were likely following redirects and interpreting the SPA shell as a 206 response. Root properly redirects unauthenticated users.
+[LEARN] ACCEPTED notes.services.box.com Socket.IO EIO=4 handshake succeeds: `{"sid":"WIY9nzGHijkFbxaWAHCz","upgrades":["websocket"],"pingInterval":7000,"pingTimeout":15000}`. **No CORS headers** on the response — cross-origin JavaScript cannot read the session ID. Properly secured against browser-based attacks. Subsequent polling with the returned sid fails (400), indicating the sid alone is insufficient without proper session context.
+[LEARN] ACCEPTED cloud.account.box.com/api/oauth2/authorize error echo: When `redirect_uri=https://evil.com/callback&client_id=test` is passed, the server embeds the attacker's values in `Box.prefetchedData["/api/oauth2/authorize/data"]["errorParams"]` — but these are values the attacker supplied, not server secrets. The CORS-reflected SPA shell still exposes `Box.config` deployment metadata.
+[CONFIRMED] OAuth2 authorize SPA shell leaks internal deployment metadata cross-origin via CORS origin reflection
+class: MISCONFIG
+asset: cloud.account.box.com/api/oauth2/authorize + account.box.com/api/oauth2/authorize + cloud.app.box.com/api/oauth2/authorize
+confidence: 75
+reasoning: All three subdomains reflect arbitrary Origin in Access-Control-Allow-Origin on the OAuth2 authorize SPA shell response. The response embeds Box.config containing: runtimeMetadata.availabilityZone ("us-west4-prod"), deploymentType ("k8s"), environment ("prod"), pendoAnalyticsProxyContentHost ("https://pendo-prod.box.com"), pendoAnalyticsProxyDataHost ("https://pendo-data-prod.box.com"), complete feature flag map (40+ flags), billing.creditCardCreationURL (Zuora endpoint), pendoAnalyticsAPIKey, amplitudeAPIKey, splitIOAPIKey, requestId, preview.version ("3.79.0"), full webpack remotes manifest (20+ remote modules with version numbers). Bearer token probe confirmed: server returns identical SPA shell regardless of Authorization header. No Access-Control-Allow-Credentials present on any endpoint. This cycle confirmed the same pattern on account.box.com (4th subdomain with identical behavior).
+verify_steps: GET https://cloud.account.box.com/api/oauth2/authorize?response_type=code with Origin: https://evil.com — response includes access-control-allow-origin: https://evil.com and Box.config JSON with deployment metadata. No access-control-allow-credentials header.
+impact: LOW-MEDIUM. Internal deployment metadata (k8s availability zone, deployment type, feature flags, third-party service endpoints/API keys, preview version, webpack manifest) readable cross-origin from any evil.com page. Without ACA, cookie-bearing requests are blocked. The metadata values (pendoAnalyticsAPIKey, amplitudeAPIKey, splitIOAPIKey) are client-side keys already present in public JS bundles — the CORS issue just makes them accessible as structured JSON from a non-authenticated context. The runtimeMetadata (us-west4-prod, k8s) is NOT in public bundles and reveals infrastructure details useful for targeted attacks.
+testability: PASSIVE
+[PARKED] notes.services.box.com Socket.IO open polling: EIO=4 handshake issues session IDs without authentication but returns no CORS headers. Server-side Socket.IO accepts connections but browser CORS policy blocks cross-origin reading of the session ID. Not exploitable from browser context. Would require AUTH_HELPED testing with authenticated Socket.IO subscription to check for channel data leakage.
+[PARKED] app.box.com/api/2.0/* wildcard CORS on /me: /api/2.0/me returns access-control-allow-origin: * but no ACA and no preflight support (OPTIONS returns 401 without allow-methods/allow-headers). All other API endpoints (/folders/0, /events, /tasks, /collaborations, /search, /users/me) return 401 WITHOUT CORS headers. The /me wildcard is standard for third-party app integration. No user data returned unauthenticated.
+[PARKED] upload.box.com: nginx-based, all API paths return 404. No CORS headers on any response. Separate infrastructure from the Box SPA/API stack.
+[PARKED] m.box.com: 301→app.box.com. Mobile web redirects entirely to primary app. No unique surface.
+[NEXT] HEAD https://app.box.com/api/2.0/me with headers: Origin: https://evil.com, User-Agent: box-research/1.0 — confirm wildcard CORS behavior, check if additional headers (Authorization probe) change CORS response
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)

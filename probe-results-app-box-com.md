@@ -216,3 +216,7 @@ https://app.box.com/api/2.0/tasks -> HTTP 401
 https://app.box.com/api/2.0/collaborations -> HTTP 401
 https://app.box.com/api/2.0/events?stream_type=admin_logs -> HTTP 401
 https://app.box.com/realtime -> HTTP 404
+
+## 2026-08-21 22:33:29 UTC app.box.com
+https://cloud.app.box.com/app-api/enduserapp/current-user -> 200
+https://cloud.app.box.com/api/oauth2/authorize?response_type=code -> 206
