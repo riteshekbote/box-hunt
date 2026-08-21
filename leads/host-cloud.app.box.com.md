@@ -892,3 +892,37 @@ testability: PASSIVE
 ## 2026-08-21 19:57:34 UTC cloud.app.box.com (mimo)
 ## 2026-08-21 20:16:55 UTC cloud.app.box.com (mimo)
 ## 2026-08-21 20:44:28 UTC cloud.app.box.com (mimo)
+## 2026-08-21 21:04:40 UTC cloud.app.box.com (mimo)
+[CONFIRMED] account.box.com login/reset CORS reflects arbitrary Origin
+class: MISCONFIG
+asset: account.box.com/login/reset
+confidence: 65
+reasoning: GET with `Origin: https://evil.example.com` returns `access-control-allow-origin: https://evil.example.com`. OPTIONS preflight allows POST with Content-Type. The response body contains `request_token` (CSRF token) in a hidden form field — readable cross-origin. However, NO `access-control-allow-credentials` header is present, so cookies are not sent cross-origin, preventing authenticated form submission from attacker pages.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login/reset?form_variant=none&redirect_url="` — confirms reflected Origin. `curl -s -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/login/reset"` — confirms POST allowed.
+impact: Attacker can read CSRF tokens from the password reset form cross-origin. Without credentials, cannot submit the form on behalf of the user. Defense-in-depth issue. Severity: Low.
+testability: PASSIVE
+[CONFIRMED] account.box.com/login reflects Origin on HEAD (405)
+class: MISCONFIG
+asset: account.box.com/login
+confidence: 60
+reasoning: HEAD request returns 405 but still includes `access-control-allow-origin: https://evil.example.com`. The login page is a POST-only endpoint that reflects arbitrary Origins.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login"` — confirms 405 with reflected Origin.
+impact: Same CORS misconfiguration pattern as reset endpoint — Origin reflection without credentials. Severity: Low.
+testability: PASSIVE
+[CONFIRMED] cloud.account.box.com/login reflects Origin
+class: MISCONFIG
+asset: cloud.account.box.com/login
+confidence: 60
+reasoning: HEAD request returns 405 with `access-control-allow-origin: https://evil.example.com`. Login form contains `request_token` hidden field.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login"` — confirms reflected Origin.
+impact: Origin reflection on login page. Same pattern as account.box.com. Severity: Low.
+testability: PASSIVE
+[LEARN] REJECTED cloud.app.box.com SPA catch-all for `/shared/`, `/folders/`, `/v/` paths: `/shared/test123` returns 404, `/folders/0` returns 404, `/v/test123` returns 200 with SPA shell (currentRm: `enduserapp_shared_item_page`). Only `/s/<token>` paths consistently return 206 SPA shell with route resolution. The SPA catch-all is restricted to `/s/` prefix paths.
+[LEARN] REJECTED cloud.app.box.com internal API paths: `/app-api/enduserapp/current-user` and `/app-api/enduserapp/shared-item` return 404 when accessed directly. These are server-side prefetched during SPA shell generation and not directly routable from outside.
+[LEARN] notes.services.box.com redirects to `https://services.app.box.com/` (302). No CORS headers. Out of direct probe scope.
+[PARKED] dl.boxcloud.com download proxy: All tested paths return 404 with no CORS headers. The download CDN requires valid signed URLs.
+[PARKED] app.box.com/api/2.0/users/me: Returns 401 `www-authenticate: Bearer` — confirms auth required, no CORS headers visible on 401.
+[NEXT] PROBE: `curl -s -H "Origin: https://evil.example.com" "https://account.box.com/login/reset?form_variant=none&redirect_url=" 2>&1 | grep -c 'access-control-allow-origin'` — verify consistency of CORS reflection across multiple requests
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/start" 2>&1` — test /start endpoint for CORS reflection
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/enterprise/sso" 2>&1` — test SSO endpoint
+[NEXT] RECON: `curl -s -H "User-Agent: box-research/1.0" "https://m.box.com/" 2>&1 | head -20` — check mobile web app content
