@@ -756,3 +756,17 @@ reasoning: The endpoint returns 200 with `error: "invalid_client"` regardless of
 verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) /api/oauth2/authorize?response_type=code&client_id=known_valid_from_docs (2) /api/oauth2/token with POST-like GET (no body) to observe error (3) /api/oauth2/revoke to observe redirect target.
 impact: Low — OAuth error messages typically don't enumerate valid client IDs, but if they do, it could reveal registered OAuth applications.
 testability: PASSIVE
+## 2026-08-21 19:56:57 UTC api.box.com (mimo)
+[CONFIRMED] cloud.app.box.com 206/Range layer is strictly whitelist-routed — only root, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed respond with 206; all other paths (random nonces, case variations, Box-specific filenames) return 404. Whitelist is case-sensitive, single-decode, query-agnostic.
+[CONFIRMED] dl.boxcloud.com is inert — root, robots.txt, favicon.ico, random nonce all return 404. Download edge requires signed tokens; no unauthenticated surface.
+[CONFIRMED] upload.box.com has no unauthenticated surface — robots.txt and API path return 404. Upload pipeline is gated.
+[LEARN] REJECTEDTOOL @ cloud.app.box.com: CORS/header-dependent hypotheses frozen — executor never returns response headers. Cannot advance without header-capturing infrastructure.
+[HYP] Extend account.box.com metadata leak to /login and /enduser endpoints
+class: MISCONFIG
+asset: account.box.com/{/login,/enduser}
+confidence: 20
+reasoning: /api/oauth2/authorize leaks runtimeMetadata (availabilityZone: us-west4-prod, deploymentType: k8s, datacenterTag) and third-party SDK keys in Box.prefetchedData. If /login and /enduser embed the same prefetchedData block, the metadata surface doubles. These endpoints are unauthenticated and may expose additional deployment details or version strings.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) GET /login (2) GET /enduser (3) GET /integrations — check each for Box.prefetchedData JSON block; if present, note runtimeMetadata keys.
+impact: Low — operational metadata disclosure; could reveal infrastructure specifics for targeted attacks but no auth bypass.
+testability: PASSIVE
+[NEXT] PROBE: 3xGET account.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
