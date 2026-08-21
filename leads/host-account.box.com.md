@@ -943,3 +943,4 @@ impact: DOM/HTML-context XSS on the embedded-content origin → session theft (C
 testability: PASSIVE
 [NEXT] RANGE-CORS-ROOT: `curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Range: bytes=0-15" "https://cloud.app.box.com/"`
 [NEXT] XSS-STATE-BREAK: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&state=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E"`
+## 2026-08-21 17:47:42 UTC account.box.com (ling3)
