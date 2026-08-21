@@ -40,3 +40,6 @@ https://dl.boxcloud.com:8443/api/2.0/files/0/content -> ERR <urlopen error [Errn
 https://dl.boxcloud.com/api/2.0/users/me -> HTTP 404
 https://dl.boxcloud.com/api/2.0/folders/0 -> HTTP 404
 https://dl.boxcloud.com/api/2.0/search -> HTTP 404
+
+## 2026-08-21 21:47:36 UTC dl.boxcloud.com
+https://dl.boxcloud.com/api/2.0/files/content -> HTTP 404
