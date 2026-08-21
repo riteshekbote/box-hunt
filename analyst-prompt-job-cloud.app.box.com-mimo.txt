@@ -1,0 +1,235 @@
+=== SCOPE + RULES ===
+# BOX BUG BOUNTY — SCOPE (read-only research)
+
+## Program: Box (HackerOne) — all listed domains CRITICAL + Eligible unless marked
+
+## ELIGIBLE HOSTS (probe allowed, read-only GET/HEAD/OPTIONS only)
+  upload.box.com           file upload pipeline; malware bypass, parsing, validation  [phase: PLATFORM]
+  notes.services.box.com   Box Notes backend; real-time collaboration, content sync   [phase: PLATFORM]
+  m.box.com                mobile web app; separate rendering/session logic            [phase: WEB]
+  dl.boxcloud.com          file download CDN; signed URLs, file access, token leakage  [phase: CDN]
+  cloud.app.box.com        embedded content views; distinct frontend origin            [phase: PLATFORM]
+  app.box.com              primary web app (files, sharing, AI, admin, notes, forms)
+  api.box.com              core API (files, folders, users, collabs, search, metadata, Shield, AI, events)
+  account.box.com          auth plane: login, OAuth, SSO, tokens, sessions
+
+## OUT OF TOOL REACH (not probed by this pipeline)
+  Box Drive (desktop), iOS App, Android App
+
+## ABSOLUTE FORBIDDEN – NEVER REQUEST, NEVER RESOLVE, NEVER MENTION (honeypot/partner)
+  signrequest.com      production; /administrator endpoint is a HONEYPOT - visiting bans the IP from the site
+  sr-staging-1.com     partner staging; NOT OURS, ineligible
+  *.signrequest.* , *.box.com content outside the 8 hosts above
+
+## HARD RULES (violation = ban + report invalidation)
+  1. READ-ONLY ONLY: GET / HEAD / OPTIONS. NEVER send POST/PUT/PATCH/DELETE bodies to any box host.
+  2. NO account creation, NO uploads, NO file writes, NO shared-link creation, NO OAuth credential submission, NO token exchange.
+  3. Public developer docs (developer.box.com, support.box.com pages) may be READ for research (GET only).
+  4. Politeness: max 1 request / 2s per host, max 60 requests per cycle, User-Agent: box-research/1.0 +(research)
+  5. First 4xx/429/403 from a host -> stop probing that host for the cycle and log it.
+  6. Everything ties back to one of the 8 hosts above; never follow redirects to a third-party origin.
+  7. Phases: RECON -> SURFACE -> HYPOTHESIS -> POC; advance one step per cycle (state kept per host).
+  8. Hypotheses must include: class, asset, confidence 0-100, reasoning (facts only), evidence_needed,
+     verify_steps (exact read-only HTTP), impact, testability (PASSIVE|AUTH_HELPED|HUMAN_ONLY).
+  9. AUTH_HELPED / HUMAN_ONLY items are PARKED in output - never attempted without explicit new rule.=== MY HOST STATE ===
+{
+  "phase": "POC",
+  "status": "IN_PROGRESS",
+  "last_advance": "2026-08-20 20:51:59 UTC"
+}=== MY LAST LEADS (tail) ===
+[NEW] cloud.app.box.com: CORS hypothesis untestable — executor captures only HTTP status codes, never response headers; 10+ cycles wasted on header-dependent tests; pivot required
+[PARKED] CORS misconfiguration on cloud.app.box.com preview origin: Infrastructure limitation — executor returns status codes only, no Access-Control-* header values ever captured; cannot confirm or refute
+[PARKED] Object-store default handler vs whitelist-routed on cloud.app.box.com: Root returns 206, all other paths return 404; no further differentiation possible via status-code-only probing
+[PARKED] OAuth token endpoint exposure on cloud.app.box.com: No token endpoints found via path enumeration; all subpaths 404
+[LEARN] REJECTEDTOOL: All CORS/header-dependent hypotheses on cloud.app.box.com — executor never returns response headers; every hypothesis requiring Access-Control-* evidence is frozen at captured confidence
+[HYP] account.box.com surface recon — discover endpoints, methods, and information leakage
+class: RECON
+asset: account.box.com
+confidence: 25
+reasoning: Auth plane has never been probed in any prior cycle. Login, OAuth, SSO endpoints sometimes expose configuration, error messages, or discoverable endpoints via GET. The last cycle identified this as next target but executor repeated cloud.app.box.com probes instead.
+verify_steps: |
+impact: Auth endpoint discovery, configuration leakage, method enumeration; severity Low-Medium
+testability: PASSIVE
+[NEXT] GET https://account.box.com/ — capture status code and any redirect behavior
+[NEXT] GET https://account.box.com/login — capture status code and response body hints
+[NEXT] GET https://account.box.com/api/oauth2/token — capture status code (GET on token endpoint may reveal info)
+[NEXT] OPTIONS https://account.box.com/api/oauth2/token — check allowed methods on auth endpoint
+[NEXT] HEAD https://account.box.com/robots.txt — capture status and any disallowed paths
+[NEXT] GET https://account.box.com/.well-known/openid-configuration — check for OIDC discovery
+[NEXT] HEAD https://account.box.com/saml — check SSO endpoint existence
+[NEXT] GET https://account.box.com/api/oauth2/authorize — check authorization endpoint
+[NEXT] HEAD https://account.box.com/api/v2.0/users/me — check user endpoint without auth
+[NEXT] GET https://account.box.com/mobile — check mobile auth endpoint
+## 2026-08-20 21:14:05 UTC cloud.app.box.com (ling3)
+## 2026-08-20 21:43:24 UTC cloud.app.box.com (ling3)
+## 2026-08-20 22:02:48 UTC cloud.app.box.com (ling3)
+## 2026-08-20 22:34:32 UTC cloud.app.box.com (ling3)
+## 2026-08-20 22:58:16 UTC cloud.app.box.com (ling3)
+## 2026-08-20 23:23:30 UTC cloud.app.box.com (ling3)
+## 2026-08-20 23:45:20 UTC cloud.app.box.com (ling3)
+## 2026-08-21 00:00:59 UTC cloud.app.box.com (bigpickle)
+## 2026-08-21 01:34:47 UTC cloud.app.box.com (ling3)
+## 2026-08-21 02:48:05 UTC cloud.app.box.com (ling3)
+## 2026-08-21 03:37:00 UTC cloud.app.box.com (ling3)
+## 2026-08-21 04:20:16 UTC cloud.app.box.com (ling3)
+## 2026-08-21 04:58:12 UTC cloud.app.box.com (ling3)
+## 2026-08-21 05:30:16 UTC cloud.app.box.com (ling3)
+## 2026-08-21 05:59:03 UTC cloud.app.box.com (ling3)
+## 2026-08-21 06:45:34 UTC cloud.app.box.com (ling3)
+## 2026-08-21 07:29:44 UTC cloud.app.box.com (ling3)
+## 2026-08-21 08:05:55 UTC cloud.app.box.com (ling3)
+## 2026-08-21 08:54:20 UTC cloud.app.box.com (ling3)
+## 2026-08-21 09:22:05 UTC cloud.app.box.com (ling3)
+## 2026-08-21 09:55:47 UTC cloud.app.box.com (ling3)
+## 2026-08-21 10:21:00 UTC cloud.app.box.com (ling3)
+## 2026-08-21 10:52:33 UTC cloud.app.box.com (ling3)
+## 2026-08-21 11:13:30 UTC cloud.app.box.com (ling3)
+## 2026-08-21 11:41:51 UTC cloud.app.box.com (ling3)
+## 2026-08-21 11:59:39 UTC cloud.app.box.com (ling3)
+## 2026-08-21 12:50:48 UTC cloud.app.box.com (ling3)
+## 2026-08-21 13:34:28 UTC cloud.app.box.com (ling3)
+## 2026-08-21 14:09:37 UTC cloud.app.box.com (ling3)
+## 2026-08-21 14:50:43 UTC cloud.app.box.com (ling3)
+## 2026-08-21 15:18:26 UTC cloud.app.box.com (ling3)
+## 2026-08-21 15:51:21 UTC cloud.app.box.com (ling3)
+## 2026-08-21 16:15:20 UTC cloud.app.box.com (ling3)
+## 2026-08-21 16:52:00 UTC cloud.app.box.com (ling3)
+## 2026-08-21 17:16:48 UTC cloud.app.box.com (bigpickle)
+## 2026-08-21 17:47:18 UTC cloud.app.box.com (ling3)
+## 2026-08-21 18:13:55 UTC cloud.app.box.com (ling3)
+=== RANKED HYPOTHESES (tail) ===
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 16:48:12 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 17:39:23 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 18:01:03 UTC
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
+=== ROBOT PROBE RESULTS (tail) ===
+none
+=== NEXT-EXECUTOR RESULTS (tail) ===
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 16:48:12 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 17:39:23 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 18:01:03 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+=== LATEST SPEC FILE (tail, if any) ===
+no-spec
+You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
+(mapped from APP_ORIGIN). Session rules:
+1. ONLY read-only HTTP (GET/HEAD/OPTIONS); never any write.
+2. NEVER touch signrequest/sr-staging-1 or any host outside scope.txt (honeypot warning in scope.txt).
+3. Politeness: 1 req/2s, <=60/cycle, UA box-research; on first 4xx/429/403 -> log & stop probing host.
+4. All findings from your own read-only probes or the context above; never fabricate.
+5. PROBE-FIRST: your [NEXT] lines are EXECUTED by the executor robot between cycles and the results
+   are appended to probe-results-next.md, which you see in context. Build on that evidence:
+   if a probe came back 200 with content, tighten the hypothesis and emit the next probe.
+   If it came back 404/302-to-login, mark the hypothesis PARKED with the observed response.
+   NEVER emit the same [NEXT] twice in a row for the same asset - that is a no-op.
+6. When you have evidence (status + body facts) for a hypothesis, raise confidence and emit
+   [CONFIRMED] instead of re-listing [HYP].
+Emit ONLY these blocks:
+
+[NEW] <asset>: <one line, discovered or changed>
+[HYP] <title>
+class: <IDOR|SSRF|AUTH|XSS|BUSLOGIC|MISCONFIG|OATH|DESER|OTHER>
+asset: <host/path>
+confidence: <0-100>
+reasoning: <facts only, 2-3 lines>
+evidence_needed: <what proves it>
+verify_steps: <exact read-only HTTP requests>
+impact: <attacker outcome + severity>
+testability: <PASSIVE|AUTH_HELPED|HUMAN_ONLY>
+[PARKED] <title>: <why left for now>
+[NEXT] <PROBE>: <one concrete read-only request to run this cycle>
+[LEARN] <ACCEPTED|REJECTED> <class> @ <asset>: <reason>
+Always: 1 phase deeper per cycle (RECON->SURFACE->HYPOTHESIS->POC); on EXHAUSTED start new surface.
+Begin.

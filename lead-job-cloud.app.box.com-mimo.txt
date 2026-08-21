@@ -1,0 +1,19 @@
+[NEW] account.box.com: Auth plane surface mapping — discover endpoints, methods, and information leakage
+[HYP] Auth endpoint discovery on account.box.com
+class: RECON
+asset: account.box.com
+confidence: 30
+reasoning: Root returns 206, login endpoints exist with redirect parameters. No systematic endpoint enumeration performed yet. Auth planes often expose OIDC discovery, SAML, OAuth endpoints via GET.
+verify_steps: |
+impact: Auth endpoint discovery, configuration leakage, method enumeration; severity Low-Medium
+testability: PASSIVE
+[NEXT] GET https://account.box.com/ — capture status code and any redirect behavior
+[NEXT] GET https://account.box.com/login — capture status code and response body hints
+[NEXT] GET https://account.box.com/api/oauth2/token — capture status code (GET on token endpoint may reveal info)
+[NEXT] OPTIONS https://account.box.com/api/oauth2/token — check allowed methods on auth endpoint
+[NEXT] HEAD https://account.box.com/robots.txt — capture status and any disallowed paths
+[NEXT] GET https://account.box.com/.well-known/openid-configuration — check for OIDC discovery
+[NEXT] HEAD https://account.box.com/saml — check SSO endpoint existence
+[NEXT] GET https://account.box.com/api/oauth2/authorize — check authorization endpoint
+[NEXT] HEAD https://account.box.com/api/v2.0/users/me — check user endpoint without auth
+[NEXT] GET https://account.box.com/mobile — check mobile auth endpoint
