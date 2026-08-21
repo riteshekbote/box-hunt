@@ -883,3 +883,25 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 +(research) — record status, Content-Type, body_length + first 200 chars. Then HEAD https://notes.services.box.com/graphql — record Allow header.1 req/2s. First4xx/429/403→stop notes.services.box.com this cycle.
 [NEXT] PROBE: GET https://cloud.app.box.com/ with User-Agent: box-research/1.0 +(research) — verify whether 302→/login persists or if206 returns. Record status + Content-Length. If206 returns, capture ALL headers (Content-Range, ETag, Accept-Ranges). Same stop-rule.
 [NEXT] PROBE: GET https://upload.box.com/internal/debug with User-Agent: box-research/1.0 +(research) — test whether debug/admin endpoints exist on the upload pipeline. Record status + body. Then GET https://upload.box.com/upload with same UA — test core upload path.1 req/2s, first4xx→stop upload.box.com.
+## 2026-08-21 19:59:20 UTC m.box.com (mimo)
+class: MISCONFIG
+asset: notes.services.box.com/graphql, app.box.com/graphql
+confidence: 45
+reasoning: Both endpoints return 503 with real JSON error body (not generic nginx/CDN 503). Upstream latency 79–1671ms confirms routing to a live service that is temporarily unavailable. OPTIONS also returns 503 (no CORS preflight handler), meaning the route catches all HTTP methods. When the service recovers, GraphQL introspection may be enabled by default, leaking the full schema including unauthenticated queries, mutations, and types — classic information disclosure.
+verify_steps: (1) GET https://notes.services.box.com/graphql with UA box-research/1.0 — record status. (2) If status ≠ 503, POST with Content-Type: application/json and introspection query. (3) Repeat for app.box.com/graphql. All read-only, 1 req/2s.
+impact: Full API schema disclosure enabling targeted BOLA, injection, or unauthorized query exploitation. Severity: Medium.
+testability: PASSIVE
+class: MISCONFIG
+asset: notes.services.box.com/graphql, app.box.com/graphql
+confidence: 30
+reasoning: OPTIONS request to /graphql currently returns 503 (same as GET) rather than 405 or a proper CORS preflight response. This suggests the route handler processes OPTIONS through the same pipeline as POST/GET, without a separate CORS middleware gate. When the service comes online, if no CORS validation is applied at the route level, cross-origin JavaScript from any domain could submit GraphQL queries.
+verify_steps: (1) Monitor for status change from 503. (2) When available, OPTIONS with Origin: https://evil.com — record all Access-Control-* headers. (3) If ACAO reflects evil.com, GET with same Origin to verify.
+impact: Cross-origin GraphQL query execution from attacker-controlled page, potentially enabling account-linked data exfiltration via browser. Severity: High if confirmed.
+testability: PASSIVE
+class: MISCONFIG
+asset: notes.services.box.com/*
+confidence: 70
+reasoning: Every non-GraphQL route (/, /api, /anything) leaks: (1) `x-powered-by: Express`, (2) dual CSRF cookies (`_csrf` HttpOnly + `csrf-token` accessible), (3) `x-frame-options: ALLOW-FROM https://app.box.com` (deprecated, ignored by Chrome 80+/Firefox 114+), (4) `server-timing: traceparent` via `access-control-expose-headers`. CSP `frame-ancestors` is also set but does not negate the deprecated header in legacy browsers.
+verify_steps: (1) GET https://notes.services.box.com/ — compare cookie/header set to /api 404 response. (2) Verify x-frame-options is absent from cloud.app.box.com and dl.boxcloud.com 404s.
+impact: Framework identification narrows attack surface. Deprecated X-Frame-Options in legacy browsers may allow framing attacks. Severity: Low.
+testability: PASSIVE
