@@ -236,3 +236,6 @@ https://cloud.app.box.com/login -> 206
 https://cloud.app.box.com/api/oauth2/revoke -> HTTP 400
 https://cloud.app.box.com/graphql -> HTTP 503
 https://cloud.app.box.com/api/oauth2/authorize?response_type=code&redirect_uri=https://evil.com/callback&client_id=test_client -> 206
+
+## 2026-08-21 23:36:07 UTC app.box.com
+https://app.box.com/api/2.0/me -> HTTP 401
