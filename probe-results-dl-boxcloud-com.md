@@ -11,3 +11,17 @@ https://dl.boxcloud.com/nonexistent-path-with-special-chars?%00 -> HTTP 404
 
 ## 2026-08-19 10:39:12 UTC dl.boxcloud.com
 https://dl.boxcloud.com/test -> HTTP 404
+
+## 2026-08-21 19:59:56 UTC dl.boxcloud.com
+https://dl.boxcloud.com/api/2.0/files/0/content -> HTTP 401
+https://dl.boxcloud.com/api/2.0/files/content -> HTTP 404
+https://dl.boxcloud.com/api/2.0 -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/content -> HTTP 404
+https://dl.boxcloud.com/files -> HTTP 404
+https://dl.boxcloud.com/download -> HTTP 404
+https://dl.boxcloud.com/thumbnail -> HTTP 404
+https://dl.boxcloud.com/preview -> HTTP 404
+https://dl.boxcloud.com/api/2.0/files/0 -> HTTP 404
+https://dl.boxcloud.com/api/2.0/files -> HTTP 404
+https://dl.boxcloud.com/api/2.0/folders/0 -> HTTP 404
