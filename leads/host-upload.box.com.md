@@ -864,3 +864,4 @@ reasoning: dl.boxcloud.com is the file download CDN. All paths without tokens re
 verify_steps: [NEXT] PROBE (dl.boxcloud.com — 404 header inspection): `curl -sS -D- https://dl.boxcloud.com/nonexistent-path -H "User-Agent: box-research/1.0 +(research)" -H "Referer: https://evil.com"` — Capture all response headers from 404. 1 req.
 impact: If debug headers leak token structure → MEDIUM (aids token forgery). If nothing → LOW/parked.
 testability: PASSIVE
+## 2026-08-21 19:42:28 UTC upload.box.com (mimo)

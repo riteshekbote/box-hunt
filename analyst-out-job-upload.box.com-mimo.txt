@@ -1,26 +1,33 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com (arbitrary-path via Range): Random nonce paths consistently 404. The 206 layer is not a catch-all. Only the root is served.
+## Analysis: POC Phase Continuation
 
-[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com: All probed paths return 404 — CDN edge returns nothing without a signed token in the path or query.
+### Current State Assessment
 
-[HYP] cloud.app.box.com 206 asset-layer content disclosure
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 55
-reasoning: Root consistently returns 206 but body content and full headers remain uncaptured across 3 cycles. A 206 at web application root with Content-Range present could reveal an internal asset key, redirect URL, or error detail. The unknown body length ("len ?") suggests the executor is not capturing body bytes — this is a gap.
-evidence_needed: Full response headers (including Content-Range, Content-Type, Content-Length) and body content from cloud.app.box.com/
-verify_steps: [NEXT] PROBE (cloud.app.box.com — full 206 inspection): `curl -sS -D /tmp/cab-headers.txt -o /tmp/cab-body.txt https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" && cat /tmp/cab-headers.txt && echo "---BODY---" && wc -c /tmp/cab-body.txt && head -c 500 /tmp/cab-body.txt` — Capture full response headers and body with size check. 1 req.
-impact: If body contains asset key or internal URL → HIGH (enables targeted object access). If body is HTML/redirect → MEDIUM (reveals routing logic). If empty/minimal → LOW but confirms behavior.
-testability: PASSIVE
+**Key gaps identified:**
+1. `cloud.app.box.com/` returns 206 but body/headers never captured ("len ?")
+2. `dl.boxcloud.com` 404 headers not inspected for debug leaks
+3. CORS hypotheses remain untested (confidence 45)
 
-[HYP] dl.boxcloud.com signed-URL token leakage via error response headers
-class: MISCONFIG
-asset: dl.boxcloud.com
-confidence: 35
-reasoning: dl.boxcloud.com is the file download CDN. All paths without tokens return 404, confirming token-gated routing. CDN edges sometimes leak debug information in response headers (X-Debug, X-Request-Id, X-Error) that reveals token structure or internal routing logic. No header inspection has been performed yet.
-evidence_needed: Full response headers from a 404 on dl.boxcloud.com, including any custom X-* headers
-verify_steps: [NEXT] PROBE (dl.boxcloud.com — 404 header inspection): `curl -sS -D- https://dl.boxcloud.com/nonexistent-path -H "User-Agent: box-research/1.0 +(research)" -H "Referer: https://evil.com"` — Capture all response headers from 404. 1 req.
-impact: If debug headers leak token structure → MEDIUM (aids token forgery). If nothing → LOW/parked.
-testability: PASSIVE
+### Priority Probes Needed
+
+**[NEXT] cloud.app.box.com — Full 206 inspection:**
+```bash
+curl -sS -D /tmp/cab-headers.txt -o /tmp/cab-body.txt https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" && cat /tmp/cab-headers.txt && echo "---BODY---" && wc -c /tmp/cab-body.txt && head -c 500 /tmp/cab-body.txt
+```
+
+**[NEXT] dl.boxcloud.com — 404 header inspection:**
+```bash
+curl -sS -D- https://dl.boxcloud.com/nonexistent-path -H "User-Agent: box-research/1.0 +(research)" -H "Referer: https://evil.com"
+```
+
+### Hypothesis Updates
+
+| Asset | Class | Confidence | Status |
+|-------|-------|------------|--------|
+| cloud.app.box.com/ | MISCONFIG | 55 | Needs body/headers |
+| dl.boxcloud.com | MISCONFIG | 35 | Needs header inspection |
+| cloud.app.box.com/ | CORS | 45 | Parked - requires auth |
+
+**Recommendation:** Execute both probes in parallel (2 requests total). The cloud.app.box.com probe will resolve whether the 206 contains exploitable content. The dl.boxcloud.com probe will determine if debug headers leak token structure.
