@@ -837,3 +837,4 @@ testability: PASSIVE
 [NEXT] GET https://cloud.app.box.com/ with headers Origin: https://evil.com and Range: bytes=0-100 — capture Access-Control-Allow-Origin, Content-Range, Accept-Ranges, Vary, Server
 [NEXT] OPTIONS https://cloud.app.box.com/ with headers Origin: https://evil.com, Access-Control-Request-Method: GET — preflight policy capture
 [NEXT] HEAD https://cloud.app.box.com/ — full response header baseline without Origin
+## 2026-08-21 18:56:08 UTC notes.services.box.com (mimo)
