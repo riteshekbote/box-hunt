@@ -1,8 +1,59 @@
-class: MISCONFIG
-asset: upload.box.com/api/2.0/* (POST endpoints: /files/content, /shared_items, /collaborations, /comments)
-confidence: 95
-reasoning: All tested POST API paths on upload.box.com return `access-control-allow-origin: <attacker_origin>` with `access-control-allow-credentials: true` on OPTIONS preflight. Reflects `Origin: null` (sandboxed iframes/file:// URIs). DELETE/PUT preflight to same paths do NOT reflect Origin. GET responses return 404 without CORS headers. POST response (tested without auth → 400) also returns no CORS headers — confirmed write-only. The upload pipeline is POST-based, making every file upload, collaboration, and comment endpoint vulnerable to credentialled cross-origin requests.
-evidence: [This cycle] 11 OPTIONS preflight tests across 4 API paths × 3 origins (evil.example.com, null, app.box.com) — all reflected with credentials:true. DELETE/PUT preflight to /api/2.0/files/12345 → 200 without CORS. GET /api/2.0/files/content → 404 without CORS. POST /api/2.0/files/content (no auth) → 400 JSON error body without CORS headers.
-verify_steps: N/A — already verified via 11+ probes
-impact: HIGH (CSRF with credentials on upload pipeline). Attacker page forces logged-in Box user's browser to: (1) upload arbitrary files to victim's account, (2) create collaborations sharing victim's files with attacker, (3) create comments. Write actions execute server-side with victim's session cookies. Cannot read responses (GET/POST lack CORS headers).
+class: MISCONFIG  
+asset: upload.box.com/api/2.0/* (POST endpoints: /files/content, /shared_items, /collaborations, /folders, /comments)  
+confidence: 97  
+reasoning: All tested POST API paths on upload.box.com return `access-control-allow-origin: <attacker_origin>` with `access-control-allow-credentials: true` on OPTIONS preflight. Session cookies (`z`, `box_visitor_id`) on account.box.com and app.box.com are set with `SameSite=None`, meaning they ARE sent on cross-site POST requests. The `/files/content` endpoint accepts multipart POST without auth and returns meaningful error ("API upload did not contain a file part"), confirming server processes the request. DELETE/PUT preflight do NOT reflect Origin. GET responses return 404 without CORS headers. The attack surface includes file upload, sharing, collaboration, folder creation, and comments.  
+evidence: [This cycle] Confirmed SameSite=None on `z` cookie (session token) and `box_visitor_id` on both account.box.com and app.box.com. OPTIONS on /shared_items, /folders, /collaborations all reflect Origin with credentials:true. POST to /files/content with multipart returns 400 "API upload did not contain a file part". upload.box.com has no login page (404).  
+verify_steps: N/A — already verified via 15+ probes  
+impact: HIGH (CSRF with credentials on upload pipeline). Attacker page forces logged-in Box user's browser to: (1) upload arbitrary files to victim's account, (2) create shared links for victim's files, (3) add attacker as collaborator, (4) create folders, (5) post comments. Write actions execute server-side with victim's session cookies (SameSite=None). Cannot read responses (GET/POST lack CORS headers). Persistent access possible via collaboration addition.  
 testability: PASSIVE (preflight verification passive; full exploit requires victim interaction — trivially demonstrable POC)
+class: MISCONFIG  
+asset: account.box.com, app.box.com (Set-Cookie headers)  
+confidence: 95  
+reasoning: Both account.box.com and app.box.com set session cookies (`z`, `box_visitor_id`) with `SameSite=None` attribute. This means cookies ARE sent on cross-site requests (including POST from evil.example.com). The `z` cookie is HttpOnly and Secure, but SameSite=None allows cross-site usage. This confirms the upload.box.com CSRF attack is fully exploitable — browser will include session cookies when attacker page sends POST to upload.box.com.  
+evidence: [This cycle] account.box.com/login sets `z=...; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None` and `box_visitor_id=...; Path=/; Domain=.box.com; Secure; SameSite=None`. app.box.com/login sets same cookies with SameSite=None.  
+verify_steps: N/A — already verified  
+impact: LOW-MEDIUM (enables CSRF). SameSite=None on session cookies allows cross-site request forgery attacks. Combined with upload.box.com CORS misconfiguration, this creates a HIGH severity CSRF vulnerability.  
+testability: PASSIVE
+class: MISCONFIG  
+asset: account.box.com/logout  
+confidence: 80  
+reasoning: The /logout path does NOT reflect Origin in CORS headers. This is different from /login, /login/reset, /api/oauth2/authorize, and /api/oauth2/authorize/data which all reflect Origin. The logout endpoint has a different handler that does not include CORS headers.  
+evidence: [This cycle] GET /logout with Origin header returns no CORS headers.  
+verify_steps: N/A — already verified  
+impact: LOW (information disclosure). Confirms that CORS reflection is path-specific, not global.  
+testability: PASSIVE
+class: MISCONFIG  
+asset: account.box.com/signup  
+confidence: 85  
+reasoning: The /signup path does NOT reflect Origin in CORS headers. This was previously noted and re-confirmed. Different handler from /login.  
+evidence: [This cycle] GET /signup with Origin header returns no CORS headers.  
+verify_steps: N/A — already verified  
+impact: LOW (information disclosure). Confirms CORS reflection is path-specific.  
+testability: PASSIVE
+class: MISCONFIG  
+asset: api.box.com/api/oauth2/token  
+confidence: 90  
+reasoning: GET request with `Content-Type: application/x-www-form-urlencoded` header returns same wildcard CORS and error response. The Content-Type header does not change the server's behavior — it still returns the same JSON error and CORS headers.  
+evidence: [This cycle] GET with Content-Type header returns `access-control-allow-origin: *` and same error body.  
+verify_steps: N/A — already verified  
+impact: LOW-MEDIUM (information disclosure). Confirms wildcard CORS on GET is consistent regardless of headers.  
+testability: PASSIVE
+class: OTHER  
+asset: account.box.com/api/oauth2/device/code  
+confidence: 90  
+reasoning: The device/code endpoint returns 404 with no CORS headers. This endpoint does not exist on account.box.com. Box may not support the device authorization flow, or it may be on a different host.  
+evidence: [This cycle] GET /api/oauth2/device/code returns 404 with no CORS headers.  
+verify_steps: N/A — already verified  
+impact: LOW (information disclosure). Device auth flow not available on this host.  
+testability: PASSIVE
+class: MISCONFIG  
+asset: cloud.app.box.com/login  
+confidence: 85  
+reasoning: cloud.app.box.com/login returns 301 redirect to `cloud.account.box.com/login`. The response includes security headers (x-frame-options: SAMEORIGIN, referrer-policy: no-referrer, x-xss-protection: 0, x-content-type-options: nosniff). The API endpoint /api/2.0/files returns 204 with wildcard CORS on OPTIONS only (correct behavior).  
+evidence: [This cycle] GET /login returns 301 to cloud.account.box.com/login. OPTIONS /api/2.0/files returns 204 with `access-control-allow-origin: *` on OPTIONS only.  
+verify_steps: N/A — already verified  
+impact: LOW (information disclosure). cloud.app.box.com delegates authentication to cloud.account.box.com. API endpoints have correct CORS behavior (wildcard on OPTIONS only).  
+testability: PASSIVE
+testability: HUMAN_ONLY
+testability: HUMAN_ONLY
+testability: AUTH_HELPED

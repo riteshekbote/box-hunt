@@ -47,3 +47,12 @@ https://upload.box.com/api/2.0/collaborations -> HTTP 404
 https://upload.box.com/api/2.0/comments -> HTTP 404
 https://upload.box.com/static/ -> HTTP 404
 https://upload.box.com/p/ -> HTTP 404
+
+## 2026-08-21 22:56:57 UTC upload.box.com
+https://upload.box.com/login -> HTTP 404
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/api/2.0/shared_items -> HTTP 404
+https://upload.box.com/api/2.0/comments -> HTTP 404
+https://upload.box.com/api/2.0/collaborations -> HTTP 404
+https://upload.box.com/api/2.0/folders -> HTTP 404
+https://upload.box.com/api/2.0/tasks -> HTTP 404
