@@ -614,3 +614,4 @@ reasoning: Previous cycle confirmed `/embed` returns 200 (distinct from 206 asse
 verify_steps: (1) GET cloud.app.box.com/embed with `Origin: https://evil.example.com` — capture all headers. (2) GET cloud.app.box.com/embed without Origin for baseline. (3) OPTIONS cloud.app.box.com/embed with preflight headers.
 impact: If embed endpoint reflects CORS or allows framing without proper X-Frame-Options, could enable cross-origin token theft or UI redress. Severity: Medium.
 testability: PASSIVE
+## 2026-08-21 19:20:31 UTC dl.boxcloud.com (mimo)

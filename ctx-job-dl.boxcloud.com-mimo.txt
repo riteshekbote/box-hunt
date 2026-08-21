@@ -38,14 +38,6 @@
   "last_advance": "2026-08-20 17:16:41 UTC"
 }=== MY LAST LEADS (tail) ===
 testability: PASSIVE
-[HYP] /embed route as distinct content endpoint with different auth/CORS policy
-class: OTHER
-asset: cloud.app.box.com/embed
-confidence: 30
-reasoning: `/embed` returned 200 (not 206) in the 2026-08-18 09:24 batch, suggesting a separate handler (SPA route or embed bootstrap) rather than the pinned Range object layer. This route may carry different security headers (CORS, CSP, X-Frame-Options) than the static asset layer. No headers have been captured for this route.
-verify_steps: (1) GET cloud.app.box.com/embed with `Origin: https://evil.example.com`, report full header set. (2) GET cloud.app.box.com/embed without Origin for baseline. (3) GET cloud.app.box.com/embed/ with trailing slash, report status (200 vs 404).
-impact: If the embed endpoint carries permissive CORS or exposes tokens, it is the primary cross-origin attack surface — distinct from the static 206 asset layer.
-testability: PASSIVE
 [PARKED] S3 bucket-listing surface: /?list-type=2 returns 200, but body content never captured; all S3 query-param variants also 200 — inconclusive without body inspection. (PASSIVE, evidence gap)
 [PARKED] Content/header fingerprinting: body of robots.txt/sitemap.xml never captured; status-only executor blocks this line. (PASSIVE, evidence gap)
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com/ favicon.ico OPTIONS: 405 returned, no CORS layer on 206 assets. Closed.
@@ -97,6 +89,14 @@ testability: PASSIVE
 ## 2026-08-21 17:47:13 UTC dl.boxcloud.com (ling3)
 ## 2026-08-21 18:14:26 UTC dl.boxcloud.com (ling3)
 ## 2026-08-21 18:45:33 UTC dl.boxcloud.com (mimo)
+## 2026-08-21 18:56:14 UTC dl.boxcloud.com (mimo)
+class: OTHER
+asset: cloud.app.box.com/embed
+confidence: 50
+reasoning: Previous cycle confirmed `/embed` returns 200 (distinct from 206 asset layer), suggesting a dedicated handler. This route has not been probed for CORS/Origin reflection. If the embed handler allows cross-origin framing or reflects Origin, it could be a vector for token leakage or clickjacking.
+verify_steps: (1) GET cloud.app.box.com/embed with `Origin: https://evil.example.com` — capture all headers. (2) GET cloud.app.box.com/embed without Origin for baseline. (3) OPTIONS cloud.app.box.com/embed with preflight headers.
+impact: If embed endpoint reflects CORS or allows framing without proper X-Frame-Options, could enable cross-origin token theft or UI redress. Severity: Medium.
+testability: PASSIVE
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)

@@ -1,20 +1,91 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-Based on the evidence, I'll analyze the results and provide next steps:
+[0m$ [0mcurl -s -D- -o /dev/null "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" && echo "---ROOT-ORIGIN---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---OPTIONS-ORIGIN---" && sleep 2 && curl -s -D- -o /dev/null "https://cloud.app.box.com/embed" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---EMBED-ORIGIN---" && sleep 2 && curl -s -D- -o /dev/null "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0 +(research)" && echo "---ROOT-BASELINE---"
+HTTP/2 302 
+date: Fri, 21 Aug 2026 19:20:05 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=tm9874fta78739hm3vjuoc6hkn; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=tm9874fta78739hm3vjuoc6hkn; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88a4e5f00995.59124129; expires=Sat, 21 Aug 2027 19:20:05 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:20:05 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=48; expires=Sat, 21 Aug 2027 19:20:05 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 50
+location: https://cloud.app.box.com/login
+box-request-id: 05f0b8f645fb5b07d62b9df68cbccd7e2
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-**[LEARN]** ACCEPTED BUSLOGIC @ cloud.app.box.com/robust path routing: Random nonce paths consistently return 404, confirming whitelist-routed handler (not object-store default). Root `/` returns 206, `/embed` returned 200 in earlier batch — these are pinned routes.
+---ROOT-ORIGIN---
+HTTP/2 204 
+date: Fri, 21 Aug 2026 19:20:08 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 2
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+access-control-allow-headers: Authorization
+box-request-id: 0e4be7fca9a5420695867112be44c356d
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-**[LEARN]** ACCEPTED BUSLOGIC @ dl.boxcloud.com/: Consistent 404 for all paths (root, robots.txt, favicon.ico, nonces) — confirms this is a CDN edge with no exposed surface. Every path is rejected.
+---OPTIONS-ORIGIN---
+HTTP/2 302 
+date: Fri, 21 Aug 2026 19:20:10 GMT
+content-type: text/html; charset=utf-8
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 65
+strict-transport-security: max-age=31536000
+pragma: no-cache
+set-cookie: z=1fc525gesfme4l8r5ap6jci8ma; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=1fc525gesfme4l8r5ap6jci8ma; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88a4ea2b4634.17034867; expires=Sat, 21 Aug 2027 19:20:10 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:20:10 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=99; expires=Sat, 21 Aug 2027 19:20:10 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+x-robots-tag: noindex, nofollow
+location: /v/embed
+box-request-id: 01882e259dfc7f1d3cb0050d4848f71c3
+cache-control: no-store, no-cache, must-revalidate
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-**[HYP]** cloud.app.box.com embed endpoint security headers
-class: OTHER
-asset: cloud.app.box.com/embed
-confidence: 50
-reasoning: Previous cycle confirmed `/embed` returns 200 (distinct from 206 asset layer), suggesting a dedicated handler. This route has not been probed for CORS/Origin reflection. If the embed handler allows cross-origin framing or reflects Origin, it could be a vector for token leakage or clickjacking.
-evidence_needed: Full response headers from GET /embed with and without Origin header; OPTIONS preflight response.
-verify_steps: (1) GET cloud.app.box.com/embed with `Origin: https://evil.example.com` — capture all headers. (2) GET cloud.app.box.com/embed without Origin for baseline. (3) OPTIONS cloud.app.box.com/embed with preflight headers.
-impact: If embed endpoint reflects CORS or allows framing without proper X-Frame-Options, could enable cross-origin token theft or UI redress. Severity: Medium.
-testability: PASSIVE
+---EMBED-ORIGIN---
+HTTP/2 302 
+date: Fri, 21 Aug 2026 19:20:12 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=cdo7n5g1b2pintstb5k21qrptp; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=cdo7n5g1b2pintstb5k21qrptp; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88a4ec4d26b2.81716490; expires=Sat, 21 Aug 2027 19:20:12 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 19:20:12 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=27; expires=Sat, 21 Aug 2027 19:20:12 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 35
+location: https://cloud.app.box.com/login
+box-request-id: 0fd7e3f8318e82ddc92cf97c924a34957
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-**[NEXT]** PROBE: curl -s -D- "https://cloud.app.box.com/embed" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-embed-origin && echo "---EMBED-ORIGIN-HEADERS---" && sleep 2 && curl -s -D- "https://cloud.app.box.com/embed" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-embed-baseline && echo "---EMBED-BASELINE-HEADERS---" && sleep 2 && curl -s -D- -X OPTIONS "https://cloud.app.box.com/embed" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 +(research)" && echo "---EMBED-OPTIONS---"
+---ROOT-BASELINE---
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcurl -s -D- "https://cloud.app.box.com/robots.txt" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-robots-body && echo "---ROBOTS-HEADERS---" && cat /tmp/cloud-robots-body | head -c 500 && echo "---ROBOTS-BODY---" && sleep 2 && curl -s -D- "https://cloud.app.box.com/v/embed" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-vembed-body && echo "---VEMBED-HEADERS---" && cat /tmp/cloud-vembed-body | head -c 500 && echo "---VEMBED-BODY---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://cloud.app.box.com/v/embed" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---VEMBED-OPTIONS---" failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+Excellent findings. Let me now run the robots.txt/sitemap probe and test the /v/embed redirect.
