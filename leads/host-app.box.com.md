@@ -845,3 +845,14 @@ testability: PASSIVE
 [PARKED] services.app.box.com: Redirects to app.box.com/. No unique surface.
 [PARKED] app.box.com app paths (shared, recent, trash, etc.): Return 405 without CORS headers. No data leakage.
 [NEXT] GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js with User-Agent: box-research/1.0 — check if pendoAnalyticsProxyContentHost/pendoAnalyticsProxyDataHost are in public bundle
+## 2026-08-21 20:44:26 UTC app.box.com (mimo)
+[LEARN] REJECTED pendo proxy hosts in public JS bundle: grep confirms `pendoAnalyticsProxyContentHost` and `pendoAnalyticsProxyDataHost` do NOT appear in `app.50c208b371.js`. Only `pendoAnalyticsAPIKey` and `pendoId` are present. The proxy hostnames are exclusively in the CORS-reflected `Box.config` JSON.
+[CONFIRMED] OAuth2 authorize SPA shell leaks internal deployment metadata cross-origin
+class: MISCONFIG
+asset: cloud.account.box.com/api/oauth2/authorize
+confidence: 65
+reasoning: The origin-reflected response embeds Box.config containing: runtimeMetadata.availabilityZone ("us-west4-prod"), runtimeMetadata.deploymentType ("k8s"), runtimeMetadata.environment ("prod"), pendoAnalyticsProxyContentHost ("https://pendo-prod.box.com"), pendoAnalyticsProxyDataHost ("https://pendo-data-prod.box.com"), complete feature flag map (boxAIExtractMetadata, boxAiHubs, boxAIStudio, etc.), billing.creditCardCreationURL (Zuora endpoint), requestId, preview.version ("3.79.0"), and full webpack remotes manifest. None of these strings appear in the public JS bundle. CORS misconfiguration (origin reflection) makes this structured JSON readable cross-origin from any evil.com page. No Access-Control-Allow-Credentials present.
+verify_steps: 1) GET from evil.com origin to cloud.account.box.com/api/oauth2/authorize 2) Extract Box.config JSON 3) Compare runtimeMetadata keys against public JS bundle (confirmed absent)
+impact: LOW-MEDIUM. Internal deployment metadata (k8s zone, feature flags, proxy hostnames, billing endpoint URLs) is exposed cross-origin. While these are not user credentials, they reveal infrastructure details useful for targeted attacks (e.g., knowing the deployment zone and k8s type aids in crafting environment-specific exploits). The Zuora billing endpoint URL is a third-party service detail. Without ACA, cookie-bearing requests are blocked.
+testability: PASSIVE
+[NEXT] HEAD https://cloud.account.box.com/api/oauth2/authorize with headers: Origin: https://evil.com, Authorization: Bearer test - check if authenticated response leaks user-specific prefetchedData cross-origin (this tests the ACA-absence claim with a real token)
