@@ -903,3 +903,27 @@ testability: PASSIVE
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com: CORS on SPA catch-all root — root with Origin returns 302 to /login, not 206. The SPA catch-all for arbitrary paths returns 206 regardless of Origin header presence.
 [LEARN] ACCEPTED MISCONFIG @ pendo-prod.box.com: GCS bucket `pendo-static-6297040871555072` with wildcard CORS `*` and `access-control-expose-headers: *`. Bucket name leaked in XML error response. All paths return 403 (listing disabled).
 [LEARN] ACCEPTED MISCONFIG @ account.box.com: `/_assets/` GCS bucket access with wildcard CORS `*`. Same bucket `box-prod-static-assets-assets-us` as cloud.app.box.com. `robots.txt` exposes internal path map. `/login` and `/api/oauth2/authorize` reflect attacker Origin WITHOUT credentials.
+## 2026-08-21 20:18:03 UTC upload.box.com (mimo)
+[PARKED] cloud.app.box.com SPA route mapper enumeration via path-based probing: /shared/, /v/, /folders/ all return HTTP 404 (not 206 SPA catch-all). These are server-side route prefixes that get rejected before SPA layer — no route mapper values leaked. Confirmed by probes at 19:48:40 and 19:57:41.
+[PARKED] cloud.app.box.com SPA server-side API lookup information disclosure: /shared/test123 and /folders/0 return 404 without triggering visible API calls. The /app-api/ lookup observed in prior cycles for /s/ prefix does not trigger for these other prefixes — server-side routing is prefix-specific.
+[NEW] cloud.app.box.com: Known-route prefix whitelist — /shared/, /v/, /folders/ are handled server-side (404), while arbitrary paths fall through to SPA catch-all (206). This reveals a two-tier routing architecture.
+[HYP] cloud.app.box.com CORS preflight reflection on SPA catch-all
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: The SPA catch-all returns 206 for arbitrary paths regardless of Origin header (observed in prior cycles). The root path has been observed returning both 200 and 206, sometimes with a 302 to /login when Origin is present. CORS preflight (OPTIONS with Access-Control-Request-Method) on the SPA catch-all layer has never been tested. If the 206 layer reflects attacker Origin in Access-Control-Allow-Origin, any page can read the SPA shell content (Box.config, prefetchedData) cross-origin.
+verify_steps: [NEXT] PROBE (cloud.app.box.com — CORS preflight on root): `curl -s -D- -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0"` — capture preflight response headers. 1 req. Then: `curl -s -D- "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0"` — capture GET with Origin. 1 req.
+impact: If CORS reflects attacker Origin with credentials → HIGH (cross-origin read of SPA shell with embedded config tokens). If reflects without credentials → MEDIUM (content leakage). If blocked → LOW/parked.
+testability: PASSIVE
+[HYP] cloud.app.box.com /app-api/ internal endpoint direct access
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/
+confidence: 40
+reasoning: The SPA performs server-side lookups to /app-api/enduserapp/* before serving the shell (observed: /app-api/enduserapp/shared-item, /app-api/enduserapp/current-user). These internal API endpoints are called from the SPA's server-side render layer. If /app-api/ is directly accessible without the SPA wrapper, it could expose internal API responses.
+verify_steps: [NEXT] PROBE: `curl -s -D- "https://cloud.app.box.com/app-api/" -H "User-Agent: box-research/1.0"` — test internal API root. 1 req. Then: `curl -s -D- "https://cloud.app.box.com/app-api/enduserapp/" -H "User-Agent: box-research/1.0"` — test known subpath. 1 req.
+impact: If internal API accessible without auth → HIGH (data exposure). If returns structured error → MEDIUM (confirms internal routing).
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: Known-route prefix whitelist confirmed — /shared/, /v/, /folders/ return HTTP 404 server-side (not SPA catch-all 206). The SPA catch-all only applies to truly arbitrary paths. Two-tier routing architecture: server-side prefix filter → SPA catch-all fallback.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com: SPA route mapper enumeration — /shared/test123, /v/test123, /folders/0 all return 404 without any SPA content or route mapper values. No information leakage from these probes.
+[NEXT] PROBE (cloud.app.box.com — CORS preflight on SPA root): `curl -s -D- -X OPTIONS "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" && echo "---SLEEP---" && sleep 2 && curl -s -D- "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0"` — test CORS preflight + GET with attacker Origin on root. 2 reqs.
+[NEXT] PROBE (cloud.app.box.com — /app-api/ internal endpoint): `curl -s -D- "https://cloud.app.box.com/app-api/" -H "User-Agent: box-research/1.0" && echo "---SLEEP---" && sleep 2 && curl -s -D- "https://cloud.app.box.com/app-api/enduserapp/" -H "User-Agent: box-research/1.0"` — test internal API root and subpath. 2 reqs.

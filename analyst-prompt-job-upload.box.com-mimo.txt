@@ -35,46 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-18 11:05:24 UTC"
+  "last_advance": "2026-08-21 19:57:07 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-20 20:51:43 UTC upload.box.com (ling3)
-## 2026-08-20 21:14:10 UTC upload.box.com (bigpickle)
-## 2026-08-20 21:43:30 UTC upload.box.com (ling3)
-## 2026-08-20 22:01:28 UTC upload.box.com (ling3)
-## 2026-08-20 22:34:31 UTC upload.box.com (ling3)
-## 2026-08-20 22:58:15 UTC upload.box.com (ling3)
-## 2026-08-20 23:23:30 UTC upload.box.com (ling3)
-## 2026-08-20 23:45:32 UTC upload.box.com (ling3)
-## 2026-08-21 00:00:22 UTC upload.box.com (ling3)
-## 2026-08-21 01:34:43 UTC upload.box.com (ling3)
-## 2026-08-21 02:48:07 UTC upload.box.com (ling3)
-## 2026-08-21 03:36:59 UTC upload.box.com (ling3)
-## 2026-08-21 04:20:12 UTC upload.box.com (ling3)
-## 2026-08-21 04:58:13 UTC upload.box.com (ling3)
-## 2026-08-21 05:30:18 UTC upload.box.com (ling3)
-## 2026-08-21 05:59:17 UTC upload.box.com (ling3)
-## 2026-08-21 06:45:33 UTC upload.box.com (ling3)
-## 2026-08-21 07:29:43 UTC upload.box.com (ling3)
-## 2026-08-21 08:05:56 UTC upload.box.com (ling3)
-## 2026-08-21 08:54:35 UTC upload.box.com (ling3)
-## 2026-08-21 09:22:06 UTC upload.box.com (ling3)
-## 2026-08-21 09:55:47 UTC upload.box.com (ling3)
-## 2026-08-21 10:20:57 UTC upload.box.com (ling3)
-## 2026-08-21 10:52:33 UTC upload.box.com (ling3)
-## 2026-08-21 11:13:45 UTC upload.box.com (ling3)
-## 2026-08-21 11:41:01 UTC upload.box.com (ling3)
-## 2026-08-21 11:59:40 UTC upload.box.com (ling3)
-## 2026-08-21 12:50:47 UTC upload.box.com (ling3)
-## 2026-08-21 13:34:30 UTC upload.box.com (ling3)
-## 2026-08-21 14:09:16 UTC upload.box.com (ling3)
-## 2026-08-21 14:51:26 UTC upload.box.com (ling3)
-## 2026-08-21 15:18:11 UTC upload.box.com (ling3)
-## 2026-08-21 15:50:54 UTC upload.box.com (ling3)
-## 2026-08-21 16:15:24 UTC upload.box.com (ling3)
-## 2026-08-21 16:52:00 UTC upload.box.com (ling3)
-## 2026-08-21 17:21:49 UTC upload.box.com (ling3)
-## 2026-08-21 17:47:14 UTC upload.box.com (ling3)
-## 2026-08-21 18:13:54 UTC upload.box.com (ling3)
 ## 2026-08-21 18:45:15 UTC upload.box.com (mimo)
 ## 2026-08-21 18:56:08 UTC upload.box.com (mimo)
 ## 2026-08-21 19:20:07 UTC upload.box.com (mimo)
@@ -97,6 +59,44 @@ verify_steps: [NEXT] PROBE (dl.boxcloud.com — 404 header inspection): `curl -s
 impact: If debug headers leak token structure → MEDIUM (aids token forgery). If nothing → LOW/parked.
 testability: PASSIVE
 ## 2026-08-21 19:42:28 UTC upload.box.com (mimo)
+## 2026-08-21 19:57:07 UTC upload.box.com (mimo)
+[NEW] cloud.app.box.com: SPA catch-all confirmed active — any arbitrary path returns HTTP 206 with embedded `Box.config` and `Box.prefetchedData`. Route mapper (`currentRm`) is dynamically derived from URL path.
+[HYP] cloud.app.box.com SPA route mapper enumeration via path-based probing
+class: MISCONFIG
+asset: cloud.app.box.com/<path>
+confidence: 55
+reasoning: Different URL paths resolve to different `currentRm` values: `/s/test123` → `enduserapp_shared_item_page`, arbitrary paths → `shared_page_vanity_name`. The `prefetchedData` keys change based on path (e.g., `/app-api/enduserapp/shared-item` vs `/app-api/enduserapp/current-user`). This reveals a server-side routing table that could be enumerated by testing path patterns like `/shared/`, `/v/`, `/folders/`.
+verify_steps: `curl -s "https://cloud.app.box.com/shared/test123" -H "User-Agent: box-research/1.0"` and `curl -s "https://cloud.app.box.com/v/test123" -H "User-Agent: box-research/1.0"` — observe different currentRm and prefetchedData keys.
+impact: Route mapper enumeration reveals internal URL structure and API endpoints. Severity: Low (informational).
+testability: PASSIVE
+[HYP] cloud.app.box.com SPA server-side API lookup information disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/<path>
+confidence: 50
+reasoning: The SPA performs server-side API lookups before serving content. For `/s/test123`, it called `/app-api/enduserapp/shared-item` which returned `{status:404, errorCode:"sharedNotFound"}`. This confirms the server resolves routes and makes API calls client-side. If other path patterns trigger different API lookups, more internal mappings could be discovered.
+verify_steps: `curl -s "https://cloud.app.box.com/folders/0" -H "User-Agent: box-research/1.0"` — test if `/folders/` path triggers folder route and reveals different API lookups.
+impact: Server-side API endpoint enumeration. Severity: Low (informational).
+testability: PASSIVE
+[HYP] pendo-prod.box.com GCS bucket wildcard CORS with object enumeration potential
+class: MISCONFIG
+asset: pendo-prod.box.com
+confidence: 50
+reasoning: GCS bucket `pendo-static-6297040871555072` serves from pendo-prod.box.com with `access-control-allow-origin: *` and `access-control-expose-headers: *`. All paths return 403 (AccessDenied) because listing is disabled. However, the CORS wildcard means any website can read specific objects if their names are known. The bucket contains Pendo analytics static assets.
+verify_steps: `curl -s "https://pendo-prod.box.com/guide/<known-object>" -H "Origin: https://evil.example.com"` — test if specific objects can be read.
+impact: If Pendo guide content or analytics config contains sensitive data (e.g., guide targeting rules, visitor segments), it could be read cross-origin. Severity: Low (defense-in-depth).
+testability: PASSIVE
+[PARKED] cloud.app.box.com `/_assets/` sibling-object enumeration: all tested paths (package-lock.json, conf/, assetsGenerated.json, .env, config.json, webpack.config.js, .git/config) return 404 from GCS. No sensitive sibling objects found.
+[PARKED] account.box.com `/saml` SSO endpoint: HEAD returns 405, exists but not GET/HEAD-accessible.
+[PARKED] account.box.com `_assets/` sibling-object enumeration: all tested paths return 404 from GCS.
+[PARKED] cloud.app.box.com CORS on SPA catch-all: root with Origin returns 302 to /login, not 206. The SPA catch-all for arbitrary paths returns 206 regardless of Origin header presence.
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/shared/test123" -H "User-Agent: box-research/1.0"` — test if /shared/ path triggers different route mapper
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/v/test123" -H "User-Agent: box-research/1.0"` — test if /v/ path triggers different route mapper
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/folders/0" -H "User-Agent: box-research/1.0"` — test if /folders/ path triggers folder route
+[NEXT] PROBE: `curl -s -I "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET"` — test CORS preflight on SPA catch-all root
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: SPA catch-all confirmed — any arbitrary path returns HTTP 206 with embedded SPA shell containing `Box.config` and `Box.prefetchedData`. Route mapper dynamically derived from URL path. Server-side API lookups performed before serving content.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com: CORS on SPA catch-all root — root with Origin returns 302 to /login, not 206. The SPA catch-all for arbitrary paths returns 206 regardless of Origin header presence.
+[LEARN] ACCEPTED MISCONFIG @ pendo-prod.box.com: GCS bucket `pendo-static-6297040871555072` with wildcard CORS `*` and `access-control-expose-headers: *`. Bucket name leaked in XML error response. All paths return 403 (listing disabled).
+[LEARN] ACCEPTED MISCONFIG @ account.box.com: `/_assets/` GCS bucket access with wildcard CORS `*`. Same bucket `box-prod-static-assets-assets-us` as cloud.app.box.com. `robots.txt` exposes internal path map. `/login` and `/api/oauth2/authorize` reflect attacker Origin WITHOUT credentials.
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
