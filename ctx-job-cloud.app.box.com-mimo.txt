@@ -35,44 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 22:07:00 UTC"
+  "last_advance": "2026-08-21 22:59:12 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.account.box.com/login
-confidence: 60
-reasoning: HEAD request returns 405 with `access-control-allow-origin: https://evil.example.com`. Login form contains `request_token` hidden field.
-verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login"` — confirms reflected Origin.
-impact: Origin reflection on login page. Same pattern as account.box.com. Severity: Low.
-testability: PASSIVE
-[LEARN] REJECTED cloud.app.box.com SPA catch-all for `/shared/`, `/folders/`, `/v/` paths: `/shared/test123` returns 404, `/folders/0` returns 404, `/v/test123` returns 200 with SPA shell (currentRm: `enduserapp_shared_item_page`). Only `/s/<token>` paths consistently return 206 SPA shell with route resolution. The SPA catch-all is restricted to `/s/` prefix paths.
-[LEARN] REJECTED cloud.app.box.com internal API paths: `/app-api/enduserapp/current-user` and `/app-api/enduserapp/shared-item` return 404 when accessed directly. These are server-side prefetched during SPA shell generation and not directly routable from outside.
-[LEARN] notes.services.box.com redirects to `https://services.app.box.com/` (302). No CORS headers. Out of direct probe scope.
-[PARKED] dl.boxcloud.com download proxy: All tested paths return 404 with no CORS headers. The download CDN requires valid signed URLs.
-[PARKED] app.box.com/api/2.0/users/me: Returns 401 `www-authenticate: Bearer` — confirms auth required, no CORS headers visible on 401.
-[NEXT] PROBE: `curl -s -H "Origin: https://evil.example.com" "https://account.box.com/login/reset?form_variant=none&redirect_url=" 2>&1 | grep -c 'access-control-allow-origin'` — verify consistency of CORS reflection across multiple requests
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/start" 2>&1` — test /start endpoint for CORS reflection
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/enterprise/sso" 2>&1` — test SSO endpoint
-[NEXT] RECON: `curl -s -H "User-Agent: box-research/1.0" "https://m.box.com/" 2>&1 | head -20` — check mobile web app content
-## 2026-08-21 21:27:26 UTC cloud.app.box.com (mimo)
-[LEARN] ACCEPTED MISCONFIG @ m.box.com: All requests redirect 301 to app.box.com — no separate mobile rendering logic exposed, mobile web is a pure redirect alias. [PARKED] m.box.com: Host is a 301 redirect to app.box.com; no unique surface.
-[LEARN] ACCEPTED MISCONFIG @ upload.box.com: No CORS headers on any endpoint, returns 404 for root and OPTIONS. Not an interesting CORS surface.
-[LEARN] ACCEPTED MISCONFIG @ notes.services.box.com: 302 redirect to services.app.box.com. No CORS headers, not directly probeable.
-[NEW] account.box.com/start: 405 response with NO CORS reflection — different config from /login and /login/reset.
-[CONFIRMED] account.box.com login/reset CORS reflects arbitrary Origin (re-verified)
-class: MISCONFIG
-asset: account.box.com/login/reset
-confidence: 70
-reasoning: The Origin reflection is consistent on the reset endpoint. However, the /start endpoint does NOT reflect CORS, and /enterprise/sso returns 404. This means the CORS reflection is limited to specific login-form endpoints (/login, /login/reset), not a blanket policy on the auth plane. The missing Access-Control-Allow-Credentials header prevents cookie-based exploitation.
-verify_steps: Confirmed via prior probes and consistency check this cycle.
-impact: Attacker can read CSRF tokens (request_token) from password reset form cross-origin. Cannot submit form on behalf of user without credentials. Severity: Low (informational/defense-in-depth).
-testability: PASSIVE
-[NEW] app.box.com/api/2.0/users/me: 401 with www-authenticate: Bearer — confirms auth required, no CORS headers visible on 401 response.
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS on unauthenticated request
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS preflight
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1` — test app.box.com API path CORS
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1` — test SPA shell route for CORS headers
-## 2026-08-21 21:47:11 UTC cloud.app.box.com (mimo)
-[LEARN] REJECTED account.box.com/_assets/ sibling-object enumeration: all tested paths return 404 from GCS — not accessible.
-[LEARN] REJECTED cloud.app.box.com SPA catch-all for /shared/, /folders/, /v/ paths: /shared/test123 returns 404, /folders/0 returns 404, /v/test123 returns 200 with SPA shell. Only /s/<token> paths consistently return 206 SPA shell with route resolution.
 [LEARN] REJECTED cloud.app.box.com internal API paths: /app-api/enduserapp/current-user and /app-api/enduserapp/shared-item return 404 when accessed directly.
 [LEARN] REJECTED dl.boxcloud.com download proxy: All tested paths return 404 with no CORS headers. The download CDN requires valid signed URLs.
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS on unauthenticated request
@@ -97,15 +61,43 @@ verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.c
 impact: Wildcard CORS on internal API paths. Without valid Bearer tokens, no data can be accessed. Severity: Low (misconfiguration, not directly exploitable).
 testability: PASSIVE
 ## 2026-08-21 22:34:11 UTC cloud.app.box.com (mimo)
+## 2026-08-21 22:59:00 UTC cloud.app.box.com (mimo)
+[LEARN] REJECTED api.box.com CORS reflection: 401 response with no CORS headers on unauthenticated requests. Even with Access-Control-Request-Method preflight header, no CORS headers returned. api.box.com is secure against Origin reflection.
+[LEARN] REJECTED app.box.com API path CORS: /api/2.0/folders/0 returns 401 with no CORS headers. Same as api.box.com.
+[LEARN] REJECTED cloud.app.box.com /s/test123 SPA shell: Returns 404 (not 206). The SPA shell requires valid token format or specific path patterns.
+[NEW] api.box.com OPTIONS preflight returns wildcard CORS (access-control-allow-origin: *) with Authorization header allowed — significant misconfiguration but actual GET responses have no CORS headers, limiting exploitability.
+[CONFIRMED] app.box.com/api/2.0/internal/* has wildcard CORS on actual responses (not just preflight) — this is more permissive than api.box.com.
+[CONFIRMED] api.box.com OAuth token endpoint has wildcard CORS: `access-control-allow-origin: *` on400 responses. The endpoint processes requests and returns structured JSON errors (`invalid_client`, `invalid_request`). While not directly exploitable without valid client credentials, this means if an attacker could obtain an authorization_code through XSS or open redirect on a public OAuth app, they could exchange it for a Bearer token cross-origin.
+class: MISCONFIG
+asset: api.box.com/oauth2/token
+confidence: 72
+reasoning: OPTIONS preflight allows all methods + Authorization header with wildcard CORS. GET/POST to /oauth2/token returns 400 with `access-control-allow-origin: *` and structured JSON errors. The endpoint actively processes requests (not a 404/403). Same behavior on app.box.com/api/oauth2/token. Without valid client credentials, the token exchange fails with `invalid_client`. This is a defense-in-depth concern — wildcard CORS should not be on an OAuth token endpoint.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://api.box.com/oauth2/token"` — confirms preflight allows Authorization + all methods. `curl -s -H "Origin: https://evil.example.com" "https://api.box.com/oauth2/token"` — confirms 400 with wildcard CORS and JSON error body.
+impact: Wildcard CORS on OAuth token endpoint allows cross-origin token exchange if attacker obtains valid authorization_code + client credentials. Severity: Low-Medium (requires chaining with auth-code theft).
+testability: PASSIVE
+[CONFIRMED] app.box.com/api/2.0/internal/* has wildcard CORS on actual 401 responses: All tested internal paths (`/shared_items`, `/user`, `/enterprise`, `/folders/0`, `/collaborations`, `/metadata`, `/search`, `/events`, `/users/me`) return 401 with `access-control-allow-origin: *` and `vary: Origin`. Non-internal paths (`/api/2.0/users/me`, `/api/2.0/folders/0`) return 401 WITHOUT CORS headers. api.box.com returns 401 without CORS headers on actual responses (only OPTIONS has wildcard).
+class: MISCONFIG
+asset: app.box.com/api/2.0/internal/*
+confidence: 80
+reasoning: The internal API gateway applies wildcard CORS to all `/internal/` prefixed routes on actual responses, not just preflight. The `vary: Origin` header suggests the server intends to vary by origin but defaults to wildcard instead. All endpoints require Bearer token auth (401), preventing unauthenticated access. However, if an attacker chains with XSS to steal a Bearer token, wildcard CORS would allow cross-origin reading of internal API responses.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items"` — confirms wildcard CORS on 401. `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/users/me"` — confirms NO CORS on non-internal 401.
+impact: Wildcard CORS on internal API paths. If Bearer token is compromised via XSS or other chain, attacker can read internal API responses cross-origin. Severity: Low (defense-in-depth, requires chaining).
+testability: PASSIVE
+[PARKED] dl.boxcloud.com download CDN: All paths return 404 with no CORS headers. Server is nginx, x-envoy-upstream-service-time: 0. OPTIONS preflight also returns 404. The CDN requires valid signed URLs for content access. No attack surface without valid tokens.
+[PARKED] cloud.app.box.com app-api/internal routes: `/app-api/enduserapp/current-user` returns 404. Not directly routable from outside.
+[PARKED] account.box.com/enterprise/sso: Returns 404. No surface.
+[PARKED] cloud.app.box.com API proxy: `/api/2.0/users/me` returns empty body (likely 302 redirect to login internally). No CORS headers.
+[LEARN] ACCEPTED MISCONFIG @ api.box.com/oauth2/token: Wildcard CORS on OAuth token endpoint. OPTIONS allows Authorization header + all methods. GET returns structured JSON error. Severity: Low-Medium.
+[LEARN] ACCEPTED MISCONFIG @ app.box.com/api/2.0/internal/*: Wildcard CORS on actual 401 responses (not just preflight). Non-internal paths have no CORS on 401. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com: No CORS headers, all paths return 404. CDN requires signed URLs. No surface.
+[LEARN] REJECTED dl.boxcloud.com API surface: All tested paths return 404 with no CORS headers. The download CDN has no accessible API endpoints without valid signed URLs.
+[LEARN] REJECTED cloud.app.box.com app-api direct access: Internal API routes not accessible from outside.
+[LEARN] REJECTED account.box.com/enterprise/sso: 404, no surface.
+[LEARN] REJECTED account.box.com/start CORS: 405, no CORS reflection (consistent with prior finding).
+[NEXT] RECON: `curl -s -H "User-Agent: box-research/1.0" "https://developer.box.com/reference/" 2>&1 | head -20` — check developer docs for any information about internal API endpoints or OAuth flow
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/internal/shared_items" -H "Authorization: Bearer test" 2>&1` — test if CORS headers change with invalid Bearer token
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items" -H "Authorization: Bearer test" 2>&1` — test app.box.com internal with invalid token
 === RANKED HYPOTHESES (tail) ===
-## RANKED 2026-08-21 20:56:08 UTC
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
 
@@ -138,25 +130,17 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 22:56:13 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 21:35:17 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-21 22:36:36 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 22:56:13 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404

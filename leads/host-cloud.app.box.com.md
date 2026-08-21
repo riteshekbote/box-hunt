@@ -1007,3 +1007,25 @@ testability: PASSIVE
 [NEXT] RECON: `curl -s -H "User-Agent: box-research/1.0" "https://developer.box.com/reference/" 2>&1 | head -20` — check developer docs for any information about internal API endpoints or OAuth flow
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/internal/shared_items" -H "Authorization: Bearer test" 2>&1` — test if CORS headers change with invalid Bearer token
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items" -H "Authorization: Bearer test" 2>&1` — test app.box.com internal with invalid token
+## 2026-08-21 23:13:31 UTC cloud.app.box.com (mimo)
+[NEW] app.box.com/api/oauth2/authorize: Origin reflection on OAuth authorize endpoint — reflects ANY Origin including `null` on preflight and actual response; preloaded JSON body contains public API keys (splitIOAPIKey, pendoAnalyticsAPIKey, amplitudeAPIKey)
+[CONFIRMED] app.box.com/api/oauth2/authorize reflects ANY Origin in CORS headers
+class: MISCONFIG
+asset: app.box.com/api/oauth2/authorize
+confidence: 78
+reasoning: OPTIONS preflight returns `access-control-allow-origin: <reflected Origin>` with `access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match` and `access-control-allow-methods: GET`. Actual GET response also reflects Origin. Includes `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Critically, Origin `null` is also reflected (sandboxed iframe). However, `access-control-allow-credentials` is NOT present, so cookies are not sent cross-origin. Response body is the logged-out SPA shell with preloaded config containing public API keys.
+verify_steps: `curl -sI -H "Origin: null" "https://app.box.com/api/oauth2/authorize"` — confirms `access-control-allow-origin: null`. `curl -sI -H "Origin: https://attacker.com" "https://app.box.com/api/oauth2/authorize"` — confirms reflected Origin with preflight allowing Authorization header.
+impact: Attacker can read the anonymous/logged-out SPA configuration cross-origin. Public API keys (Split.io, Pendo, Amplitude) are exposed but are client-side public keys already visible in page source. No CSRF tokens or authenticated data leaked. Severity: Low (informational, defense-in-depth).
+testability: PASSIVE
+[CONFIRMED] api.box.com/oauth2/token wildcard CORS + app.box.com/api/oauth2/authorize Origin reflection — combined OAuth attack surface
+class: OATH
+asset: api.box.com/oauth2/token, app.box.com/api/oauth2/authorize
+confidence: 72
+reasoning: The OAuth token endpoint at api.box.com returns `access-control-allow-origin: *` with structured JSON errors. The authorize endpoint at app.box.com reflects ANY Origin including null. OPTIONS preflight on token endpoint allows Authorization header with all methods. If an attacker chains with XSS on Box to steal an authorization code from the OAuth redirect, the wildcard CORS on the token endpoint would allow cross-origin code exchange. However, confidential clients require client_secret (server-side) and public clients require PKCE code_verifier, limiting practical exploitation.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://api.box.com/oauth2/token"` — confirms preflight allows Authorization + all methods. `curl -s -H "Origin: https://evil.example.com" "https://api.box.com/oauth2/token"` — confirms 400 with wildcard CORS and JSON error.
+impact: Wildcard CORS on OAuth token endpoint combined with Origin reflection on authorize endpoint. Cross-origin token exchange possible if attacker obtains authorization_code + client credentials (or bypasses PKCE). Severity: Low-Medium (requires chaining with auth-code theft via XSS or open redirect).
+testability: PASSIVE
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise" 2>&1` — test another internal API path for CORS consistency
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/collaborations" 2>&1` — confirm internal collaborations wildcard CORS
+[NEXT] PROBE: `curl -s "https://app.box.com/api/oauth2/authorize?response_type=code&client_id=known_box_client_id&redirect_uri=https://app.box.com/callback" 2>&1 | head -50` — test OAuth authorize with valid-looking params to see redirect behavior
+[NEXT] RECON: `curl -s "https://app.box.com/" 2>&1 | grep -o 'client_id[^"]*"[^"]*"' | head -10` — look for embedded client_id in SPA shell

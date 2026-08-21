@@ -197,3 +197,7 @@ https://cloud.app.box.com/ -> 206
 https://cloud.app.box.com/login -> 206
 https://cloud.app.box.com/api/2.0/users/me -> HTTP 401
 https://cloud.app.box.com/app-api/enduserapp/current-user -> 200
+
+## 2026-08-21 23:13:35 UTC cloud.app.box.com
+https://cloud.app.box.com/s/test123 -> HTTP 404
+https://cloud.app.box.com/preview -> HTTP 404
