@@ -640,3 +640,88 @@ impact: If attacker obtains a valid Box Bearer token (via XSS on any Box subdoma
 testability: AUTH_HELPED
 [PARKED] Signed-URL token leakage via Referer on dl.boxcloud.com: Requires authenticated download session to test whether Box leaks signed URLs via Referer headers to embedded third-party resources. Cannot test unauthenticated. (AUTH_HELPED)
 [NEXT] PROBE: dl.boxcloud.com surface exhausted for unauthenticated probes. Pivot: test whether dl.boxcloud.com subdomains or alternate ports exist — `curl -s -D- -o /dev/null "https://dl.boxcloud.com:8443/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)"` and `curl -s -D- -o /dev/null "https://d2dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)"` — checks for alternate CDN edges. Then re-focus: cloud.app.box.com `/embed` route returned 200 (distinct from 206 asset layer) — probe for CORS headers there: `curl -s -D- "https://cloud.app.box.com/embed" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)"` — captures all response headers including Access-Control-* and X-Frame-Options.
+## 2026-08-21 20:50:20 UTC dl.boxcloud.com (mimo)
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/{id}/content + d2dl.boxcloud.com (mirror)
+confidence: 90
+reasoning: OPTIONS and GET both return Access-Control-Allow-Origin: * with Authorization,Range headers. All methods allowed. Content-Range exposed. CDN mirror confirmed on d2dl.boxcloud.com with identical config.
+verify_steps: (1) GET dl.boxcloud.com/api/2.0/files/{id}/content with valid token — confirm 200 + CORS + Content-Range
+impact: Cross-origin file content + size exfiltration with stolen token. Severity: Medium.
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: api.box.com/2.0/*
+confidence: 80
+reasoning: OPTIONS preflight on 5 different api.box.com endpoints all return Access-Control-Allow-Origin: * with Authorization header and all methods. The /oauth2/token POST is also allowed via CORS. GET 401 responses lack CORS headers (different middleware than dl.boxcloud.com) but preflight policy confirms server accepts cross-origin authenticated requests.
+verify_steps: (1) GET api.box.com/2.0/users/me with valid token — check if 200 includes CORS. (2) POST api.box.com/oauth2/token with valid credentials — check CORS. (3) Check if access-control-expose-headers present on success.
+impact: If attacker obtains valid Bearer token, any page can access files, folders, users, search, events, metadata via api.box.com. Severity: Medium (requires token theft prerequisite; wildcard without credentials is safe against cookie-based attacks).
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: cloud.account.box.com/login
+confidence: 70
+reasoning: GET and OPTIONS both return Access-Control-Allow-Origin: https://evil.example.com (exact origin reflection). Preflight allows GET + Authorization header. Max-age 86400. However, response is a login page (redirect to auth) — limited data exposure.
+verify_steps: (1) OPTIONS cloud.account.box.com/api/oauth2/authorize with Origin. (2) GET cloud.account.box.com/api/oauth2/authorize with Origin.
+impact: Origin reflection on auth plane. Limited impact as /login returns login page. Severity: Low.
+testability: PASSIVE
+class: MISCONFIG
+asset: cloud.app.box.com/login
+confidence: 60
+reasoning: GET returns 301 redirect to cloud.account.box.com/login with Access-Control-Allow-Origin reflecting attacker Origin. Preflight allows GET + Authorization. However, this is just a redirect handler.
+verify_steps: (1) GET cloud.app.box.com/login with Origin — capture all headers
+impact: Origin reflection on redirect. Limited impact. Severity: Low.
+testability: PASSIVE
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/{id}/content + d2dl.boxcloud.com (mirror)
+confidence: 90
+reasoning: OPTIONS and GET both return Access-Control-Allow-Origin: * with Authorization,Range headers. All methods allowed. Content-Range exposed. CDN mirror confirmed on d2dl.boxcloud.com with identical config.
+verify_steps: (1) GET dl.boxcloud.com/api/2.0/files/{id}/content with valid token — confirm 200 + CORS + Content-Range
+impact: Cross-origin file content + size exfiltration with stolen token. Severity: Medium.
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: api.box.com/2.0/*
+confidence: 80
+reasoning: OPTIONS preflight on 5 different api.box.com endpoints all return Access-Control-Allow-Origin: * with Authorization header and all methods. The /oauth2/token POST is also allowed via CORS. GET 401 responses lack CORS headers (different middleware than dl.boxcloud.com) but preflight policy confirms server accepts cross-origin authenticated requests.
+verify_steps: (1) GET api.box.com/2.0/users/me with valid token — check if 200 includes CORS. (2) POST api.box.com/oauth2/token with valid credentials — check CORS. (3) Check if access-control-expose-headers present on success.
+impact: If attacker obtains valid Bearer token, any page can access files, folders, users, search, events, metadata via api.box.com. Severity: Medium (requires token theft prerequisite; wildcard without credentials is safe against cookie-based attacks).
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: cloud.account.box.com/login
+confidence: 70
+reasoning: GET and OPTIONS both return Access-Control-Allow-Origin: https://evil.example.com (exact origin reflection). Preflight allows GET + Authorization header. Max-age 86400. However, response is a login page (redirect to auth) — limited data exposure.
+verify_steps: (1) OPTIONS cloud.account.box.com/api/oauth2/authorize with Origin. (2) GET cloud.account.box.com/api/oauth2/authorize with Origin.
+impact: Origin reflection on auth plane. Limited impact as /login returns login page. Severity: Low.
+testability: PASSIVE
+class: MISCONFIG
+asset: cloud.app.box.com/login
+confidence: 60
+reasoning: GET returns 301 redirect to cloud.account.box.com/login with Access-Control-Allow-Origin reflecting attacker Origin. Preflight allows GET + Authorization. However, this is just a redirect handler.
+verify_steps: (1) GET cloud.app.box.com/login with Origin — capture all headers
+impact: Origin reflection on redirect. Limited impact. Severity: Low.
+testability: PASSIVE
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content, upload.box.com/api/2.0/files/commit
+confidence: 85
+reasoning: OPTIONS preflight on upload POST endpoints returns access-control-allow-origin reflecting attacker Origin with access-control-allow-credentials: true. Only POST method allowed. GET requests do NOT receive CORS headers (separate policy). Origin reflection + credentials is a classic CORS misconfiguration that enables authenticated cross-origin requests using cookies.
+verify_steps: (1) Check if upload.box.com sets session cookies on unauthenticated requests. (2) OPTIONS upload.box.com/api/2.0/files with GET method — confirm no CORS. (3) Check other POST endpoints on upload.box.com for same pattern.
+impact: If upload uses cookie-based auth, any attacker-controlled page can make authenticated POST requests to upload files on behalf of the user. Combined with user interaction (clicking a link), enables unauthorized file uploads. Severity: High (requires cookie-based auth + user interaction).
+testability: HUMAN_ONLY
+class: MISCONFIG
+asset: api.box.com/2.0/*
+confidence: 85
+reasoning: OPTIONS preflight confirmed on 6 endpoints (users, files, events, search, devices, oauth2/token) — all return Access-Control-Allow-Origin: * with Authorization header and all methods. GET 401 responses lack CORS headers (different middleware than dl.boxcloud.com) but preflight policy confirms server accepts cross-origin authenticated requests.
+verify_steps: (1) GET api.box.com/2.0/users/me with valid token — check if 200 includes CORS. (2) Check access-control-expose-headers on success.
+impact: If attacker obtains valid Bearer token, any page can access the entire Box API. Severity: Medium (requires token theft prerequisite).
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/{id}/content, d2dl.boxcloud.com/api/2.0/files/{id}/content
+confidence: 90
+reasoning: OPTIONS and GET both return Access-Control-Allow-Origin: * with Authorization,Range headers. All methods allowed. Content-Range exposed. CDN mirror confirmed.
+verify_steps: (1) GET dl.boxcloud.com/api/2.0/files/{id}/content with valid token
+impact: Cross-origin file content + size exfiltration with stolen token. Severity: Medium.
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: account.box.com/api/oauth2/authorize
+confidence: 65
+reasoning: GET and OPTIONS both return access-control-allow-origin reflecting attacker Origin. Preflight allows GET + Authorization header. Response is a full HTML page with embedded client config (API keys for analytics, feature flags). However, this is the unauthenticated login/authorize page — sensitive data is static/public.
+verify_steps: (1) Check other account.box.com paths for Origin reflection. (2) Check if account.box.com/api endpoints reflect Origin.
+impact: Origin reflection on auth plane with static config data. Limited impact. Severity: Low.
+testability: PASSIVE

@@ -33,3 +33,10 @@ https://dl.boxcloud.com/api/2.0/files/0/content -> HTTP 401
 https://dl.boxcloud.com/api/2.0/files/content -> HTTP 404
 https://dl.boxcloud.com/api/2.0 -> HTTP 404
 https://dl.boxcloud.com/api/2.0/files/999999999/content -> HTTP 401
+
+## 2026-08-21 20:50:40 UTC dl.boxcloud.com
+https://d2dl.boxcloud.com/api/2.0/files/0/content -> HTTP 401
+https://dl.boxcloud.com:8443/api/2.0/files/0/content -> ERR <urlopen error [Errno 101] Network is unreachable>
+https://dl.boxcloud.com/api/2.0/users/me -> HTTP 404
+https://dl.boxcloud.com/api/2.0/folders/0 -> HTTP 404
+https://dl.boxcloud.com/api/2.0/search -> HTTP 404
