@@ -74,3 +74,12 @@ https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2
 https://account.box.com/debug -> 206
 https://account.box.com/login?redirect_url=%2Fdebug -> 206
 https://account.box.com/status -> 206
+
+## 2026-08-21 21:08:33 UTC account.box.com
+https://cloud.account.box.com/login -> 206
+https://account.box.com/login -> 206
+https://account.box.com/sso?redirect_url=https://evil.example.com/callback -> 206
+https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Fevil.example.com%2Fcallback -> 206
+https://cloud.account.box.com/api/2.0/users/me -> HTTP 401
+https://cloud.account.box.com/api/2.0/folders/0 -> HTTP 401
+https://cloud.account.box.com/sso -> 206
