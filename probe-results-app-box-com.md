@@ -169,3 +169,6 @@ https://app.box.com/login/reset -> 206
 https://app.box.com/login/sso -> 206
 https://app.box.com/shared/action/download?shared_link=test -> HTTP 404
 https://app.box.com/app/integrations -> 206
+
+## 2026-08-21 19:56:52 UTC app.box.com
+https://app.box.com/api/2.0/events -> HTTP 401

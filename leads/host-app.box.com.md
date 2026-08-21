@@ -824,3 +824,7 @@ testability: PASSIVE
 [PARKED] upload.box.com 200 empty-body OPTIONS: upload API surface returns 200 on OPTIONS but with no CORS headers and 404 on GET. Server: nginx, different stack.
 [PARKED] dl.boxcloud.com OPTIONS 404: download CDN returns 404 on OPTIONS preflight. Not a CORS-relevant surface.
 [NEXT] HEAD https://app.box.com/api/2.0/events with headers: Origin: https://evil.com, User-Agent: box-research/1.0
+## 2026-08-21 19:56:50 UTC app.box.com (mimo)
+[LEARN] REJECTED CORS wildcard preflight @ app.box.com: Wildcard confirmed but low impact — no CORS headers on actual GET/401 responses.
+[LEARN] REJECTED Origin reflection on app.box.com/login pages: Readable content is public login form HTML only; no Access-Control-Allow-Credentials means no cookie-bearing cross-origin reads. Confirmed low impact.
+[NEXT] HEAD https://app.box.com/api/2.0/events with headers: Origin: https://evil.com, User-Agent: box-research/1.0
