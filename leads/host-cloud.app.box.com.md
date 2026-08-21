@@ -926,3 +926,21 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/start" 2>&1` — test /start endpoint for CORS reflection
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/enterprise/sso" 2>&1` — test SSO endpoint
 [NEXT] RECON: `curl -s -H "User-Agent: box-research/1.0" "https://m.box.com/" 2>&1 | head -20` — check mobile web app content
+## 2026-08-21 21:27:26 UTC cloud.app.box.com (mimo)
+[LEARN] ACCEPTED MISCONFIG @ m.box.com: All requests redirect 301 to app.box.com — no separate mobile rendering logic exposed, mobile web is a pure redirect alias. [PARKED] m.box.com: Host is a 301 redirect to app.box.com; no unique surface.
+[LEARN] ACCEPTED MISCONFIG @ upload.box.com: No CORS headers on any endpoint, returns 404 for root and OPTIONS. Not an interesting CORS surface.
+[LEARN] ACCEPTED MISCONFIG @ notes.services.box.com: 302 redirect to services.app.box.com. No CORS headers, not directly probeable.
+[NEW] account.box.com/start: 405 response with NO CORS reflection — different config from /login and /login/reset.
+[CONFIRMED] account.box.com login/reset CORS reflects arbitrary Origin (re-verified)
+class: MISCONFIG
+asset: account.box.com/login/reset
+confidence: 70
+reasoning: The Origin reflection is consistent on the reset endpoint. However, the /start endpoint does NOT reflect CORS, and /enterprise/sso returns 404. This means the CORS reflection is limited to specific login-form endpoints (/login, /login/reset), not a blanket policy on the auth plane. The missing Access-Control-Allow-Credentials header prevents cookie-based exploitation.
+verify_steps: Confirmed via prior probes and consistency check this cycle.
+impact: Attacker can read CSRF tokens (request_token) from password reset form cross-origin. Cannot submit form on behalf of user without credentials. Severity: Low (informational/defense-in-depth).
+testability: PASSIVE
+[NEW] app.box.com/api/2.0/users/me: 401 with www-authenticate: Bearer — confirms auth required, no CORS headers visible on 401 response.
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS on unauthenticated request
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS preflight
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1` — test app.box.com API path CORS
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1` — test SPA shell route for CORS headers

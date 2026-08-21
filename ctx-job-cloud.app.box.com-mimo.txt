@@ -35,42 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 20:44:28 UTC"
+  "last_advance": "2026-08-21 21:04:59 UTC"
 }=== MY LAST LEADS (tail) ===
-class: MISCONFIG
-asset: account.box.com/api/oauth2/token
-confidence: 40
-reasoning: OPTIONS returns `access-control-allow-origin: *` with `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT`. GET returns `{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}` — the endpoint is live and processes parameters. Any website can craft a cross-origin POST to the token endpoint. However, `*` wildcard never sends cookies/credentials, so only explicit client_secret or authorization_code grants would work — and the attacker would need those values. The method enumeration (DELETE, PUT) is defensive overkill.
-verify_steps: Already confirmed. To test POST acceptance: `curl -s -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/api/oauth2/token"` returns 204 with all methods allowed.
-impact: Any website can make cross-origin requests to the OAuth2 token endpoint. Without stolen credentials this is not directly exploitable. Severity: Informational (defense-in-depth).
-testability: PASSIVE
-[HYP] cloud.app.box.com API proxy enables cross-origin Bearer token usage from any website
-class: MISCONFIG
-asset: cloud.app.box.com/api/2.0/
-confidence: 35
-reasoning: `access-control-allow-origin: *` with `access-control-allow-headers: Authorization` on all `/api/2.0/` endpoints. Any website can send requests with Authorization: Bearer <token> headers to the full Box API via this proxy. `*` wildcard prevents cookie inclusion (safe). If a Box XSS or token leak ever occurs, the wildcard CORS allows exfiltration from any origin without credential restrictions. This is by design for the JS SDK but amplifies impact of any token compromise.
-verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Headers: Authorization" "https://cloud.app.box.com/api/2.0/users/me"` — confirms `access-control-allow-origin: *` and `access-control-allow-headers: Authorization`.
-impact: Amplification vector — any leaked Bearer token can be used from any website. Not a standalone vulnerability. Severity: Informational.
-testability: PASSIVE
-[PARKED] account.box.com `/saml` SSO endpoint: HEAD returns 405, exists but not GET/HEAD-accessible. Would need POST to test SAML flow — out of scope for read-only.
-[PARKED] account.box.com `/_assets/` sibling-object enumeration: package-lock.json, conf/, assetsGenerated.json, .env, config.json, webpack.config.js, .git/config all return 404 (GCS NoSuchKey). GCS key prefix is `resources/` and no sensitive sibling objects exist under it.
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/api/2.0/folders/0/items"` — test if folder listing endpoint returns different error or data without auth
-[NEXT] PROBE: `curl -s -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/api/2.0/" 2>&1` — check API root response body for endpoint discovery
-[NEXT] PROBE: `curl -sI "https://app.box.com/api/2.0/users/me"` — confirm app.box.com API proxy requires auth
-[NEXT] RECON: `curl -sI "https://account.box.com/reset"` — test password reset endpoint from robots.txt path map
-[NEXT] RECON: `curl -sI "https://account.box.com/enduser"` — test enduser path from robots.txt
-[NEXT] RECON: `curl -sI "https://account.box.com/app-center"` — test app-center path from robots.txt
-[NEXT] RECON: `curl -sI "https://account.box.com/integrations"` — test integrations path from robots.txt
-## 2026-08-21 19:48:14 UTC cloud.app.box.com (mimo)
-[CONFIRMED] cloud.app.box.com SPA catch-all with server-side route resolution
-class: MISCONFIG
-asset: cloud.app.box.com/<any-path>
-confidence: 60
-reasoning: ANY path on cloud.app.box.com returns HTTP 206 with full SPA shell containing embedded Box.config and Box.prefetchedData. The currentRm (route mapper) is dynamically derived from the URL path — `/s/test123` resolves to `enduserapp_shared_item_page`, `/shared_page_vanity_name` resolves to `shared_page_vanity_name`. The prefetched data includes server-side API lookups: `/app-api/enduserapp/shared-item` returned `{status:404, errorCode:"sharedNotFound"}`. This confirms the origin resolves routes and performs API lookups before returning the SPA shell.
-verify_steps: `curl -s "https://cloud.app.box.com/s/<test-token>" -H "User-Agent: box-research/1.0"` — observe `currentRm` and prefetchedData in response body.
-impact: Internal route mapper names disclosed. Server-side route resolution could be probed for path-based information leaks. Severity: Low (informational — route mapper names are not secrets).
-testability: PASSIVE
-[HYP] cloud.app.box.com SPA catch-all route resolution leaks internal path-to-mapper mapping
 class: MISCONFIG
 asset: cloud.app.box.com/<path>
 confidence: 55
@@ -97,6 +63,40 @@ testability: PASSIVE
 ## 2026-08-21 19:57:34 UTC cloud.app.box.com (mimo)
 ## 2026-08-21 20:16:55 UTC cloud.app.box.com (mimo)
 ## 2026-08-21 20:44:28 UTC cloud.app.box.com (mimo)
+## 2026-08-21 21:04:40 UTC cloud.app.box.com (mimo)
+[CONFIRMED] account.box.com login/reset CORS reflects arbitrary Origin
+class: MISCONFIG
+asset: account.box.com/login/reset
+confidence: 65
+reasoning: GET with `Origin: https://evil.example.com` returns `access-control-allow-origin: https://evil.example.com`. OPTIONS preflight allows POST with Content-Type. The response body contains `request_token` (CSRF token) in a hidden form field — readable cross-origin. However, NO `access-control-allow-credentials` header is present, so cookies are not sent cross-origin, preventing authenticated form submission from attacker pages.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login/reset?form_variant=none&redirect_url="` — confirms reflected Origin. `curl -s -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/login/reset"` — confirms POST allowed.
+impact: Attacker can read CSRF tokens from the password reset form cross-origin. Without credentials, cannot submit the form on behalf of the user. Defense-in-depth issue. Severity: Low.
+testability: PASSIVE
+[CONFIRMED] account.box.com/login reflects Origin on HEAD (405)
+class: MISCONFIG
+asset: account.box.com/login
+confidence: 60
+reasoning: HEAD request returns 405 but still includes `access-control-allow-origin: https://evil.example.com`. The login page is a POST-only endpoint that reflects arbitrary Origins.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login"` — confirms 405 with reflected Origin.
+impact: Same CORS misconfiguration pattern as reset endpoint — Origin reflection without credentials. Severity: Low.
+testability: PASSIVE
+[CONFIRMED] cloud.account.box.com/login reflects Origin
+class: MISCONFIG
+asset: cloud.account.box.com/login
+confidence: 60
+reasoning: HEAD request returns 405 with `access-control-allow-origin: https://evil.example.com`. Login form contains `request_token` hidden field.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login"` — confirms reflected Origin.
+impact: Origin reflection on login page. Same pattern as account.box.com. Severity: Low.
+testability: PASSIVE
+[LEARN] REJECTED cloud.app.box.com SPA catch-all for `/shared/`, `/folders/`, `/v/` paths: `/shared/test123` returns 404, `/folders/0` returns 404, `/v/test123` returns 200 with SPA shell (currentRm: `enduserapp_shared_item_page`). Only `/s/<token>` paths consistently return 206 SPA shell with route resolution. The SPA catch-all is restricted to `/s/` prefix paths.
+[LEARN] REJECTED cloud.app.box.com internal API paths: `/app-api/enduserapp/current-user` and `/app-api/enduserapp/shared-item` return 404 when accessed directly. These are server-side prefetched during SPA shell generation and not directly routable from outside.
+[LEARN] notes.services.box.com redirects to `https://services.app.box.com/` (302). No CORS headers. Out of direct probe scope.
+[PARKED] dl.boxcloud.com download proxy: All tested paths return 404 with no CORS headers. The download CDN requires valid signed URLs.
+[PARKED] app.box.com/api/2.0/users/me: Returns 401 `www-authenticate: Bearer` — confirms auth required, no CORS headers visible on 401.
+[NEXT] PROBE: `curl -s -H "Origin: https://evil.example.com" "https://account.box.com/login/reset?form_variant=none&redirect_url=" 2>&1 | grep -c 'access-control-allow-origin'` — verify consistency of CORS reflection across multiple requests
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/start" 2>&1` — test /start endpoint for CORS reflection
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/enterprise/sso" 2>&1` — test SSO endpoint
+[NEXT] RECON: `curl -s -H "User-Agent: box-research/1.0" "https://m.box.com/" 2>&1 | head -20` — check mobile web app content
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)

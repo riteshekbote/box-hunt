@@ -167,3 +167,6 @@ https://cloud.app.box.com/app-api/enduserapp/current-user -> 200
 https://cloud.app.box.com/app-api/enduserapp/shared-item -> HTTP 400
 https://cloud.app.box.com/s/ -> HTTP 404
 https://cloud.app.box.com/preview/abc123 -> HTTP 404
+
+## 2026-08-21 21:27:29 UTC cloud.app.box.com
+https://cloud.app.box.com/s/test123 -> HTTP 404
