@@ -1,27 +1,40 @@
-[NEW] account.box.com: `/api/oauth2/token` returns `access-control-allow-origin: *` (wildcard) — OAuth token endpoint accessible from any origin
-[NEW] cloud.app.box.com: OPTIONS preflight returns `access-control-allow-origin: *` on ALL paths (root + arbitrary), but GET responses have NO CORS headers — decoupled wildcard
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: OPTIONS preflight returns wildcard `*` CORS with methods DELETE/HEAD/GET/OPTIONS/POST/PUT, max-age 1800 — but GET responses never include CORS headers, so cross-origin reads are blocked by browser
-[LEARN] ACCEPTED MISCONFIG @ account.box.com: Origin reflection on `/login` and `/api/oauth2/authorize` WITHOUT `access-control-allow-credentials: true` — cross-origin readable but no cookies sent, so only unauthenticated SPA shell/config exposed
-[LEARN] ACCEPTED MISCONFIG @ account.box.com: `/api/oauth2/token` has wildcard `*` CORS — expected for OAuth token endpoint but allows cross-origin error message reading
-[HYP] account.box.com CORS Origin reflection on auth pages — information disclosure of embedded SPA config
 class: MISCONFIG
-asset: account.box.com/api/oauth2/authorize, account.box.com/login
-confidence: 55
-reasoning: Both /login and /api/oauth2/authorize reflect attacker Origin in access-control-allow-origin WITHOUT access-control-allow-credentials. This allows any attacker page to fetch the SPA shell cross-origin and read Box.config, which contains amplitudeAPIKey, splitIOAPIKey, pendoAnalyticsAPIKey, pendoAnalyticsProxyDataHost, runtimeMetadata (us-west4-prod, k8s, prod), billing.creditCardCreationURL (api.zuora.com), and preview config. However, these are all client-side analytics/feature-flag keys visible to any authenticated user via DevTools. No session cookies are sent cross-origin.
-verify_steps: [NEXT] PROBE: `curl -s -D- "https://account.box.com/api/2.0/users/me" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0"` — test if API endpoint has different CORS. 1 req.
-impact: Low (informational). Leaks client-side API keys and infrastructure metadata cross-origin. These keys are already visible in any browser DevTools session.
+asset: cloud.app.box.com (SPA catch-all + `/app-api/*`)
+confidence: 85
+reasoning: OPTIONS on every path (root, arbitrary, /app-api/enduserapp/current-user) returns `access-control-allow-origin: *` with wide method set (DELETE/HEAD/GET/OPTIONS/POST/PUT), max-age 1800, and `vary: Origin`. But GET responses NEVER include CORS headers. Browser blocks cross-origin reads. The `vary: Origin` header on OPTIONS indicates server is aware of Origin but deliberately omits CORS from GET responses.
+impact: LOW (defense-in-depth). Wildcard preflight grants broad preflight approval but response layer blocks reads. No direct exploitability. If any future endpoint adds CORS headers to GET, the wildcard preflight would immediately enable cross-origin reads.
 testability: PASSIVE
-[HYP] cloud.app.box.com OPTIONS/GET CORS decoupling — wildcard preflight but no CORS on responses
 class: MISCONFIG
-asset: cloud.app.box.com
-confidence: 70
-reasoning: OPTIONS preflight on ALL paths (root + arbitrary) returns access-control-allow-origin: * with wide method set. However, actual GET responses on root (302 to /login) and SPA catch-all (404 with shell) never include CORS headers. The wildcard preflight is misleading — browsers will reject cross-origin reads because the GET response lacks CORS headers. This is a defense-in-depth concern: the preflight is overly permissive while the response layer is correctly restrictive.
+asset: account.box.com/login, account.box.com/api/oauth2/authorize
+confidence: 75
+reasoning: Both endpoints return `access-control-allow-origin: <attacker_origin>` on GET WITHOUT `access-control-allow-credentials: true`. This allows any attacker page to `fetch()` these URLs and read the HTML response cross-origin. The login page exposes: `Box.config.requestToken` (per-request CSRF token for login form), `Box.config.currentRm` ('amsterdam_login_premium'), `amplitudeAPIKey`, `splitIOAPIKey`, `pendoAnalyticsAPIKey`, `runtimeMetadata` (us-west4-prod, k8s, prod). The `access-control-expose-headers: WWW-Authenticate,Server-Authorization` header is also set. Without `credentials: true`, no session cookies are sent, limiting impact to unauthenticated page content.
+impact: LOW-MEDIUM (information disclosure). Leaks client-side analytics keys and internal deployment metadata cross-origin. The requestToken is per-request and useless without session cookies. No authentication bypass.
+testability: PASSIVE
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 80
+reasoning: Returns HTTP 200 with comprehensive JSON config without any authentication. Contains: `amplitudeAPIKey` (c6eb3d709c5c30ca80c0381080bcc254), `splitIOAPIKey` (3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a), 80+ feature flags, experiment flags, `preview.version: 3.79.0`, `preview.tokenTimeout: 3600`, `boxToolsDownloadURL`, full account/enterprise settings. Response sets multiple cookies (z, box_visitor_id, bv, cn, site_preference). `isLoggedIn: false` confirms no auth required. Headers reveal `x-enduserapp-currentversion: 23.692.0+hotfix.1`. No CORS headers on GET (same-origin only). The `/app-api/enduserapp/shared-item` endpoint also returns 400 (not 401) without auth, while `/folder/0` and `/trash` correctly return 401.
+impact: LOW-MEDIUM (information disclosure). Exposes internal API keys, feature flags, version info, and deployment config. Same-origin only — cannot be read cross-origin. These keys are visible in browser DevTools but programmatic access could aid further attacks.
+testability: PASSIVE
+class: XSS
+asset: account.box.com/login
+confidence: 30
+reasoning: The login page reflects Box.config values in script tags. Query parameters like redirect_uri may be embedded in the HTML response. If error/error_description parameters or other params are reflected unescaped in the HTML body, this could enable DOM XSS. The CORS reflection on GET means an attacker page can read the response, enabling detection of successful injection.
+verify_steps: [NEXT] PROBE: `curl -s "https://account.box.com/login?error=test123&error_description=test456" -H "User-Agent: box-research/1.0" 2>&1 | grep -i "test123\|test456"` — check if error params reflected in body. 1 req.
+impact: If reflected unescaped in HTML/script context → MEDIUM (DOM XSS). If JSON-escaped → LOW (informational).
+testability: PASSIVE
+class: BUSLOGIC
+asset: account.box.com/api/oauth2/authorize
+confidence: 25
+reasoning: The authorize endpoint reflects attacker Origin. The redirect_uri parameter controls where users are sent after OAuth authorization. If the endpoint accepts arbitrary redirect_uri values without validation, it could enable open redirect. Combined with the CORS reflection, an attacker could potentially craft a URL that (1) reflects Origin in CORS headers, (2) redirects to attacker domain after OAuth flow. This requires testing whether redirect_uri validation is enforced on the server side or only client side.
+verify_steps: [NEXT] PROBE: `curl -s -D- "https://account.box.com/api/oauth2/authorize?redirect_uri=https://evil.example.com&client_id=test" -H "User-Agent: box-research/1.0" 2>&1 | head -30` — test redirect_uri handling. 1 req.
+impact: If accepts arbitrary redirect_uri → HIGH (open redirect → OAuth token theft). If validates → LOW.
+testability: PASSIVE
+class: MISCONFIG
+asset: account.box.com/api/oauth2/authorize
+confidence: 85
+reasoning: The `/api/oauth2/authorize` endpoint reflects `access-control-allow-origin: <attacker_origin>` on GET **regardless of parameters** (confirmed: works with no params, with valid-looking params, and with `redirect_uri=https://evil.example.com/callback`). The response body contains `Box.prefetchedData` which embeds the full `/app-api/enduserapp/current-user` JSON, plus `errorParams` reflecting attacker-controlled `redirectUri`, `clientId`, `responseType`, and `state` — all JSON-encoded (escaped `\/`), preventing injection. Without `access-control-allow-credentials: true`, no cookies are sent cross-origin, limiting impact to unauthenticated page content.
+evidence: 
 verify_steps: N/A — already verified
-impact: Low (defense-in-depth). The wildcard preflight grants broad preflight approval but responses block cross-origin reads. No direct exploitability.
+impact: LOW-MEDIUM (information disclosure). Cross-origin readable page exposes: client-side API keys (Amplitude, SplitIO), 80+ feature flags revealing product roadmap, preview library version (3.79.0) and token timeout, realtime subscriber IDs, and micro-frontend module versions. The `errorParams` reflection of attacker-controlled `redirect_uri` and `state` demonstrates user input embedding in page content. No cookies sent cross-origin. JSON encoding prevents injection/XSS from reflected params.
 testability: PASSIVE
-[PARKED] cloud.app.box.com `/app-api/` internal endpoint: returns 401 with `www-authenticate: Bearer realm="Service"`. Confirmed internal API exists but requires auth token. Cannot test further without credentials.
-[PARKED] account.box.com errorParams reflection: Query parameters are echoed in Box.prefetchedData JSON. JSON escaping of `/` prevents </script> injection. Quote escaping prevents string breakout. Not XSS.
-[PARKED] cloud.app.box.com SPA route mapper enumeration: /shared/, /v/, /folders/ return 404 server-side. SPA catch-all only applies to truly arbitrary paths.
-[NEXT] PROBE (account.box.com — API endpoint CORS): `curl -s -D- "https://account.box.com/api/2.0/users/me" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0"` — test if REST API has different CORS than HTML pages. 1 req.
-[NEXT] PROBE (account.box.com — prefetchedData keys comparison): `curl -s "https://account.box.com/login?redirect_url=https://evil.example.com/callback" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" 2>&1 | grep -o '"currentRm":"[^"]*"'` — test if redirect_url parameter affects routing. 1 req.
-[NEXT] PROBE (dl.boxcloud.com — CORS check): `curl -s -D- -X OPTIONS "https://dl.boxcloud.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0"` — check CDN CORS on download edge. 1 req.
