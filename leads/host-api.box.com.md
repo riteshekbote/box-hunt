@@ -923,3 +923,29 @@ testability: PASSIVE
 [LEARN] CONFIRMED OTHER @ cloud.app.box.com /embed/*: User input is URL-encoded in JSON context, not raw — no direct XSS via HTML injection; DOM XSS depends on client-side handling
 [LEARN] ACCEPTED OTHER @ cloud.app.box.com /folder/0, /file/1, /collections: 302 redirect to cloud.account.box.com/login — redirect_url is server-controlled, no user input reflection
 [NEXT] PROBE: Read embed.js client-side code to test DOM XSS hypothesis. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — check for URL decoding and DOM insertion of prefetchedData (2) cloud.app.box.com/embed/test-token — re-confirm linkedRequestId uniqueness (3) cloud.app.box.com/representation/0 — test if /representation is a file preview path that needs a file ID
+## 2026-08-21 23:57:01 UTC api.box.com (mimo)
+[CONFIRMED] cloud.app.box.com CORS preflight/response mismatch
+class: MISCONFIG
+asset: cloud.app.box.com (all paths)
+confidence: 80
+reasoning: Directly confirmed: OPTIONS on /app-api/enduserapp/current-user returns ACAO:* with DELETE/POST/PUT allowed. GET response has NO CORS headers (no ACAO). Split-proxy 404 path DOES return ACAO:* on GET (CDN layer). The origin proxy adds CORS to OPTIONS but NOT to proxied API GET responses — a CDN/origin configuration mismatch.
+verify_steps: Already confirmed via curl with Origin: https://evil.com header on OPTIONS and GET to /app-api/enduserapp/current-user and /app-api/split-proxy
+impact: Low — not currently exploitable because GET responses lack CORS headers, blocking browser cross-origin reads. However, the wildcard ACAO:* preflight with ALL write methods (DELETE/POST/PUT) is an over-permissive policy that becomes critical if any origin endpoint ever adds CORS headers to GET responses.
+testability: PASSIVE
+[NEW] dl.boxcloud.com/api/2.0/files/1/content: 401 with ACAO:* + Access-Control-Expose-Headers including Content-Range — confirmed wildcard CORS on actual file download proxy responses (not just preflight)
+[CONFIRMED] dl.boxcloud.com wildcard CORS on download proxy
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/*/content
+confidence: 75
+reasoning: GET to /api/2.0/files/1/content returns 401 with access-control-allow-origin: *, access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After. The 401 response body is empty (no auth token = no data). The ACAO:* + Content-Range exposure on a file download proxy means any authenticated file download response (if a browser can obtain a valid token) would be fully readable cross-origin.
+verify_steps: Already confirmed via curl. Critical question: does a VALID token response also include ACAO: *?
+impact: Medium — if a valid Bearer token can be obtained (e.g., via session hijacking, XSS on a Box subdomain), the wildcard CORS allows full cross-origin file content exfiltration including byte-range enumeration via Content-Range.
+testability: AUTH_HELPED
+[NEW] cloud.account.box.com/login: Login page has x-frame-options: SAMEORIGIN, referrer-policy: no-referrer, x-xss-protection: 0 — strong defensive headers. redirect_url parameter accepted but not reflected in redirect — no open redirect vector found.
+[PARKED] Embed.js DOM XSS via redirectParentIframe postMessage: Origin check validates against box.com/boxcdn.net/boxenterprise.net/inside-box.net/boxgov.us whitelist. The redirectParentIframe action does window.location.href=n.url from postMessage data, but only processes messages from whitelisted Box origins. Cannot exploit without first compromising a Box subdomain.
+testability: AUTH_HELPED (requires subdomain compromise)
+[PARKED] cloud.app.box.com /shared/* and /preview/* paths: Both return 404 — not valid SPA catch-all routes. Only /embed/* catches all paths.
+[LEARN] CONFIRMED OTHER @ cloud.app.box.com /embed/*: embed.js postMessage handler origin check regex: `^(?:https?:\/\/)?(?:([a-zA-Z0-9\-_]+)\.)*box\.com|boxcdn\.net|boxenterprise\.net|inside-box\.net|boxgov\.us` — subdomain-aware validation with subdomain capture group check via `c.current` ref
+[LEARN] CONFIRMED OTHER @ cloud.app.box.com: /embed/* response includes server-constructed message JSON with `action: "retrieveEmbedStateResult"` containing 80+ feature flags and embed context. User input only in url/displayedURL/originalURL fields, all URL-encoded.
+[LEARN] CONFIRMED OTHER @ cloud.account.box.com/login: Strong security headers (X-Frame-Options: SAMEORIGIN, referrer-policy: no-referrer, x-xss-protection: 0). No open redirect on redirect_url parameter.
+[NEXT] PROBE: Test if dl.boxcloud.com returns ACAO:* on successful (token-bearing) file download responses, and explore cloud.app.box.com /app-api/ for additional version/header leaks. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) dl.boxcloud.com/api/2.0/folders/0 — test folder listing CORS (2) cloud.app.box.com/app-api/enduserapp/app-version — test for version endpoint (3) cloud.app.box.com/webapp/_rightsidebar — test for sidebar API endpoint with different response format
