@@ -828,3 +828,20 @@ testability: PASSIVE
 [LEARN] REJECTED CORS wildcard preflight @ app.box.com: Wildcard confirmed but low impact — no CORS headers on actual GET/401 responses.
 [LEARN] REJECTED Origin reflection on app.box.com/login pages: Readable content is public login form HTML only; no Access-Control-Allow-Credentials means no cookie-bearing cross-origin reads. Confirmed low impact.
 [NEXT] HEAD https://app.box.com/api/2.0/events with headers: Origin: https://evil.com, User-Agent: box-research/1.0
+## 2026-08-21 20:22:34 UTC app.box.com (mimo)
+[LEARN] ACCEPTED OAuth2 token endpoint wildcard CORS @ cloud.account.box.com: GET/POST response to /api/oauth2/token returns `access-control-allow-origin: *` on actual response body (not just preflight). Response is JSON error for unauthenticated GET. Standard OAuth2 pattern for public SPA clients; security relies on PKCE not CORS. Low impact.
+[LEARN] ACCEPTED app-api endpoint properly secured: cloud.account.box.com/app-api/enduserapp/current-user returns 200 with user profile JSON but NO CORS headers — not readable cross-origin. Properly secured internal API.
+[LEARN] ACCEPTED no Access-Control-Allow-Credentials anywhere: All origin-reflection endpoints (cloud.account.box.com/api/oauth2/authorize, app.box.com/login/*, cloud.app.box.com/login) lack `Access-Control-Allow-Credentials`. Cookies cannot be sent cross-origin, blocking cookie-bearing data exfiltration.
+[LEARN] ACCEPTED cloud.app.box.com/login returns 405 with origin reflection: GET to cloud.app.box.com/login returns 405 with `access-control-allow-origin: evil.com` but empty body. No sensitive data.
+[HYP] OAuth2 authorize SPA shell leaks internal deployment metadata cross-origin
+class: MISCONFIG
+asset: cloud.account.box.com/api/oauth2/authorize
+confidence: 40
+reasoning: The origin-reflected SPA shell response embeds Box.prefetchedData containing: k8s deployment zone (us-west4-prod), internal API endpoint URLs, preview token timeout (3600s), Pendo analytics proxy hosts (pendo-prod.box.com, pendo-data-prod.box.com), feature flag names, and webpack remote manifest with internal CDN paths. No Access-Control-Allow-Credentials means no cookie-bearing reads, but the metadata itself is readable cross-origin from any evil.com page.
+verify_steps: 1) Fetch https://cdn01.boxcdn.net/enduser/app.50c208b371.js and search for pendoAnalyticsProxyContentHost  2) HEAD https://pendo-prod.box.com with Origin: evil.com to check if it's accessible
+impact: LOW. The metadata is already embedded in public JS bundles loaded by any visitor. The CORS misconfiguration just makes it accessible as structured JSON rather than requiring JS parsing. No credential leakage due to missing ACA.
+testability: PASSIVE
+[PARKED] cloud.app.box.com 206 pattern: Executor consistently reports 206 for root, but direct probes show 302->405/301. The 206 likely comes from following redirects and hitting a login SPA shell. No unique attack surface.
+[PARKED] services.app.box.com: Redirects to app.box.com/. No unique surface.
+[PARKED] app.box.com app paths (shared, recent, trash, etc.): Return 405 without CORS headers. No data leakage.
+[NEXT] GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js with User-Agent: box-research/1.0 — check if pendoAnalyticsProxyContentHost/pendoAnalyticsProxyDataHost are in public bundle

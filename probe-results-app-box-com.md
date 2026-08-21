@@ -172,3 +172,13 @@ https://app.box.com/app/integrations -> 206
 
 ## 2026-08-21 19:56:52 UTC app.box.com
 https://app.box.com/api/2.0/events -> HTTP 401
+
+## 2026-08-21 20:22:51 UTC app.box.com
+https://services.app.box.com/ -> 206
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://app.box.com/api/2.0/events -> HTTP 401
+https://app.box.com/login -> 206
+https://app.box.com${path -> ERR <urlopen error [Errno -2] Name or service not known>
+https://app.box.com/shared -> HTTP 404
+https://app.box.com/ -> 206

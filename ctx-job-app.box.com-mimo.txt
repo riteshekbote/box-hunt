@@ -37,10 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 19:46:33 UTC"
 }=== MY LAST LEADS (tail) ===
-testability: PASSIVE
-[CONFIRMED] Origin reflection on cloud.app.box.com/login
-class: MISCONFIG
-asset: cloud.app.box.com/login
 confidence: 80
 reasoning: Both GET and OPTIONS responses on /login reflect the attacker-controlled Origin (https://evil.com) in Access-Control-Allow-Origin. The OPTIONS response also allows Authorization header. However, /login is a 301 redirect to cloud.account.box.com/login with empty body, so there's no sensitive data to exfiltrate via cross-origin reads.
 verify_steps: 1) Check if /login ever returns 200 (not redirect) with CORS headers  2) Check response body for any embedded tokens or session data
@@ -96,6 +92,10 @@ testability: PASSIVE
 [PARKED] m.box.com is pure redirect to app.box.com: no unique surface.
 [PARKED] upload.box.com 200 empty-body OPTIONS: upload API surface returns 200 on OPTIONS but with no CORS headers and 404 on GET. Server: nginx, different stack.
 [PARKED] dl.boxcloud.com OPTIONS 404: download CDN returns 404 on OPTIONS preflight. Not a CORS-relevant surface.
+[NEXT] HEAD https://app.box.com/api/2.0/events with headers: Origin: https://evil.com, User-Agent: box-research/1.0
+## 2026-08-21 19:56:50 UTC app.box.com (mimo)
+[LEARN] REJECTED CORS wildcard preflight @ app.box.com: Wildcard confirmed but low impact — no CORS headers on actual GET/401 responses.
+[LEARN] REJECTED Origin reflection on app.box.com/login pages: Readable content is public login form HTML only; no Access-Control-Allow-Credentials means no cookie-bearing cross-origin reads. Confirmed low impact.
 [NEXT] HEAD https://app.box.com/api/2.0/events with headers: Origin: https://evil.com, User-Agent: box-research/1.0
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
