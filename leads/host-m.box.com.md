@@ -1009,3 +1009,4 @@ reasoning: Three endpoints form exploit chain: (1) /login reflects origin + expo
 verify_steps: (HUMAN_ONLY) Complete OAuth flow from attacker page reading all responses cross-origin
 impact: Full account takeover via OAuth token theft. Severity: Critical
 testability: AUTH_HELPED
+## 2026-08-21 22:53:17 UTC m.box.com (mimo)
