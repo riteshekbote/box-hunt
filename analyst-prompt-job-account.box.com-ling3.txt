@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-20 13:36:52 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: The OAuth2 authorization endpoint accepts arbitrary redirect_uri values (e.g., https://evil.example.com/callback) without server-side validation at request intake. The redirect_uri is reflected in the errorParams JSON in the page payload. The server only rejects the request for invalid_client (fake client_id), but does NOT reject or sanitize the redirect_uri. If a valid registered app's client_id is supplied, the server may redirect the authorization code or token to the attacker-controlled URI.
 verify_steps: 1. Create a Box OAuth2 app via developer console (HUMAN_ONLY). 2. `curl -sD- -H "User-Agent: box-research/1.0 (research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=VALID_ID&redirect_uri=https://evil.example.com/callback&response_type=code"` 3. Complete login, observe whether redirect goes to evil.example.com with auth code in URL.
 impact: Authorization code theft or access token leakage via open redirect. If redirect_uri is not validated against registered whitelist, attacker can steal OAuth tokens. Severity: Critical.
 testability: AUTH_HELPED
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-21 04:20:16 UTC account.box.com (ling3)
 ## 2026-08-21 04:58:13 UTC account.box.com (ling3)
 ## 2026-08-21 05:30:18 UTC account.box.com (ling3)
+## 2026-08-21 05:59:03 UTC account.box.com (ling3)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
