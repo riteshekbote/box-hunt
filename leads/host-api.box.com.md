@@ -770,3 +770,4 @@ verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on fi
 impact: Low — operational metadata disclosure; could reveal infrastructure specifics for targeted attacks but no auth bypass.
 testability: PASSIVE
 [NEXT] PROBE: 3xGET account.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
+## 2026-08-21 20:18:33 UTC api.box.com (mimo)

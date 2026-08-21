@@ -35,22 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 19:45:43 UTC"
+  "last_advance": "2026-08-21 19:56:57 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-21 11:13:18 UTC api.box.com (ling3)
-## 2026-08-21 11:42:06 UTC api.box.com (ling3)
-## 2026-08-21 11:59:39 UTC api.box.com (ling3)
-## 2026-08-21 12:50:46 UTC api.box.com (ling3)
-## 2026-08-21 13:34:28 UTC api.box.com (ling3)
-## 2026-08-21 14:09:17 UTC api.box.com (ling3)
-## 2026-08-21 14:50:43 UTC api.box.com (ling3)
-## 2026-08-21 15:17:57 UTC api.box.com (ling3)
-## 2026-08-21 15:50:53 UTC api.box.com (ling3)
-## 2026-08-21 16:15:20 UTC api.box.com (ling3)
-## 2026-08-21 16:52:00 UTC api.box.com (ling3)
-## 2026-08-21 17:15:55 UTC api.box.com (ling3)
-## 2026-08-21 17:47:18 UTC api.box.com (ling3)
-## 2026-08-21 18:13:54 UTC api.box.com (ling3)
 ## 2026-08-21 18:47:25 UTC api.box.com (mimo)
 [PARKED] CORS misconfiguration on cloud.app.box.com preview origin: Infrastructure limitation confirmed — executor returns status codes only, never response headers; 10+ cycles emitted Origin-bearing probes but no Access-Control-* values were ever captured. Cannot confirm or refute. Frozen at confidence 40.
 [PARKED] S3-compatible bucket-listing on cloud.app.box.com `?list-type=2`: GET /?list-type=2 returns 200 (sometimes 206) across 5+ cycles but response body never captured; status-only probe cannot distinguish S3 XML listing from SPA shell. Frozen at confidence 50.
@@ -97,6 +83,20 @@ reasoning: The endpoint returns 200 with `error: "invalid_client"` regardless of
 verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) /api/oauth2/authorize?response_type=code&client_id=known_valid_from_docs (2) /api/oauth2/token with POST-like GET (no body) to observe error (3) /api/oauth2/revoke to observe redirect target.
 impact: Low — OAuth error messages typically don't enumerate valid client IDs, but if they do, it could reveal registered OAuth applications.
 testability: PASSIVE
+## 2026-08-21 19:56:57 UTC api.box.com (mimo)
+[CONFIRMED] cloud.app.box.com 206/Range layer is strictly whitelist-routed — only root, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed respond with 206; all other paths (random nonces, case variations, Box-specific filenames) return 404. Whitelist is case-sensitive, single-decode, query-agnostic.
+[CONFIRMED] dl.boxcloud.com is inert — root, robots.txt, favicon.ico, random nonce all return 404. Download edge requires signed tokens; no unauthenticated surface.
+[CONFIRMED] upload.box.com has no unauthenticated surface — robots.txt and API path return 404. Upload pipeline is gated.
+[LEARN] REJECTEDTOOL @ cloud.app.box.com: CORS/header-dependent hypotheses frozen — executor never returns response headers. Cannot advance without header-capturing infrastructure.
+[HYP] Extend account.box.com metadata leak to /login and /enduser endpoints
+class: MISCONFIG
+asset: account.box.com/{/login,/enduser}
+confidence: 20
+reasoning: /api/oauth2/authorize leaks runtimeMetadata (availabilityZone: us-west4-prod, deploymentType: k8s, datacenterTag) and third-party SDK keys in Box.prefetchedData. If /login and /enduser embed the same prefetchedData block, the metadata surface doubles. These endpoints are unauthenticated and may expose additional deployment details or version strings.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) GET /login (2) GET /enduser (3) GET /integrations — check each for Box.prefetchedData JSON block; if present, note runtimeMetadata keys.
+impact: Low — operational metadata disclosure; could reveal infrastructure specifics for targeted attacks but no auth bypass.
+testability: PASSIVE
+[NEXT] PROBE: 3xGET account.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
