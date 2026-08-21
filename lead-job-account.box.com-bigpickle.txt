@@ -1,0 +1,21 @@
+[NEW] cloud.app.box.com/: Root GET = HTTP 206 across 3 consecutive executor cycles (14:49/15:44/16:48 UTC) while every nonce path (`/bhx-xp4k7-m9f3q`, `/robots`, `/ROBOTS.TXT`, `/bhx-p3n7r/robots.txt`) = 404 — the 206/Range layer is pinned-asset routed, NOT an object-store default handler fronting arbitrary keys.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: stable 206-on-root vs uniform 404-on-nonce resolves the routing-model question halfway — whitelist/pinned routing confirmed, "default handler serves whole bucket" branch REJECTED.
+[HYP] 206/Range asset layer on origin root — header, method and CORS surface unresolved
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Root answers 206 (partial-content) to a normal GET — anomalous for an app origin; nonce paths 404 identically across 3 cycles, proving route pinning. Unknown: whether root echoes Content-Range/Accept-Ranges, enumerates methods via OPTIONS, or reflects attacker Origin in Access-Control-Allow-Origin with credentials (the [45] CORS branch remains untested on this layer).
+verify_steps: `curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Range: bytes=0-15" "https://cloud.app.box.com/"` ; `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://cloud.app.box.com/"`
+impact: If ACAO reflects arbitrary Origin with credentials on the authenticated app origin → cross-origin read of victim data (High/Critical). If the 206 layer mis-parses byte ranges on the root document, cache/key confusion on pinned assets possible (Medium).
+testability: PASSIVE
+[PARKED] OAuth token-endpoint wildcard CORS: preflight `/api/oauth2/token` returned `*` without credentials echo — spec-safe, no attacker-readable path; reopen only if another endpoint reflects Origin together with ACAC:true.
+[HYP] Reflected parameter injection via `errorParams` JSON in OAuth2 authorize page — UNTESTED VARIANT (prior XSS-REFLECT/XSS-REFLECT2 lines were never picked up by the executor)
+class: XSS
+asset: cloud.app.box.com/api/oauth2/authorize
+confidence: 30
+reasoning: All query params are reflected inside `Box.prefetchedData.errorParams` JSON in inline `<script>`. Breakout via `redirect_uri` payloads queued twice but not executed; switching injection point to `state` avoids the no-op dedup and tests the same sink.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&state=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E"`
+impact: DOM/HTML-context XSS on the embedded-content origin → session theft (Critical if unescaped).
+testability: PASSIVE
+[NEXT] RANGE-CORS-ROOT: `curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Range: bytes=0-15" "https://cloud.app.box.com/"`
+[NEXT] XSS-STATE-BREAK: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&state=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E"`
