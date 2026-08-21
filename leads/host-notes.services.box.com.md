@@ -838,3 +838,25 @@ testability: PASSIVE
 [NEXT] OPTIONS https://cloud.app.box.com/ with headers Origin: https://evil.com, Access-Control-Request-Method: GET — preflight policy capture
 [NEXT] HEAD https://cloud.app.box.com/ — full response header baseline without Origin
 ## 2026-08-21 18:56:08 UTC notes.services.box.com (mimo)
+## 2026-08-21 19:20:08 UTC notes.services.box.com (mimo)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: 206 Range-honoring layer confirmed stable across 6+ executor runs (17:39, 18:01, 18:52 UTC) — root asset layer is non-standard, likely edge/CDN handler.
+[HYP] CORS reflection on cloud.app.box.com 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Root 206 reproducible across 6 cycles; edge/CDN layers commonly default to permissive CORS. No prior probe has tested attacker Origin reflection — hypothesis untested, not disproven.
+verify_steps: GET https://cloud.app.box.com/ with headers Origin: https://evil.com and Range: bytes=0-100 — captures ACAO, Content-Range, Vary, Server
+impact: Arbitrary-origin reflection with credentials enables cross-origin exfiltration of preview data — HIGH
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/ with headers Origin: https://evil.com, Range: bytes=0-100 — capture Access-Control-Allow-Origin, Content-Range, Accept-Ranges, Vary, Server
+[NEXT] OPTIONS https://cloud.app.box.com/ with headers Origin: https://evil.com, Access-Control-Request-Method: GET — preflight policy capture
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: Object-store default handler confirmed at root — random unguessable paths return 404 (nonce paths bhx-xp4k7-m9f3q, bhx-p3n7r/robots.txt, etc.), root returns 206, so the asset layer fronts root and pinned assets only, not arbitrary paths.
+[HYP] Object-store default handler vs whitelist-routed
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 60
+reasoning: Root returns 206, random nonce paths return 404, proving the asset layer is pinned to specific assets (likely index.html or similar) rather than a default handler for all paths. This is a standard CDN behavior, not a vulnerability.
+verify_steps: N/A
+impact: No direct impact — confirms standard CDN architecture
+testability: PASSIVE
+[PARKED] Object-store default handler vs whitelist-routed: infrastructure behavior confirmed, not exploitable — no security impact.
