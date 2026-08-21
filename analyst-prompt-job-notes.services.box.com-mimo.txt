@@ -35,26 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 23:12:48 UTC"
+  "last_advance": "2026-08-21 23:37:02 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: upload.box.com/api/2.0/files/content
-confidence: 85
-reasoning: access-control-allow-origin: null is returned with credentials:true on preflight, meaning sandboxed iframes (sandbox="allow-scripts") can trigger cross-origin POST without needing an attacker-controlled domain. This lowers the bar for exploitation significantly.
-verify_steps: OPTIONS with Origin: null confirmed reflected. POST with null Origin returns 400.
-impact: Expands CSRF file upload to any page that can embed sandboxed iframes, including file:// URIs, data: URIs, and compromised sites.
-testability: AUTH_HELPED
-[NEXT] VERIFY: POST https://upload.box.com/api/2.0/files/content with multipart boundary-only body (no actual file) to determine if server returns structured JSON error with file metadata or just generic 400 — affects PoC construction
-[NEXT] VERIFY: GET https://upload.box.com/api/2.0/files with Bearer token to check if list endpoint also has CORS headers (GET-based data exfil)
-[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks with null Origin to test if other API paths inherit the POST CORS policy or if it's path-restricted
-## 2026-08-21 22:03:07 UTC notes.services.box.com (mimo)
-class: MISCONFIG
-asset: upload.box.com/api/2.0/*
-confidence: 95
-reasoning: |
-verify_steps: OPTIONS with null, evil.com, box.com.evil.com origins — all reflected with credentials
-impact: |
-testability: AUTH_HELPED
-## 2026-08-21 22:36:14 UTC notes.services.box.com (mimo)
 [CONFIRMED] upload.box.com/api/2.0/* — Systematic CORS Origin Reflection with Credentials on ALL Write Endpoints
 class: MISCONFIG
 asset: upload.box.com/api/2.0/{files/content,files/upload_session,folders,collaborations,comments,tasks,shared_items,groups,events}
@@ -97,6 +79,24 @@ testability: AUTH_HELPED
 [LEARN] REJECTED standalone CSRF: Cannot exploit without prior token theft — server requires Bearer token, not session cookies
 [LEARN] ACCEPTED subdomain trick: box.com.evil.com is accepted as a valid Origin — prefix-subdomain confusion in CORS policy
 ## 2026-08-21 23:12:46 UTC notes.services.box.com (mimo)
+## 2026-08-21 23:37:02 UTC notes.services.box.com (mimo)
+[CONFIRMED] upload.box.com/api/2.0/* — CORS Origin Reflection with Credentials on POST Preflight (POST-only policy verified)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/{files/content,files/upload_session,collaborations,tasks,folders,comments,groups,events,shared_items}
+confidence: 99
+reasoning: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[NEXT] VERIFY: POST https://upload.box.com/api/2.0/files/content with multipart/form-data containing a 1-byte dummy file and Bearer: invalid to confirm 400 response includes CORS headers (tests if response-phase CORS is set on valid multipart)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/events with Origin: evil.com to confirm events endpoint (read endpoint) also has POST-only CORS (events uses POST for filtering)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/search with Origin: evil.com, Method: POST to test if search endpoint (which uses POST) inherits the same CORS policy
+[PARKED] dl.boxcloud.com: Returns 404 on ALL paths including OPTIONS — no CORS layer, dead CDN surface
+[PARKED] cloud.app.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] api.box.com: Standard wildcard * without credentials — not exploitable
+[PARKED] account.box.com: Standard wildcard * on OAuth endpoint — not exploitable
+[PARKED] m.box.com: 301 redirects to app.box.com — no separate surface
+[PARKED] notes.services.box.com: Different edge, no CORS headers on API paths
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)

@@ -1094,3 +1094,32 @@ testability: AUTH_HELPED
 [PARKED] account.box.com: Standard wildcard * on OAuth endpoint — not exploitable
 [PARKED] m.box.com: 301 redirects to app.box.com — no separate surface
 [PARKED] notes.services.box.com: Different edge, no CORS headers on API paths
+## 2026-08-21 23:58:49 UTC notes.services.box.com (mimo)
+[NEW] notes.services.box.com/socket.io/ — Unauthenticated Socket.IO Engine.IO v4 Server (Live Real-time Collaboration Backend)
+class: AUTH
+asset: notes.services.box.com/socket.io/?EIO=4&transport=polling
+confidence: 72
+reasoning: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[HYP] notes.services.box.com — Subdomain-Controlled Socket.IO Session Hijacking via CORS + CSRF Cookie Chain
+class: AUTH
+asset: notes.services.box.com/socket.io/
+confidence: 65
+reasoning: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[PARKED] notes.services.box.com — Express CORS middleware misconfiguration (access-control-expose-headers without allow-origin): Dead middleware layer, not exploitable without access-control-allow-origin. All 404 responses include `access-control-expose-headers: Server-Timing` but no `access-control-allow-origin`. Low priority unless routes are added.
+[PARKED] notes.services.box.com — /graphql 503 Service Unavailable: Box-format JSON error confirms a separate backend exists but is currently down. Cannot probe further while 503.
+[PARKED] notes.services.box.com — /realtime 502 Bad Gateway: nginx upstream dead. No information leakage.
+[NEXT] VERIFY: GET https://notes.services.box.com/socket.io/?EIO=4&transport=polling&note_id=test123 — test if query params change handshake behavior or leak note-specific info
+[NEXT] VERIFY: GET https://notes.services.box.com/socket.io/notes/?EIO=4&transport=polling — test if path-based namespaces exist (different rooms/channels)
+[NEXT] VERIFY: GET https://notes.services.box.com/socket.io/?EIO=4&transport=polling with rapid-fire requests (5 within 2s) — test rate limiting on unauthenticated handshake endpoint
+[NEXT] VERIFY: Check Set-Cookie domain attribute on csrf-token from Express 404 — determines if cookie is scoped to .box.com (accessible from all subdomains) or notes.services.box.com only
+[LEARN] ACCEPTED notes.services.box.com surface: Root now 302 → services.app.box.com → app.box.com (consolidated). Only Socket.IO server remains live on notes.services.box.com.
+[LEARN] ACCEPTED notes.services.box.com Socket.IO: Engine.IO v4, no auth on handshake, no CORS headers, accepts arbitrary Origin at HTTP layer
+[LEARN] ACCEPTED notes.services.box.com Express: x-powered-by: Express, CSRF double-submit cookie pattern, access-control-expose-headers: Server-Timing without allow-origin
+[LEARN] REJECTED notes.services.box.com CORS at root: Wildcard * without credentials — standard secure
+[LEARN] CONFIRMED upload.box.com CORS scope: POST collection endpoints only, Origin reflection + credentials, box.com.evil.com accepted as valid Origin
