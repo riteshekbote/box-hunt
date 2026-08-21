@@ -35,25 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 21:27:29 UTC"
+  "last_advance": "2026-08-21 22:07:00 UTC"
 }=== MY LAST LEADS (tail) ===
-[CONFIRMED] account.box.com login/reset CORS reflects arbitrary Origin
-class: MISCONFIG
-asset: account.box.com/login/reset
-confidence: 65
-reasoning: GET with `Origin: https://evil.example.com` returns `access-control-allow-origin: https://evil.example.com`. OPTIONS preflight allows POST with Content-Type. The response body contains `request_token` (CSRF token) in a hidden form field — readable cross-origin. However, NO `access-control-allow-credentials` header is present, so cookies are not sent cross-origin, preventing authenticated form submission from attacker pages.
-verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login/reset?form_variant=none&redirect_url="` — confirms reflected Origin. `curl -s -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/login/reset"` — confirms POST allowed.
-impact: Attacker can read CSRF tokens from the password reset form cross-origin. Without credentials, cannot submit the form on behalf of the user. Defense-in-depth issue. Severity: Low.
-testability: PASSIVE
-[CONFIRMED] account.box.com/login reflects Origin on HEAD (405)
-class: MISCONFIG
-asset: account.box.com/login
-confidence: 60
-reasoning: HEAD request returns 405 but still includes `access-control-allow-origin: https://evil.example.com`. The login page is a POST-only endpoint that reflects arbitrary Origins.
-verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login"` — confirms 405 with reflected Origin.
-impact: Same CORS misconfiguration pattern as reset endpoint — Origin reflection without credentials. Severity: Low.
-testability: PASSIVE
-[CONFIRMED] cloud.account.box.com/login reflects Origin
 class: MISCONFIG
 asset: cloud.account.box.com/login
 confidence: 60
@@ -97,6 +80,23 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS preflight
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1` — test app.box.com API path CORS
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1` — test SPA shell route for CORS headers
+## 2026-08-21 22:06:51 UTC cloud.app.box.com (mimo)
+[CONFIRMED] account.box.com/login CORS reflects Origin on GET/POST responses (no credentials)
+class: MISCONFIG
+asset: account.box.com/login, account.box.com/login/reset
+confidence: 75
+reasoning: Both GET and POST responses include `access-control-allow-origin: <reflected Origin>` and `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. OPTIONS preflight allows POST with Content-Type header. However, `access-control-allow-credentials` is NOT present, so cookies are not sent cross-origin and the response body (containing CSRF tokens) cannot be used for authenticated actions. This is a defense-in-depth issue only.
+verify_steps: `curl -s -D- -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://account.box.com/login" -d "login=test@test.com&password=test"` — confirms reflected Origin on POST response without credentials header.
+impact: Attacker can read CSRF tokens from login form cross-origin. Cannot submit form on behalf of user without credentials. Severity: Low (informational/defense-in-depth).
+testability: PASSIVE
+[CONFIRMED] app.box.com/api/2.0/internal/* has wildcard CORS (access-control-allow-origin: *)
+class: MISCONFIG
+asset: app.box.com/api/2.0/internal/*
+confidence: 70
+reasoning: All `/internal/` API paths return `access-control-allow-origin: *` on 401 responses with `vary: Origin` header. Non-internal paths do not return CORS headers on 401. This is a misconfiguration (server should vary by Origin but uses wildcard), but all endpoints require Bearer token authentication, preventing exploitation.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items"` — confirms wildcard CORS with vary: Origin.
+impact: Wildcard CORS on internal API paths. Without valid Bearer tokens, no data can be accessed. Severity: Low (misconfiguration, not directly exploitable).
+testability: PASSIVE
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)

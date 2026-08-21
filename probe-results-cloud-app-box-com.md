@@ -179,3 +179,14 @@ https://cloud.app.box.com/s/test123 -> HTTP 404
 https://cloud.app.box.com/ -> 206
 https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
 https://cloud.app.box.com/v/test123 -> HTTP 404
+
+## 2026-08-21 22:34:31 UTC cloud.app.box.com
+https://cloud.app.box.com/s/test123 -> HTTP 404
+https://cloud.app.box.com/v/test123 -> HTTP 404
+https://cloud.app.box.com/shared/test123 -> HTTP 404
+https://cloud.app.box.com/folders/0 -> HTTP 404
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/s/abc123 -> HTTP 404
+https://cloud.app.box.com/embed/abc123 -> 200
+https://cloud.app.box.com/preview/abc123 -> HTTP 404

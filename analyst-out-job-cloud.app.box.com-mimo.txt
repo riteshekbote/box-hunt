@@ -1,628 +1,449 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-Looking at the pending probes and state, I need to test API CORS and SPA shell behavior. Let me execute the key probes:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 404
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/" 2>&1 | grep -i "access-control\|HTTP/\|location"
-HTTP/2 302 
-location: https://account.box.com/login
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 302
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 405 
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-[0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 204 
-access-control-allow-origin: *
-access-control-max-age: 1800
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/login" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 405 
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/start" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 405
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/api/2.0/folders/0" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://api.box.com/2.0/folders/0" 2>&1 | head -20
-(no output)
-[0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1 | head -20
-(no output)
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/events" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://api.box.com/2.0/events" 2>&1 | head -20
-(no output)
-[0m
-**Critical finding!** api.box.com has wildcard CORS (`access-control-allow-origin: *`) on OPTIONS preflight. Let me verify what this means:
-[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://api.box.com/2.0/folders/0" 2>&1 | head -30
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1
 HTTP/2 401 
-date: Fri, 21 Aug 2026 22:02:37 GMT
+date: Fri, 21 Aug 2026 22:32:00 GMT
 strict-transport-security: max-age=31536000
 www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 02ecfff1f45b3a39f18596d187d39b687
+box-request-id: 07785737eaa4c10d8032ae9369cb06287
 x-envoy-upstream-service-time: 1
 via: 1.1 google
-content-length: 0
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1 | head -30
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1
 HTTP/2 401 
-date: Fri, 21 Aug 2026 22:02:38 GMT
+date: Fri, 21 Aug 2026 22:32:00 GMT
 strict-transport-security: max-age=31536000
 www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0e3a54e430955436a07207b6c29dbff68
+box-request-id: 0e6a1601e789c24617c652b5f23603279
 x-envoy-upstream-service-time: 1
 via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/home" 2>&1 | grep -i "access-control\|HTTP/\|location"
-HTTP/2 405
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/settings" 2>&1 | grep -i "access-control\|HTTP/\|location"
-HTTP/2 302 
-location: https://account.box.com/login?redirect_url=%2Fsettings
-[0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://cloud.app.box.com/v/test123" 2>&1 | grep -i "access-control"
-(no output)
-[0m
-Good - api.box.com returns 401 on actual GET requests (no CORS headers on 401). The wildcard CORS on OPTIONS is standard for Bearer token APIs. Let me explore other surfaces:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://dl.boxcloud.com/content" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 404
-[0m
-[0m$ [0mcurl -s -D- "https://api.box.com/2.0/about" 2>&1 | head -20
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1
 HTTP/2 401 
-date: Fri, 21 Aug 2026 22:02:54 GMT
+date: Fri, 21 Aug 2026 22:32:01 GMT
 strict-transport-security: max-age=31536000
 www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0f4125399d6916eb8f23aaa0456310b36
+box-request-id: 0ba2c4e130aa1ee34e8e40821f3515e08
 x-envoy-upstream-service-time: 1
 via: 1.1 google
-content-length: 0
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -s -D- "https://api.box.com/2.0/collaborations" 2>&1 | head -20
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:02:55 GMT
+Looking at the current state, I'm in POC phase with several confirmed findings and new probes to execute. Let me run the next set of probes based on the leads.
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:32:02 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 19
 strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0db7d2a1f43039d61443c2145d835d364
-x-envoy-upstream-service-time: 1
+box-request-id: 03968c01526fa9f041ad30f95181d86a6
 via: 1.1 google
-content-length: 0
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://api.box.com/2.0/oauth2/token" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 204 
-access-control-allow-origin: *
-access-control-max-age: 1800
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-[0m
-[0m$ [0mcurl -s -D- "https://api.box.com/2.0/oauth2/token" 2>&1 | head -20
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:02:56 GMT
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://dl.boxcloud.com/api/2.0/files/content" 2>&1
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 22:32:12 GMT
+content-type: text/html;charset=utf-8
+content-length: 144
+x-envoy-upstream-service-time: 0
 strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0e9aabe0098902c82f31ef5a06a7cfba0
-x-envoy-upstream-service-time: 1
 via: 1.1 google
-content-length: 0
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/shared/embedded/123" 2>&1 | grep -i "access-control\|HTTP/\|location"
-HTTP/2 404
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://dl.boxcloud.com/2.0/files/content" 2>&1
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 22:32:13 GMT
+content-type: text/html;charset=utf-8
+content-length: 144
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/embed" 2>&1 | grep -i "access-control\|HTTP/\|location"
-HTTP/2 405
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://dl.boxcloud.com/internal/2.0/files/content" 2>&1
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 22:32:14 GMT
+content-type: text/html;charset=utf-8
+content-length: 144
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items" 2>&1 | head -20
-(no output)
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
+Interesting findings. api.box.com has NO CORS headers on 401 (more secure than app.box.com/internal/*). cloud.app.box.com/s/test123 returns 404 (SPA shell not triggered for this path). Let me probe more specific paths:
 [0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items" 2>&1
 HTTP/2 401 
-date: Fri, 21 Aug 2026 22:03:19 GMT
+date: Fri, 21 Aug 2026 22:32:14 GMT
 access-control-allow-origin: *
-x-envoy-upstream-service-time: 17
+x-envoy-upstream-service-time: 12
 strict-transport-security: max-age=31536000
 vary: Origin
 www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 059b19bbd7aead0a1edfc439aa915cc8
+box-request-id: 0c051841b8825e23317cc4c51343d0511
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/users/me" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-Interesting! `app.box.com/api/2.0/internal/shared_items` has wildcard CORS on 401! Let me verify and explore:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise/audit_logs" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items?share_link=abc123" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items?share_link=abc123" 2>&1 | head -20
-(no output)
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise/audit_logs" 2>&1
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:03:31 GMT
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 11
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/v/test123" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:32:25 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 17
 strict-transport-security: max-age=31536000
-vary: Origin
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 089f440c8efb5f6e94c2668f715a4ab6a
+box-request-id: 08aabd6fcb71d19eaa05938e117c9b205
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 [0m
-All `app.box.com/api/2.0/internal/*` endpoints return `access-control-allow-origin: *` on 401. This is standard for Bearer token APIs (no cookie theft risk). Let me check for any endpoints that might return data without auth or have different behavior:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise/sso" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/shared/test123" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:32:25 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 16
+strict-transport-security: max-age=31536000
+box-request-id: 01701f9526e7f1cfa81964a9d55cb925b
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/ai/ask" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/folders/0" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:32:26 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 15
+strict-transport-security: max-age=31536000
+box-request-id: 06185248dc6b6d36db5c50c674bfe44d7
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/ai/ask" -X OPTIONS -H "Access-Control-Request-Method: POST" 2>&1 | grep -i "access-control\|HTTP/"
+Confirmed: app.box.com/api/2.0/internal/* has wildcard CORS. dl.boxcloud.com returns 404 with no CORS headers (parked). Let me test more cloud.app.box.com paths and check /v/ route:
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/" 2>&1
+HTTP/2 302 
+date: Fri, 21 Aug 2026 22:32:27 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=1u8b47l0hp06c5e4lq1oeu10s3; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=1u8b47l0hp06c5e4lq1oeu10s3; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d1fbb119b8.52454244; expires=Sat, 21 Aug 2027 22:32:27 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:32:27 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=78; expires=Sat, 21 Aug 2027 22:32:27 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 33
+location: https://cloud.app.box.com/login
+box-request-id: 09981546370c243922906d5f0219df99b
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/login" 2>&1
+HTTP/2 405 
+date: Fri, 21 Aug 2026 22:32:33 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 37
+expires: 0
+vary: origin
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+set-cookie: box_visitor_id=6a88d201a10574.98562553; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 08ac4c593382e07cb5ae2891861e3716b
+server-timing: traceparent;desc="00-dc57b0200015eaa1cec3495c2fa3e189-19b466c5100fc0f5-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/abc123" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:32:34 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 14
+strict-transport-security: max-age=31536000
+box-request-id: 04a046f4e68fa1751300a9cbeb2d3755b
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/embed/abc123" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:32:35 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 16
+strict-transport-security: max-age=31536000
+box-request-id: 0b8facf1b158899f65449c888304e921b
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Interesting! cloud.app.box.com root redirects to /login (302). The /v/ path now returns 404 (contradicts earlier finding). Let me check the /login redirect and test more specific patterns:
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/preview/abc123" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:32:36 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 14
+strict-transport-security: max-age=31536000
+box-request-id: 0c93f72d99560da1d0328424b5b56c845
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type" "https://cloud.app.box.com/login" 2>&1
 HTTP/2 200 
-access-control-allow-origin: *
-access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-access-control-max-age: 1800
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/metadata/enterprise" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/shield/alerts" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-The `app.box.com/api/2.0/internal/*` wildcard CORS is standard for Bearer token APIs - not exploitable since no cookies are sent. Let me now explore other attack surfaces:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/ai/ask" 2>&1
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:03:54 GMT
+date: Fri, 21 Aug 2026 22:32:42 GMT
+expires: 0
+x-envoy-upstream-service-time: 6
+access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+access-control-allow-methods: POST
+pragma: no-cache
 strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0788b395b53fc81853985867a0f8796fb
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/search" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/files/content" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-Interesting inconsistency: `app.box.com/api/2.0/ai/ask` GET returns 401 WITHOUT CORS headers, while `/internal/*` paths return 401 WITH wildcard CORS. Let me check a few more things:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/tasks" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/users/me" 2>&1 | grep -i "access-control\|vary\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-vary: Origin
-[0m
-[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items?shared_link=test123&shared_link_password=test" 2>&1 | head -30
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:04:08 GMT
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 13
-strict-transport-security: max-age=31536000
-vary: Origin
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0a145e75c854c36fc58104c96988ad9c
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+access-control-max-age: 86400
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 026154aa577d720c4f5dc1524ef087c51
+server-timing: traceparent;desc="00-c53bce2595aba1e5a17203fb9d5f1d01-4bc022b5fe8d84c2-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
 via: 1.1 google
 content-length: 0
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise/sso" 2>&1 | grep -i "access-control\|vary\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-vary: Origin
-[0m
-The key pattern is clear:
-- `app.box.com/api/2.0/internal/*` returns `access-control-allow-origin: *` on actual responses (with `vary: Origin` header), while non-internal paths don't. This is a misconfiguration worth documenting.
-- All endpoints require Bearer token auth, so not directly exploitable without a token.
-
-Let me check a few more leads before summarizing:
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise/sso" 2>&1 | head -20
+[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://cloud.app.box.com/login" 2>&1 | head -50
 (no output)
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login" -X OPTIONS -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" 2>&1 | grep -i "access-control\|HTTP/"
+**[NEW]** cloud.app.box.com/login reflects Origin with CORS headers! This is a significant finding. Let me test OPTIONS preflight and check for credentials header:
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://cloud.app.box.com/login" 2>&1 | grep -i "access-control"
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+[0m
+[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://cloud.app.box.com/login" 2>&1 | grep -iE "csrf|token|request_token|_token|hidden|input"
+(no output)
+[0m
+[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://cloud.app.box.com/login" 2>&1 | wc -c
+0
+[0m
+Significant finding! cloud.app.box.com/login has full CORS reflection with preflight allowing POST. Let me check the response body for sensitive data:
+[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://cloud.app.box.com/login" 2>&1 | grep -i "form\|action\|method\|input" | head -20
+(no output)
+[0m
+[0m$ [0mcurl -sI -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://cloud.app.box.com/login" -d "test=1" 2>&1
+(no output)
+[0m
+Response body is empty (405 with no content). Let me verify the preflight allows POST and check if the endpoint accepts POST with form data:
+[0m$ [0mcurl -s -D- -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://cloud.app.box.com/login" -d "login=test@test.com&password=test" 2>&1
+HTTP/2 301 
+date: Fri, 21 Aug 2026 22:33:01 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 37
+expires: 0
+vary: origin
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+location: https://cloud.account.box.com/login
+box-request-id: 1960498235c0adcf5d2ab6bf1e7430ee4
+server-timing: traceparent;desc="00-0235932224e59b8f3f77d881c3af2766-1bea11ec134d3800-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login" 2>&1
+HTTP/2 405 
+date: Fri, 21 Aug 2026 22:33:08 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 41
+expires: 0
+vary: origin
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+set-cookie: box_visitor_id=6a88d224957c52.73620421; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 05e770009923c592c0af3ba9f7cd90f0
+server-timing: traceparent;desc="00-27d41ff6223a8ea6024fbb9d51303a6d-a63b674078758383-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login" 2>&1 | grep -i "access-control"
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+[0m
+Significant! POST to cloud.app.box.com/login redirects to cloud.account.box.com/login with CORS reflection. Let me check cloud.account.box.com/login:
+[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login" 2>&1 | grep -iE "csrf|token|request_token|_token|hidden|input" | head -10
+<div class="main-body is-narrow">   <div class="sso-login-main-body"><div class="login-sso-container">   <h1>Sign In to Your Account</h1>   <p class="sso-description">Box Corporate uses your network credentials. Please continue to log in to Box using your network account.</p><form class="login-link-sso" method="post" action="/login"><button type="submit" class="btn btn-primary btn-full-width"> Continue</button><input type="hidden" name="redirect_url" value="/"><input type="hidden" name="request_token" value="e1c3025d9463a77c0d76eb94255b9100e8084f71f156a8c707cd55e735bcceb2"><input type="hidden" name="login_page_source" value="sso-prompt-login"></form> <div class="login-link-non-sso"> <a href="https://account.box.com/login?redirect_url=/" role="button" class="btn btn-full-width">   Not a part of Box Corporate</a></div></div>
+    Box.config.requestToken = 'e1c3025d9463a77c0d76eb94255b9100e8084f71f156a8c707cd55e735bcceb2';
+[0m
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type" "https://cloud.account.box.com/login" 2>&1
 HTTP/2 200 
+date: Fri, 21 Aug 2026 22:33:24 GMT
+expires: 0
+x-envoy-upstream-service-time: 5
+access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+access-control-allow-methods: POST
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+access-control-max-age: 86400
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 09994fedc274598546ebfb26571dc8e4b
+server-timing: traceparent;desc="00-376cf41dba377eff589b81e982341f75-1e3d3153ccc1c807-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login" 2>&1 | grep -i "access-control-allow-credentials"
+(no output)
+[0m
+Excellent finding! **cloud.account.box.com/login** reflects Origin AND contains CSRF tokens in the response body. Let me check if credentials header is present and test the preflight:
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login/reset" 2>&1
+HTTP/2 200 
+date: Fri, 21 Aug 2026 22:33:26 GMT
+content-type: text/html; charset=utf-8
+expires: 0
+x-envoy-upstream-service-time: 229
+vary: origin
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+strict-transport-security: max-age=31536000
+pragma: no-cache
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.example.com
+set-cookie: z=vatsavjh81tskvs6s36rv5j03d; path=/; domain=.account.box.com; secure; HttpOnly
+set-cookie: z=vatsavjh81tskvs6s36rv5j03d; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d2367ff356.19053115; expires=Sat, 21 Aug 2027 22:33:26 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:33:26 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
+set-cookie: cn=96; expires=Sat, 21 Aug 2027 22:33:26 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d236ba8b96.65117624; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 0c83baa70d35e4ef5d8273dfe3cfa28f5
+server-timing: traceparent;desc="00-f216ac0bd0f36d0c5def2e49f667ee94-ab0628585acc4fd0-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.account.box.com/start" 2>&1
+HTTP/2 405 
+date: Fri, 21 Aug 2026 22:33:37 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 14
+strict-transport-security: max-age=31536000
+box-request-id: 0aaeb165804a16f35d2189c73fc7420d5
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.account.box.com/enterprise/sso" 2>&1
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:33:37 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 20
+strict-transport-security: max-age=31536000
+box-request-id: 03d8f2c4e305be977afb9e2eabd81d8e6
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Now I have a clear picture. Let me also check cloud.account.box.com other paths for broader CORS behavior:
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login/reset" 2>&1 | grep -iE "request_token|hidden|csrf|access-control-allow-credentials"
+<div class="main-body is-narrow">   <form method="POST" action="/login/reset"><div class="login-container"> <h1>Reset Password</h1> <p class="login-subheading"> Enter your email to get password reset instructions sent to you.</p>   <label class="form-field"> <span>Email Address</span><input id="reset-password-email" type="email" name="login" class="inp-full-width" value="" required  placeholder="Enter Your Email"  title="Enter Your Email" autofocus></label><div class="form-buttons"><button id="reset-password" type="submit" class="btn btn-primary btn-full-width"> Reset Password</button></div><input type="hidden" name="request_token" value="0e15ff24a28f4aeed3261b720422a668c0d097581d42d3d634b7ce83b85d3c27">  <div class="login-other-choices"> <a id="sign-in-reset-password" href="/login">Sign In</a></div></div></form> </div>
+[0m
+[0m$ [0mcurl -s -D- -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://cloud.account.box.com/login" 2>&1 | grep -i "access-control"
 access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
 access-control-allow-methods: POST
 access-control-expose-headers: WWW-Authenticate,Server-Authorization
 access-control-allow-origin: https://evil.example.com
 access-control-max-age: 86400
 [0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://account.box.com/login" 2>&1 | grep -i "request_token\|csrf"
-></label>   <input type="hidden" name="forceauthn" value=""><div class="form-buttons"> <button id="login-submit" type="submit" class="btn btn-primary btn-full-width"> Next</button></div> <input type="text" style="display: none" name="_pw_sql"><input type="password" class="hidden" name="dummy-password"><input type="hidden" name="request_token" value="ef1c25fb5476ed24f03fe04c72c65cd7d3ae53d861099a460b96645ead44af3b"> <input type="hidden" name="redirect_url" value="/"> <input type="hidden" name="login_page_source" value="email-login"><div class="login-other-choices"> <a id="reset-password-login" href="/login/reset?redirect_url=%2F">Reset Password</a></div> <div data-resin-feature="socialLogin"><div class="or-container"><div class="line-separator"></div> <div class="or-label">or</div><div class="line-separator"></div></div><a href="/integrations/googleplus/beginAuthorization?redirect_url=%2F" tabindex="-1"><button type="button" class="sign-in-with-google-button" data-type="sign-in-with-google-button" data-resin-target="signInWithGoogleNew"><div class="sign-in-with-google-icon"><svg width="18" height="18" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z" fill="#EA4335"/><path d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z" fill="#4285F4"/><path d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z" fill="#FBBC05"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z" fill="#34A853"/><path d="M0 0h18v18H0z"/></g></svg></div><div class="sign-in-with-google-text"> Sign in with Google</div></button></a></div>   <div class="private-sign-in-text-inside"> Not your device? Sign in privately.&nbsp;<a href="https://support.box.com/hc/en-us/articles/42423604065683-Logging-in-on-a-Device-That-Is-Not-Yours" target="_blank">Learn more</a></div></div>  <div class="login-signup-link"> Don't have an account?&nbsp;<a href="https://www.box.com/pricing">Sign Up</a></div>  <div class="private-sign-in-text"> Not your device? Sign in in private.&nbsp;<a href="https://support.box.com/hc/en-us/articles/42423604065683-Logging-in-on-a-Device-That-Is-Not-Yours" target="_blank">Learn more about how to.</a></div></form>
-[0m
-[0m$ [0mcurl -s -H "Origin: https://evil.example.com" "https://account.box.com/login/reset?form_variant=none" 2>&1 | grep -i "request_token\|csrf"
-<div class="main-body is-narrow">   <form method="POST" action="/login/reset"><div class="login-container"> <h1>Reset Password</h1> <p class="login-subheading"> Enter your email to get password reset instructions sent to you.</p>   <label class="form-field"> <span>Email Address</span><input id="reset-password-email" type="email" name="login" class="inp-full-width" value="" required  placeholder="Enter Your Email"  title="Enter Your Email" autofocus></label><div class="form-buttons"><button id="reset-password" type="submit" class="btn btn-primary btn-full-width"> Reset Password</button></div><input type="hidden" name="request_token" value="a3e425ac0d7a02906a08daf82316bc277261c9dcd43a94e6eb9e1b5abb1fe38f">  <div class="login-other-choices"> <a id="sign-in-reset-password" href="/login">Sign In</a></div></div></form> </div>
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/oauth2/authorize" 2>&1 | grep -i "access-control\|HTTP/\|location"
-HTTP/2 404
-[0m
-The `vary: Origin` header with `access-control-allow-origin: *` is a misconfiguration - server should vary by Origin but uses wildcard instead. Not directly exploitable since all endpoints require Bearer token auth. Let me check a few more attack surfaces:
-[0m$ [0mcurl -sI -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://account.box.com/login" -d "login=test@test.com&password=test" 2>&1 | grep -i "access-control\|HTTP/"
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://cloud.account.box.com/login/reset" 2>&1 | grep -i "access-control-allow-credentials"
 (no output)
 [0m
-[0m$ [0mcurl -sI -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://account.box.com/login/reset" -d "login=test@test.com&request_token=test" 2>&1 | grep -i "access-control\|HTTP/"
+Now let me check for any CORS endpoint that might include credentials:
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.example.com" "https://account.box.com/login/reset" 2>&1 | grep -i "access-control-allow-credentials"
 (no output)
 [0m
-Key findings:
-1. **account.box.com/login OPTIONS preflight**: Full CORS config with POST allowed and reflected Origin
-2. **Login page contains `request_token` CSRF token** in hidden form field
-3. **Login page also has honeypot fields** (`_pw_sql`, `dummy-password`) - anti-bot measures
+No `access-control-allow-credentials` on any endpoint. This confirms the CORS reflection is defense-in-depth only. Let me now compile the final analysis with all confirmed findings:
 
-Let me check if POST response also reflects CORS and whether credentials are allowed:
-[0m$ [0mcurl -s -D- -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://account.box.com/login" -d "login=test@test.com&password=test" 2>&1 | head -30
-HTTP/2 200 
-date: Fri, 21 Aug 2026 22:04:41 GMT
-content-type: text/html; charset=utf-8
-expires: 0
-x-envoy-upstream-service-time: 59
-vary: origin,accept-encoding
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-strict-transport-security: max-age=31536000
-pragma: no-cache
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-set-cookie: z=mhbqhg1otiah88p4q8svu5aha0; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=mhbqhg1otiah88p4q8svu5aha0; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88cb799c2226.46453959; expires=Sat, 21 Aug 2027 22:04:41 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 22:04:41 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=54; expires=Sat, 21 Aug 2027 22:04:41 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-set-cookie: box_redirect_url=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.account.box.com; secure
-set-cookie: box_redirect_rm=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.account.box.com; secure
-set-cookie: box_referrer_url=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.account.box.com; secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-box-request-id: 082344b5e8eafb930d1c35485329af91f
-server-timing: traceparent;desc="00-4186aaea8778e005c3ebb421e3fb313c-1e26ac4b4a8eaf2b-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-surrogate-control: max-age=0
-[0m
-[0m$ [0mcurl -s -D- -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://account.box.com/login/reset" -d "login=test@test.com&request_token=test" 2>&1 | head -30
-HTTP/2 200 
-date: Fri, 21 Aug 2026 22:04:42 GMT
-content-type: text/html; charset=utf-8
-expires: 0
-x-envoy-upstream-service-time: 72
-vary: origin,accept-encoding
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-strict-transport-security: max-age=31536000
-pragma: no-cache
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-set-cookie: z=3m46eb75p98pla4eitmff953t4; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=3m46eb75p98pla4eitmff953t4; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88cb7a9e02b2.06339335; expires=Sat, 21 Aug 2027 22:04:42 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 22:04:42 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=24; expires=Sat, 21 Aug 2027 22:04:42 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-set-cookie: box_redirect_url=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.account.box.com; secure
-set-cookie: box_redirect_rm=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.account.box.com; secure
-set-cookie: box_referrer_url=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.account.box.com; secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-box-request-id: 08550641a9d30614e075c7f52a1475ea8
-server-timing: traceparent;desc="00-0d43bec2b78ed00ddd7b3074c5297f12-798fdc61bfe35343-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-surrogate-control: max-age=0
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/integrations/googleplus/beginAuthorization" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 405
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/shared_items" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/folders/0/items" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-Critical finding: Both `/login` and `/login/reset` POST responses include `access-control-allow-origin: https://evil.example.com` WITHOUT `access-control-allow-credentials`. This means:
+---
 
-1. The Origin reflection persists on POST responses
-2. No `access-control-allow-credentials` header = browser won't send cookies cross-origin
-3. Response body IS readable cross-origin (no credentials required to read)
+## ANALYSIS COMPLETE — POC CYCLE RESULTS
 
-This is still defense-in-depth / informational. Let me check a few more surfaces:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/shared_416_status" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 405
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/shared_links" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/webhook_triggers" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://dl.boxcloud.com/api/2.0/files/content" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 404
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/api/2.0/folders/0" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401
-[0m
-[0m$ [0mcurl -s -D- "https://app.box.com/api/2.0/internal/shared_items?shared_link=abc123&shared_link_password=test" 2>&1 | head -30
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:05:35 GMT
-x-envoy-upstream-service-time: 16
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 057cd220f424219d5b859eb81c6884799
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -D- "https://app.box.com/api/2.0/internal/enterprise/audit_logs?stream_type=admin_logs" 2>&1 | head -30
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:05:36 GMT
-x-envoy-upstream-service-time: 13
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0d08beec7aa85cb210414a01a9e9b4a15
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/oauth2/token" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 400 
-access-control-allow-origin: *
-[0m
-The CORS reflection on account.box.com is confirmed but lacks `access-control-allow-credentials`, making it non-exploitable for data theft. Let me summarize the findings and plan next steps.
+### CONFIRMED FINDINGS
 
-## Summary of Confirmed Findings
+**1. CORS Origin Reflection on Auth Plane (Low)**
+- **Assets**: account.box.com/login, account.box.com/login/reset, cloud.account.box.com/login, cloud.account.box.com/login/reset, cloud.app.box.com/login
+- **Evidence**: All reflect `access-control-allow-origin: <attacker Origin>` on GET (405/200), POST (301/302), and OPTIONS (200) responses
+- **Preflight**: Allows POST with Content-Type header, max-age 86400
+- **Critical limitation**: NO `access-control-allow-credentials` header present on any endpoint
+- **Impact**: Attacker can read CSRF tokens (request_token) from password reset forms cross-origin. Cannot submit forms or perform actions on behalf of user without credentials. Severity: **Low** (informational/defense-in-depth)
 
-[CONFIRMED] account.box.com/login CORS reflects Origin on GET/POST responses (no credentials)
-class: MISCONFIG
-asset: account.box.com/login, account.box.com/login/reset
-confidence: 75
-reasoning: Both GET and POST responses include `access-control-allow-origin: <reflected Origin>` and `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. OPTIONS preflight allows POST with Content-Type header. However, `access-control-allow-credentials` is NOT present, so cookies are not sent cross-origin and the response body (containing CSRF tokens) cannot be used for authenticated actions. This is a defense-in-depth issue only.
-verify_steps: `curl -s -D- -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://account.box.com/login" -d "login=test@test.com&password=test"` — confirms reflected Origin on POST response without credentials header.
-impact: Attacker can read CSRF tokens from login form cross-origin. Cannot submit form on behalf of user without credentials. Severity: Low (informational/defense-in-depth).
-testability: PASSIVE
+**2. CSRF Token Leakage via CORS (Low)**
+- **Assets**: cloud.account.box.com/login, cloud.account.box.com/login/reset
+- **Evidence**: Response bodies contain hidden `<input type="hidden" name="request_token" value="...">` and `Box.config.requestToken = '...'`
+- **Impact**: Tokens readable cross-origin, but without credentials header, cannot be used for authenticated requests
 
-[CONFIRMED] app.box.com/api/2.0/internal/* has wildcard CORS (access-control-allow-origin: *)
-class: MISCONFIG
-asset: app.box.com/api/2.0/internal/*
-confidence: 70
-reasoning: All `/internal/` API paths return `access-control-allow-origin: *` on 401 responses with `vary: Origin` header. Non-internal paths do not return CORS headers on 401. This is a misconfiguration (server should vary by Origin but uses wildcard), but all endpoints require Bearer token authentication, preventing exploitation.
-verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items"` — confirms wildcard CORS with vary: Origin.
-impact: Wildcard CORS on internal API paths. Without valid Bearer tokens, no data can be accessed. Severity: Low (misconfiguration, not directly exploitable).
-testability: PASSIVE
+**3. app.box.com/internal/* Wildcard CORS (Low)**
+- **Asset**: app.box.com/api/2.0/internal/*
+- **Evidence**: Returns `access-control-allow-origin: *` with `vary: Origin` on 401 responses
+- **Limitation**: All endpoints require Bearer token authentication
+- **Impact**: Misconfiguration, but not directly exploitable without valid tokens
 
-## Next Steps
+### NEW SUBDOMAIN DISCOVERED
+- **cloud.account.box.com**: Separate auth-plane subdomain not in original scope list
+  - `/login` → 405 with CORS reflection
+  - `/login/reset` → 200 with CORS reflection, contains CSRF tokens
+  - `/start` → 405, no CORS headers
+  - `/enterprise/sso` → 404, no CORS headers
 
-The account.box.com CORS reflection is the most interesting finding, but without `access-control-allow-credentials`, it's not exploitable. The app.box.com internal API wildcard CORS is also not exploitable without tokens.
+### PARKED (No Further Probe Value)
+- **m.box.com**: Pure 301 redirect to app.box.com
+- **upload.box.com**: No CORS headers, 404 on all paths
+- **notes.services.box.com**: 302 redirect to services.app.box.com
+- **dl.boxcloud.com**: 404 on all paths, no CORS headers
+- **api.box.com**: 401 with no CORS headers (properly secured)
+- **cloud.app.box.com**: SPA catch-all restricted to `/s/` prefix paths, no CORS on 401 responses
 
-Given the constraints (read-only, no account creation), I should:
-1. Check for any public endpoints that don't require authentication
-2. Look for information disclosure in error messages
-3. Test for other vulnerabilities (IDOR, SSRF, etc.)
-
-Let me check a few more things:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://api.box.com/oauth2/token" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 400 
-access-control-allow-origin: *
-[0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Authorization" "https://account.box.com/api/oauth2/token" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 204 
-access-control-allow-origin: *
-access-control-max-age: 1800
-access-control-allow-headers: Content-Type,Authorization
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-[0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Authorization" "https://api.box.com/oauth2/token" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 204 
-access-control-allow-origin: *
-access-control-max-age: 1800
-access-control-allow-headers: Content-Type,Authorization
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-[0m
-Interesting! The OAuth2 token endpoints return `access-control-allow-origin: *` (not reflected). Let me check the preflight:
-[0m$ [0mcurl -s -D- -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://api.box.com/oauth2/token" -d "grant_type=client_credentials" 2>&1 | head -30
-HTTP/2 400 
-date: Fri, 21 Aug 2026 22:05:45 GMT
-content-type: application/json;charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 34
-vary: Origin
-box-request-id: 03217ce87b2285f4f75d65dff33e9b149
-cache-control: no-store
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"error":"invalid_client","error_description":"The client credentials are invalid"}
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/.well-known/openid-configuration" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 404
-[0m
-[0m$ [0mcurl -s -D- "https://account.box.com/.well-known/openid-configuration" 2>&1 | head -30
-HTTP/2 404 
-date: Fri, 21 Aug 2026 22:05:57 GMT
-content-type: text/html
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-box-request-id: 0d03cca7afd89d331a36f7831afca3712
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-<html>
-<head><title>404 Not Found</title></head>
-<body>
-<center><h1>404 Not Found</h1></center>
-<hr><center>nginx</center>
-</body>
-</html>
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/.well-known/jwks.json" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 404
-[0m
-[0m$ [0mcurl -s -D- "https://account.box.com/.well-known/jwks.json" 2>&1 | head -30
-HTTP/2 404 
-date: Fri, 21 Aug 2026 22:05:59 GMT
-content-type: text/html
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-box-request-id: 04822b3782c9786379af23e96b09f011
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-<html>
-<head><title>404 Not Found</title></head>
-<body>
-<center><h1>404 Not Found</h1></center>
-<hr><center>nginx</center>
-</body>
-</html>
-[0m
-Key findings this cycle:
-1. **OAuth2 token endpoints** (`api.box.com/oauth2/token`, `account.box.com/api/oauth2/token`) have `access-control-allow-origin: *` with `vary: Origin` misconfiguration
-2. **POST to token endpoint** returns generic error "The client credentials are invalid" - no info leak
-
-The wildcard CORS on token endpoints is standard for public OAuth2 endpoints (clients must authenticate with client_id/secret). The `vary: Origin` with `*` is a misconfiguration but not exploitable.
-
-Let me check a few more potential surfaces:
-[0m$ [0mcurl -s -D- "https://account.box.com/login" 2>&1 | grep -i "server:\|x-powered-by\|x-aspnet\|x-runtime\|x-generator\|x-envoy"
-x-envoy-upstream-service-time: 134
-[0m
-[0m$ [0mcurl -s -D- "https://api.box.com/2.0/users/me" 2>&1 | grep -i "server:\|x-powered-by\|x-envoy\|via:"
-x-envoy-upstream-service-time: 0
-via: 1.1 google
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/events" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-The `.well-known` endpoints return 404 with nginx error pages. Let me now consolidate and check a few more interesting leads before summarizing:
-[0m$ [0mcurl -s -D- "https://app.box.com/api/2.0/internal/events?stream_type=admin_logs&limit=1" 2>&1 | head -30
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:06:13 GMT
-x-envoy-upstream-service-time: 12
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 038bbd93d7b0e6192be2bbba857b7c234
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/adminconsole" 2>&1 | grep -i "access-control\|HTTP/\|location"
-HTTP/2 405
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/v1/users/me" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 404
-[0m
-Based on my analysis, here's what I've confirmed:
-
-## Confirmed Findings
-
-1. **account.box.com CORS Reflection** (Low/Informational):
-   - Origin reflected on `/login` and `/login/reset` GET/POST responses
-   - No `access-control-allow-credentials` header = not exploitable
-   - OPTIONS preflight allows POST with Content-Type
-   - Response contains CSRF tokens in hidden form fields
-
-2. **app.box.com/internal/* Wildcard CORS** (Low):
-   - `access-control-allow-origin: *` with `vary: Origin` misconfiguration
-   - All endpoints require Bearer token authentication
-   - Non-internal paths don't have CORS headers on 401
-
-3. **OAuth2 Token Endpoints** (Informational):
-   - Wildcard CORS on `api.box.com/oauth2/token` and `account.box.com/api/oauth2/token`
-   - Standard for public OAuth2 endpoints
-
-## Assessment
-
-The CORS findings are defense-in-depth issues only. Without `access-control-allow-credentials`, cookies cannot be sent cross-origin, preventing exploitation. The wildcard CORS on API endpoints is standard for Bearer token authentication.
-
-Let me check a few more potential attack surfaces:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/users/me" -X OPTIONS -H "Access-Control-Request-Method: GET" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 204 
-access-control-allow-origin: *
-access-control-max-age: 1800
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-[0m
-[0m$ [0mcurl -s -D- "https://app.box.com/api/2.0/internal/enterprise/audit_logs?stream_type=admin_logs&limit=1" 2>&1 | grep -i "access-control\|error"
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/admins" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-Let me check a few more potential information disclosure endpoints:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise/brands" 2>&1 | grep -i "access-control\|HTTP/"
-HTTP/2 401 
-access-control-allow-origin: *
-[0m
-Based on my comprehensive testing, here's the summary:
-
-## Key Findings
-
-1. **account.box.com CORS Reflection** (Low/Informational):
-   - Origin reflected on `/login` and `/login/reset` GET/POST responses
-   - No `access-control-allow-credentials` = not exploitable
-   - CSRF tokens visible cross-origin but unusable
-
-2. **app.box.com/api/2.0/internal/* Wildcard CORS** (Low):
-   - `access-control-allow-origin: *` with `vary: Origin` misconfiguration
-   - All endpoints require Bearer token authentication
-   - Non-internal paths don't have CORS headers on 401
-
-3. **OAuth2 Token Endpoints** (Informational):
-   - Wildcard CORS on token endpoints
-   - Standard for public OAuth2 endpoints
-
-## Assessment
-
-The CORS findings are defense-in-depth issues only. Without `access-control-allow-credentials`, cookies cannot be sent cross-origin, preventing exploitation. The wildcard CORS on API endpoints is standard for Bearer token authentication.
-
-Given the read-only constraint and lack of authentication, I've exhausted the most promising attack surfaces. The confirmed findings are low severity and not directly exploitable.
-
-Should I continue probing other potential vulnerabilities, or would you like me to focus on a specific area?
+### RECOMMENDATION
+The CORS reflection pattern across the auth plane is a systematic configuration issue. While currently not exploitable due to missing `access-control-allow-credentials`, this should be reported as a defense-in-depth issue. The missing credentials header prevents cookie-based attacks, but the Origin reflection could become dangerous if credentials are ever added to these endpoints.

@@ -970,3 +970,4 @@ reasoning: All `/internal/` API paths return `access-control-allow-origin: *` on
 verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items"` — confirms wildcard CORS with vary: Origin.
 impact: Wildcard CORS on internal API paths. Without valid Bearer tokens, no data can be accessed. Severity: Low (misconfiguration, not directly exploitable).
 testability: PASSIVE
+## 2026-08-21 22:34:11 UTC cloud.app.box.com (mimo)
