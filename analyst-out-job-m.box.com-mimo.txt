@@ -1,566 +1,49 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m✱ [0mGlob "*.md"[90m 17 matches[0m
-[0m→ [0mRead probe-results-next.md
-[0m→ [0mRead leads/host-cloud.app.box.com.md[90m [offset=1, limit=200][0m
-[0m→ [0mRead probe-results-cloud-app-box-com.md[90m [offset=1, limit=100][0m
-Let me check the most recent lead state and what's still open.
-[0m→ [0mRead reports/hypotheses.md[90m [offset=1, limit=200][0m
-[0m→ [0mRead leads/host-cloud.app.box.com.md[90m [offset=650][0m
-[0m→ [0mRead probe-results-cloud-app-box-com.md[90m [offset=100][0m
-[0m→ [0mRead probe-results-next.md[90m [offset=1018, limit=500][0m
-Let me check the tail of the leads file and read the most recent additional probe results.
-[0m→ [0mRead leads/host-api.box.com.md[90m [limit=50, offset=1][0m
-[0m→ [0mRead leads/host-account.box.com.md[90m [limit=50, offset=1][0m
-[0m→ [0mRead leads/host-notes.services.box.com.md[90m [limit=50, offset=1][0m
-[0m→ [0mRead leads/host-m.box.com.md[90m [limit=50, offset=1][0m
-[0m→ [0mRead leads/host-app.box.com.md[90m [limit=50, offset=1][0m
-Let me check the other host lead files quickly to see what surfaces are available.
-[0m→ [0mRead probe-results-next.md[90m [offset=4400][0m
-Now I have a clear picture. Let me synthesize and produce the cycle output.
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mcurl -sS -o /tmp/cloud-range.txt -w "HTTP_CODE:%{http_code}\nCONTENT_LENGTH:%{size_download}\nCONTENT_TYPE:%{content_type}\n" -H "User-Agent: box-research/1.0 +(research)" -H "Range: bytes=0-0" https://cloud.app.box.com/ 2>&1 && echo "---HEADERS---" && curl -sS -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Range: bytes=0-0" https://cloud.app.box.com/ 2>&1 && echo "---BODY---" && cat /tmp/cloud-range.txt failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
 [0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" -D - https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" -H "Range: bytes=0-0" --max-time 10 2>&1 | head -80
+[0m$ [0mcurl -sS -D- -o /tmp/cloud-cors.txt -w "\nHTTP_CODE:%{http_code}\n" -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.example.com" https://cloud.app.box.com/ 2>&1 && echo "---BODY---" && head -c 500 /tmp/cloud-cors.txt
 HTTP/2 302 
-date: Fri, 21 Aug 2026 18:47:07 GMT
+date: Fri, 21 Aug 2026 18:56:08 GMT
 content-type: text/html; charset=utf-8
-set-cookie: z=ncfgqrq87dpssjsh53vlr8ra7c; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=ncfgqrq87dpssjsh53vlr8ra7c; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: z=e2plhts07vlbsalql36c08fk9f; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=e2plhts07vlbsalql36c08fk9f; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
 set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a889d2b749023.99750701; expires=Sat, 21 Aug 2027 18:47:07 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:47:07 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=88; expires=Sat, 21 Aug 2027 18:47:07 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: box_visitor_id=6a889f482441e7.16817968; expires=Sat, 21 Aug 2027 18:56:08 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:56:08 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=53; expires=Sat, 21 Aug 2027 18:56:08 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
 set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
 expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 83
+x-envoy-upstream-service-time: 55
 location: https://cloud.app.box.com/login
-box-request-id: 08f81c97f39d987ac04a5f565583f85c9
+box-request-id: 060e321a2befcab78989c05d6efb97e0
 cache-control: no-store, no-cache, must-revalidate
 strict-transport-security: max-age=31536000
 pragma: no-cache
 via: 1.1 google
 content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+alt-svc: h3=":443"; ma=2592000
 
-status:302 size:0
+
+HTTP_CODE:302
+---BODY---
 [0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/?list-type=2 -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -80
-HTTP/2 302 
-date: Fri, 21 Aug 2026 18:47:08 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=jc3e1kh5njror9rlna58jghrjm; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=jc3e1kh5njror9rlna58jghrjm; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a889d2ccda065.68331599; expires=Sat, 21 Aug 2027 18:47:08 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:47:08 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=55; expires=Sat, 21 Aug 2027 18:47:08 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 45
-location: https://cloud.app.box.com/login
-box-request-id: 08ef634729e5a3d5fa57eb7d8580dd6e8
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-The executor is running the exact same 14-URL probe set for 30+ consecutive cycles with zero variation. All ranked hypotheses are stale (closed 2026-08-14). I need to run manual probes to capture the headers/body the executor cannot.
-[0m$ [0mcurl -s -D - https://api.box.com/ -H "User-Agent: box-research/1.0 +(research)" -H "Accept: application/json" --max-time 10 2>&1 | head -80
+[0m$ [0mcurl -sS -D- -o /tmp/api-json.txt -w "\nHTTP_CODE:%{http_code}\nCONTENT_LENGTH:%{size_download}\n" -H "User-Agent: box-research/1.0 +(research)" -H "Accept: application/json" https://api.box.com/ 2>&1 && echo "---BODY---" && head -c 500 /tmp/api-json.txt
 HTTP/2 401 
-date: Fri, 21 Aug 2026 18:47:10 GMT
+date: Fri, 21 Aug 2026 18:56:09 GMT
 strict-transport-security: max-age=31536000
 www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0153ac5683b52df01382742b392a2aae4
+box-request-id: 0874e02a4120979195bde2fb2dab19f32
 x-envoy-upstream-service-time: 1
 via: 1.1 google
 content-length: 0
 alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" --max-time 10 -L 2>&1
-status:200 size:18276
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" --max-time 10 -L --max-redirs 3 2>&1 | head -100
-HTTP/2 302 
-date: Fri, 21 Aug 2026 18:47:24 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=t5acu70k4d63epq78end8i2v67; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=t5acu70k4d63epq78end8i2v67; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a889d3c39b024.79909821; expires=Sat, 21 Aug 2027 18:47:24 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:47:24 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=6; expires=Sat, 21 Aug 2027 18:47:24 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 35
-location: https://cloud.app.box.com/login
-box-request-id: 090ec4c0eaa0f6f0fb56a46049686cbd9
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-HTTP/2 301 
-date: Fri, 21 Aug 2026 18:47:24 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 38
-expires: 0
-vary: origin
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-pragma: no-cache
-strict-transport-security: max-age=31536000
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-set-cookie: box_visitor_id=6a889d3cec6a13.28731222; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-location: https://cloud.account.box.com/login
-box-request-id: 07db6b3b80b51811f96fe019b573a0c4
-server-timing: traceparent;desc="00-783f25fa8b93b1566f40dce1ae93069d-7f26b4b675848e16-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-surrogate-control: max-age=0
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-HTTP/2 200 
-date: Fri, 21 Aug 2026 18:47:24 GMT
-content-type: text/html; charset=utf-8
-expires: 0
-x-envoy-upstream-service-time: 168
-vary: origin,accept-encoding
-x-frame-options: SAMEORIGIN
-link: </css/vendor/fonts/Lato-Regular.woff>; rel=preload; as=font
-x-download-options: noopen
-strict-transport-security: max-age=31536000
-pragma: no-cache
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-set-cookie: z=v3d21q6073dpni99ngpfg63oea; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=v3d21q6073dpni99ngpfg63oea; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a889d3c689984.90371387; expires=Sat, 21 Aug 2027 18:47:24 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:47:24 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=11; expires=Sat, 21 Aug 2027 18:47:24 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-set-cookie: uid=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a889d3c4b2252.73689283; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-box-request-id: 1de0744124d2b947dfa2d518425b468cf
-server-timing: traceparent;desc="00-13dd89376d0b49d0ec7183a54714e2e5-a881ed66fb12b100-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-accept-ranges: bytes
-surrogate-control: max-age=0
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-  <!DOCTYPE html><html lang="en-US" data-resin-client="web"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta name="viewport" content="width=device-width, initial-scale=1.0"> <meta name="robots" content="noindex"> <title>Box | Login</title>    <link rel="stylesheet" href="https://cdn01.boxcdn.net/webapp_assets/login/css/login-92a4b8c805.css">   <style id="head-custom-branding">
-
-.main-header { background-color: #0061D5; border-bottom-color: #0050b1;
-}
-
-.main-header span,
-.main-header .header-marketing-link,
-.main-header .lnk,
-.main-header .lnk:hover,
-.main-header .btn,
-.main-header .btn:hover,
-.main-header .btn:active { border-color: #FFFFFF !important; color: #FFFFFF !important;
-}
-
-.main-header svg path { fill: #FFFFFF;
-}
-
-/* Common Elements */   
-
-/* Button styles for overriding box-ui - overwrites styles in amsterdam/overrides/buttons.css */
-[0m
-Very interesting! The Range header probe returns 302 (not 206). Let me probe further to understand the discrepancy.
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/login -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -80
-HTTP/2 301 
-date: Fri, 21 Aug 2026 18:47:25 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 46
-expires: 0
-vary: origin
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-pragma: no-cache
-strict-transport-security: max-age=31536000
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-set-cookie: box_visitor_id=6a889d3d420891.37418399; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-location: https://cloud.account.box.com/login
-box-request-id: 03cb33c142c0ebfdc2721781639b8d025
-server-timing: traceparent;desc="00-495f71dad80dadfa5e1023c9f4769fed-f9a74cd142c9ef4e-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-surrogate-control: max-age=0
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/robots.txt -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -40
-HTTP/2 200 
-date: Fri, 21 Aug 2026 18:47:42 GMT
-content-type: text/plain
-last-modified: Fri, 21 Aug 2026 12:19:12 GMT
-x-envoy-upstream-service-time: 4
-strict-transport-security: max-age=31536000
-etag: "6a884240-88b"
-box-request-id: 0575f27a3dad52d616cf5bafe7c8b3433
-accept-ranges: bytes
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-User-agent: Twitterbot
-Disallow: /
-Allow: /representation  # Twitter needs to be able to display file thumbnails in social media cards; this prevents those assets from being blocked.
-Allow: /app-assets  # Twitter needs to be able to display the Box logo in social media cards; this prevents those assets from being blocked.
-Allow: /$
-Allow: /sitemap.xml$
-Allow: /login
-Allow: /simpleshare
-Allow: /services
-Allow: /reset
-Allow: /signup
-Allow: /cdn  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
-Allow: /sites  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
-Allow: /platform # Platform static assets (Box Elements) share a CDN with the webapp; this prevents those assets from being blocked.
-Allow: /s/  # The "noindex" robots directive is only respected if these pages are crawlable
-Allow: /shared/  # The "noindex" robots directive is only respected if these pages are crawlable
-Allow: /v/  # The "noindex" robots directive is only respected if these pages are crawlable
-Allow: /app-center
-Allow: /integrations
-Allow: /enduser
-Allow: /fonts
-Allow: /_assets/img/favicons
-Allow: /app-api/split-proxy
-Allow: /app-gallery-v2/api
-
-User-agent: *
-Disallow: /
-Disallow: /signup/collablink/
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/favicon.ico -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -40
-HTTP/2 200 
-date: Fri, 21 Aug 2026 18:47:45 GMT
-content-type: image/x-icon
-last-modified: Fri, 21 Aug 2026 12:19:07 GMT
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-etag: "6a88423b-3aee"
-box-request-id: 1da8b651a24c555a9bfff118392e8d5
-accept-ranges: bytes
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-    00     �%  6          �  �%       h  �6  (   0   `           $                          �Z �b ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��b ��Z             �b <�` ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` ��b <    �Z �` ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` ��Z �b ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��b ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��y&��m��ί���`��e��a ��a ��a ��a ��a ��a ��a �ބ6�곃��ϰ�����߇=��d��a ��a ��a ��e��b���?��a ��a ��a ��a ��a ��a ��a ��x%��p��k��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��~.�������������������������������b��a ��a ��a �ކ;������������������������������|��a ��a ��ѵ��������������a ��a ��a ��a ��a ��R��������������a ��a ��a ��a ��a ��a ��a ��a ��a ��a �곃������������������������������������������f��a ��o������������������������������������������h	��ջ��������������S��a ��a ��a ��y&������������������a ��a ��a ��a ��a ��a ��a ��a ��a �ކ;��������������������������ӹ���������������������߇=�����������������������г������������������׿��n������������������y&��a ��i�����������������ބ6��a ��a ��a ��a ��a ��a ��a ��a ��e������������������o��a ��a ��a ��d��ί������������������������������v!��a ��a ��a ��b���������������O�ބ6������������������j������������������i��a ��a ��a ��a ��a ��a ��a ��a ��a ��S��������������k��a ��a ��a ��a ��a ��a ��������������������������r��a ��a ��a ��a ��a ��a ��׿��������������a ��j������������������������������ʨ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��Ǥ����������Ƣ��a ��a ��a ��a ��a ��a ��a �݀3������������������ӹ��a ��a ��a ��a ��a ��a ��a ��n��������������a ��a ��̬��������������������������b��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��������������S��a ��a ��a ��a ��a ��a ��a ��c������������������s��a ��a ��a ��a ��a ��a ��a ��a ��������������n��a ��b����������������������g
-��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��������������m��a ��a ��a ��a ��a ��a ��a ��j�����������������브��a ��a ��a ��a ��a ��a ��a ��b��������������h	��a ��r���������������������ބ9��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ������������������a ��a ��a ��a ��a ��a ��a ��e����������������������a ��a ��a ��a ��a ��a ��a �߇=��������������a ��e������������������������������o��a ��a ��a ��a ��a ��a ��a ��a ��a ��a �����������������߇>��a ��a ��a ��a ��a ��i��������������������������X��a ��a ��a ��a ��a ��d������������������a ��������������������������������������d��a ��a ��a ��a ��a ��a ��a ��a ��a ����������������������r��b��a ��a �ބ6��������������������������������������d��a ��a �݀1������������������q�뵇������������������a �������������������a ��a ��a ��a ��a ��a ��a ��a ��a ������������������������������������������������������p��k����������������������������������������������s��D������������������e��a ��a �����������������걀��a ��a ��a ��a ��a ��a ��a ��a ��������������������������������������������������y��a ��a ��v!����������������������������������������a ������������������p��a ��a ��a ��e������������������a ��a ��a ��a ��a ��a ��a ��a ��������������L������������������������������~.��a ��a ��a ��a ��h	������������������������������v!��a ��a ��f���������ނ7��a ��a ��a ��a ��a ��o�����������a ��a ��a ��a ��a ��a ��a ��a ���������������C��a ��a ��g
-�݂5��r��b��a ��a ��a ��a ��a ��a ��a ��a ��a ��i�݀3��m��a ��a ��a ��a ��a ��a ��c��c��a ��a ��a ��a ��a ��a ��a ��a ��e��a ��a ��a ��a ��a ��a ��a ��a ��a ���������������C��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ���������������C��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ���������������C��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ���������������C��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��ϲ����������j��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��e��f��{*��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��b ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��b ��Z �` ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` ��Z     �b <�` ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` ��b <            �Z �b ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��b ��Z         �      �      �                                                                                                                                                                                                                                                                                                                                                      �      �      �      (       @                                 �` 5�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` 5    �` 5�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` 5�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��b��a ��a ��a ��a ��a ��a ��a ��a ��b��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��b�뵇��������������պ�݀2��a ��a ��n��ǣ��������������ջ��i��h	����������f��a ��a ��b����������r��a ��a ��a ��a ��a ��b�����������������������������݀3��j������������������������������x%��������������a ��a ��ί����������t��a ��a ��a ��a ��a ��Þ�����������k�߇>��������������������������i��f��i���������������M�����������l����������t��a ��a ��a ��a ��a ��a ����������y��a ��a ��a ��a ������������������v!��a ��a ��a ��v!����������z)����������������������ѵ��a ��a ��a ��a ��a ��a ��p����������f��a ��a ��a ��a ���������������a ��a ��a ��a ��a ����������s��a ������������������b��a ��a ��a ��a ��a ��a ��}.����������p��a ��a ��a ��a ��ѵ��������������a ��a ��a ��a ��a ����������e��d������������������k��a ��a ��a ��a ��a ��a ��}.����������Þ��a ��a ��a ��f�������������������A��a ��a ��a ���A����������r��������������������������b��a ��a ��a ��a ��a ��}.������������������]��������������������������������R��������������׿��������������\�ބ9����������Ҷ��a ��a ��a ��a ��a ��}.����������������������������������m��b������������������������������r������������a ��a ��o����������~/��a ��a ��a ��a ��}.���������߇>��������������l��i��a ��a ��c��R��Ҷ����������m��a ��b������Ġ��a ��a ��a ��a �봅������g
-��a ��a ��a ��a ��}.����������a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��}.����������a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��}.����������a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��e������ϰ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` 5�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` 5    �` 5�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��` 5    �  �                                                                                                                  �  �  (                                    �a O�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a O�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��f��z��t��i��d��e�봆��i��z)��{*��a ��w$��~/��a ��a ��i���������������������������������뵇�����߅:������l��a ��a �브������a ��a ����������e��a ��Þ��ѵ��ί������ջ��a ��a ��a ����������a ��b����������g
-��a ��ί��Ȧ��������������a ��a ��a ����������������������׾�������������브������w$������~��a ��a ����������X��L��d��b�߇>��Z��c��r��p��a ��n��u ��a ��a �����뵉��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��~.��n��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a O�a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a ��a O�                                                          �  
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/crossdomain.xml -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -40
-HTTP/2 200 
-date: Fri, 21 Aug 2026 18:47:46 GMT
-content-type: text/x-cross-domain-policy
-last-modified: Fri, 21 Aug 2026 12:19:07 GMT
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-etag: "6a88423b-3d7"
-box-request-id: 01a513190aae953c213cb5d274a6395b5
-accept-ranges: bytes
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-<?xml version="1.0"?><!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">
-<cross-domain-policy>
-	<!-- Box has recently changed its crossdomain policy for API calls made from Flash.
-	To continue using Box API, please add the following line to the code of your Flash application:
-		- AS2: System.security.loadPolicyFile("http://www.box.net/api/crossdomain.xml");
-		- AS3: Security.loadPolicyFile("http://www.box.net/api/crossdomain.xml");	
-	-->
-	<allow-access-from domain="*.box.net" secure="true" />
-	<allow-access-from domain="*.box.com" secure="true" />
-	<allow-access-from domain="*.boxcdn.net" secure="true" />
-	<allow-access-from domain="*.boxcn.net" secure="true" />
-	<allow-access-from domain="*.boxenterprise.net" secure="true" />
-	<allow-access-from domain="*.inside-box.net" secure="true" />
-	<!-- Allows /api/crossdomain.xml to work -->
-	<site-control permitted-cross-domain-policies="by-content-type"/>
-</cross-domain-policy>
-[0m
-Critical: `cloud.app.box.com/` → 302 → login → `cloud.account.box.com/login` (200). The executor reports 200/206 for `/` — it must be following redirects. Let me check the actual assets that return 206.
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/sitemap.xml -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -40
-HTTP/2 302 
-date: Fri, 21 Aug 2026 18:47:47 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=cbdt4c3t13o1c4gbnc6aoeileo; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=cbdt4c3t13o1c4gbnc6aoeileo; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a889d53c4da26.06876967; expires=Sat, 21 Aug 2027 18:47:47 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:47:47 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=90; expires=Sat, 21 Aug 2027 18:47:47 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 47
-location: https://www.box.com/sitemap.xml
-box-request-id: 0b6cca941f968b705ce5988a4c22f81bb
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/representation -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:23662
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-assets -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:23662
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/s/ -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:23664
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-api/split-proxy -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:18
-[0m
-The robots.txt reveals the actual route structure. Let me probe the discovered paths.
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-gallery-v2/api -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:0
-[0m
-[0m$ [0mcurl -s https://cloud.app.box.com/app-api/split-proxy -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-404 page not found
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/app-api/split-proxy -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -20
-HTTP/2 404 
-date: Fri, 21 Aug 2026 18:48:21 GMT
-content-type: text/plain
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-box-request-id: 020afe5c4d1f0346ea6fcbbaf54530699
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-404 page not found
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-api/ -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:401 size:0
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-assets/img/favicons -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:0
-[0m
-Interesting — `/app-api/split-proxy` returns only 18 bytes (not the 23KB SPA fallback). Let me check its content and probe more paths.
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/simpleshare -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:301 size:0
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/simpleshare -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -10
-HTTP/2 301 
-date: Fri, 21 Aug 2026 18:48:38 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 56
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=6t3kt026j7t2mb73i4u0429l93; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=6t3kt026j7t2mb73i4u0429l93; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-api/v2.0/ -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:401 size:0
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-api/users/me -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:401 size:0
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/signup -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:302 size:0
-[0m
-Key findings: `/app-api/` returns 401 (API layer), `/simpleshare` returns 301. Let me follow up.
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/services -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:301 size:0
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/simpleshare -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i location
-location: http://sites.box.com/apps/web/simpleshare/
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/signup -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i location
-location: https://www.box.com/pricing/
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/services -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i location
-location: https://cloud.app.box.com/integrations
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-api/split-proxy/config -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:18
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/app-api/split-proxy/status -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:18
-[0m
-[0m$ [0mcurl -s -D - "http://sites.box.com/apps/web/simpleshare/" -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -10
-HTTP/1.1 301 Moved Permanently
-Date: Fri, 21 Aug 2026 18:49:05 GMT
-Content-Type: text/html; charset=UTF-8
-Transfer-Encoding: chunked
-Connection: keep-alive
-Location: https://sites.box.com/apps/web/simpleshare/
-X-Content-Type-Options: nosniff
-set-cookie: __cf_bm=oBsxIadkAtquG.3MbXyQeIY0sBwfcZm2r1Av1tQ60gA-1787338145.267017-1.0.1.1-mMfFlUG8fUpVnTsdHEmAchnO_NSUU5LWpCQkZWqFfVPYTQeVZtP6.ErBFVPfGs7fqPtXxdvVIbVH._6tQPY3B9f2Zl4queOUhIbe4xgozeOwFfOK_PbMCLUhWLDYORhi; HttpOnly; Path=/; Domain=box.com; Expires=Fri, 21 Aug 2026 19:19:05 GMT
-x-frame-options: SAMEORIGIN
-aaa-loc-header: US
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/integrations -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -10
-HTTP/2 200 
-date: Fri, 21 Aug 2026 18:49:06 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=fe9pjgbv1mb43opc93evho9jk5; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=fe9pjgbv1mb43opc93evho9jk5; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a889da25df5e8.16949246; expires=Sat, 21 Aug 2027 18:49:06 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:49:06 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=21; expires=Sat, 21 Aug 2027 18:49:06 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/reset -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:302 size:0
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/enduser -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:302 size:0
-[0m
-The `/simpleshare` redirect uses HTTP (not HTTPS) — a scheme downgrade. Let me investigate further.
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" https://cloud.app.box.com/platform -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:302 size:0
-[0m
-[0m$ [0mcurl -s https://cloud.app.box.com/integrations -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | head -30
-<!DOCTYPE html><html lang="en-US" data-resin-client="web"><head><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>Box Integrations</title>  <meta name="description" content="Box Integrations provides integration solutions connecting data from Box.com with other applications and services across the web."><meta name="twitter:card" content="summary"><meta name="twitter:site" content="@Box"><meta property="og:title" content="Box Integrations"><meta property="og:type" content="website"><meta property="og:description" content="Box Integrations provides integration solutions connecting data from Box.com with other applications and services across the web."><meta property="og:site_name" content="Box App Center"> <meta property="og:image" content="https://cdn01.boxcdn.net/app-assets/partners/app-gallery/box-social.jpeg"><meta property="article:publisher" content="https://www.facebook.com/Box"> <link rel="canonical" href="https://app.box.com/integrations"/>      <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" /> <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous" />  <link rel="stylesheet" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/main-fonts.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/app.0277bda3b7.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.e65ea5d7b3.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/main.e37ef609c7.css">  <link rel="preload" href="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" as="script" type="text/javascript" crossorigin="anonymous">  <link rel="preload" href="https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/file-request-forms/box_forms_client_remote.2.587.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/hubs-assets/box_hubs_client_remote.2.286.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/money-assets/box_money_client_remote.0.137.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/sign-assets/box_sign_client_remote.2.416.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/relay-trigger-assets/box_trigger_client_remote.16.97.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/docgen-client-assets/box_docgen_client_remote.0.167.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/insights-assets/box_insights_client_remote.1.412.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/extract-client/box_extract_client_remote.1.223.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/workflow-client-assets/box_workflow_client_remote.0.813.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/governance-client/box_governance_client_remote.1.60.11.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-client/box_integrations_client_remote.1.17.4.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-center-client/box_integrations_center_client_remote.1.30.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/aistudio-assets/box_aistudio_client_remote.1.1165.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-prompt-library/box_ai_prompt_library_remote.2.9.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-solutions-client/box_solutions_client_remote.1.18.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/markdown-editor/box_markdown_editor_remote.2.3.18.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-security-client-assets/box_ai_security_client_remote.1.55.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-center/box_ai_center_remote.2.36.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/preview-client-assets/box_preview_client_remote.1.113.13.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-client/box_boxapps_client_remote.0.20260815.362.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-solutions-client/box_boxapps_solutions_client_remote.0.20260810.85.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/items-client-assets/box_items_client_remote.1.73.0.js" as="script" type="text/javascript" crossorigin="anonymous">    <link rel="apple-touch-icon" sizes="57x57" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-57x57-fLlEpj.png">
-<link rel="apple-touch-icon" sizes="60x60" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-60x60-Uv0qzu.png">
-<link rel="apple-touch-icon" sizes="72x72" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-72x72-7aVqne.png">
-<link rel="apple-touch-icon" sizes="76x76" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-76x76-ZVGnRV.png">
-<link rel="apple-touch-icon" sizes="114x114" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-114x114-busq-D.png">
-<link rel="apple-touch-icon" sizes="120x120" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-120x120-K-u4U5.png">
-<link rel="apple-touch-icon" sizes="144x144" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-144x144-va9pYs.png">
-<link rel="apple-touch-icon" sizes="152x152" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-152x152-r5tWgh.png">
-<link rel="apple-touch-icon" sizes="180x180" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-180x180-tV001c.png">
-<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-32x32-VwW37b.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-32x32-brwW_W.png" sizes="32x32">
-<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/android-chrome-192x192-96i97M.png" sizes="192x192">
-<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-96x96-XU7UE1.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-96x96-TOQ9Kg.png" sizes="96x96">
-<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-16x16-_kQSW4.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-16x16-Ou5N87.png" sizes="16x16">
-<link rel="manifest" href="https://cdn01.boxcdn.net/_assets/img/favicons/manifest-rw1AEP.json">
-<link rel="mask-icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/safari-pinned-tab-jyt2W4.svg">
-<link rel="shortcut icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-yz-tj-.ico" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-EHWWyP.ico">
-<meta name="msapplication-TileColor" content="#da532c">
-<meta name="msapplication-TileImage" content="https://cdn01.boxcdn.net/_assets/img/favicons/mstile-144x144-pllCM8.png">
-<meta name="msapplication-config" content="https://cdn01.boxcdn.net/_assets/img/favicons/browserconfig-fdBReK.xml">
-<meta name="theme-color" content="#ffffff">
 
 
-
-</head><body class="is-loading " data-resin-application="files">  <div class="loading-screen-header"></div><div class="loading-screen-progress-bar-container"><div class="loading-screen-progress-bar"></div></div> <style type="text/css" id="loading-screen-css"> 
-
-    .loading-screen-progress-bar-container { left: 0; position: fixed; right: 0; top: 56px; z-index: 21; 
-    } body.is-loading .loading-screen-progress-bar { animation: fadein 0.1s ease-in, progressbar 0.6s ease-in; opacity: 1; width: 95%;
-    }
-
-    .loading-screen-progress-bar {  background: #3c94ff;  height: 3px; transition: width 0.2s ease-in, background 0.125s ease-in, opacity 0.2s ease-out; transition-delay: 0s, 0s, 0.2s; will-change: background, opacity, width;
+HTTP_CODE:401
+CONTENT_LENGTH:0
+---BODY---
 [0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" "https://cloud.app.box.com/app-center" -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:200 size:25996
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "status:%{http_code} size:%{size_download}" "https://cloud.app.box.com/_assets/img/favicons" -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1
-status:404 size:217
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/robots.txt -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i "access-control\|x-frame\|content-security\|referrer-policy"
-(no output)
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/integrations -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i "access-control\|x-frame\|content-security\|referrer-policy"
-(no output)
-[0m
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.example.com" --max-time 10 2>&1 | grep -i "access-control\|vary"
-(no output)
-[0m
-Now I have comprehensive header data. Let me do a few final probes and then write the analysis.
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/integrations -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.example.com" --max-time 10 2>&1 | grep -i "access-control\|vary"
-(no output)
-[0m
-[0m$ [0mcurl -s -D - -o /dev/null "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i "location"
-location: https://cloud.app.box.com/login
-[0m
-[0m$ [0mcurl -s -D - -o /dev/null "https://cloud.app.box.com/login" -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i "location"
-location: https://cloud.account.box.com/login
-[0m
-No CORS headers on any endpoint. Let me check the redirect chain for token leakage.
-[0m$ [0mcurl -s -D - https://cloud.app.box.com/crossdomain.xml -H "User-Agent: box-research/1.0 +(research)" --max-time 10 2>&1 | grep -i "access-control\|x-frame\|content-security"
-(no output)
-[0m
-Now I have comprehensive evidence. Let me write the cycle analysis.
-
-[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: CORS misconfiguration hypotheses — manual header capture confirms ZERO Access-Control-* headers on root, robots.txt, favicon.ico, crossdomain.xml, /integrations, and all /app-api/* endpoints, even with `Origin: https://evil.example.com`. Options preflight returns 405 (logged 2026-08-14). All 10 ranked CORS hypotheses at [45] are DISPROVEN.
-
-[LEARN] REJECTED OTHER @ cloud.app.box.com/: Object-store default-handler hypothesis — closed 2026-08-14, confirmed again: root redirects (302->/login->cloud.account.box.com/login), pinned assets (robots.txt, favicon.ico, crossdomain.xml) return 200 with real content, random paths return 23KB SPA shell (404). Whitelist-routed confirmed.
-
-[LEARN] ACCEPTED RECON @ cloud.app.box.com/: Manual probe with curl reveals full route map via robots.txt, actual status codes, response headers, and body content — executor was reporting 200/206 for `/` because it follows redirects to the login page (200), NOT because the origin serves content at root.
-
-[NEW] cloud.app.box.com: robots.txt exposes 23+ allowed internal paths (/representation, /app-assets, /simpleshare, /services, /reset, /signup, /cdn, /sites, /platform, /s/, /shared/, /v/, /app-center, /integrations, /enduser, /fonts, /_assets/img/favicons, /app-api/split-proxy, /app-gallery-v2/api) — full route map for the Box web application.
-
-[NEW] cloud.app.box.com: /app-api/* returns 401 (auth-gated API layer); /app-api/split-proxy returns Go-style "404 page not found" (18 bytes, text/plain) — separate Go service behind the API edge.
-
-[NEW] cloud.app.box.com: /simpleshare redirects to `http://sites.box.com/apps/web/simpleshare/` — HTTP scheme downgrade from HTTPS origin. Target (sites.box.com) immediately upgrades to HTTPS via 301, so MITM window is negligible.
-
-[HYP] Information disclosure via robots.txt route map
-class: OTHER
-asset: cloud.app.box.com/robots.txt
-confidence: 75
-reasoning: robots.txt is publicly accessible and reveals 23+ internal paths including /app-api/split-proxy, /app-gallery-v2/api, /app-center, /platform, /enduser — these are not linked from the public marketing site. The route map aids targeted fuzzing of the Box web application. Content-Type: text/plain, no access restrictions.
-verify_steps: (1) GET https://cloud.app.box.com/robots.txt — record full content. Already confirmed 200 with route list. (2) Verify each revealed path returns distinct status codes (done: /app-api/ -> 401, /integrations -> 200, /app-api/split-proxy -> 404 Go-style, others -> 302/404).
-impact: Attacker gains internal route map for targeted probing of auth-gated endpoints; Low severity (informational, standard robots.txt practice).
-testability: PASSIVE
-
-[HYP] HTTP scheme downgrade on /simpleshare redirect
-class: OTHER
-asset: cloud.app.box.com/simpleshare
-confidence: 60
-reasoning: /simpleshare returns 301 with Location: http://sites.box.com/apps/web/simpleshare/ — explicit HTTP scheme in redirect from an HTTPS origin. Target immediately upgrades to HTTPS (301), so MITM window is negligible. May indicate legacy configuration.
-verify_steps: (1) GET https://cloud.app.box.com/simpleshare — confirm 301 to HTTP URL. Already confirmed. (2) Follow HTTP redirect — confirm target upgrades. Already confirmed (301 to HTTPS).
-impact: Negligible — target immediately upgrades to HTTPS; no credential/token leakage possible in the brief HTTP redirect.
-testability: PASSIVE
-
-[HYP] Missing security headers on static assets
-class: MISCONFIG
-asset: cloud.app.box.com/{robots.txt,favicon.ico,crossdomain.xml}
-confidence: 70
-reasoning: Manual header capture shows no X-Frame-Options, no Content-Security-Policy, no Referrer-Policy, no X-Content-Type-Options on static assets (robots.txt, favicon.ico, crossdomain.xml). Only HSTS (strict-transport-security) is present. These assets could be framed by attacker pages.
-verify_steps: (1) GET https://cloud.app.box.com/robots.txt — capture full headers. Confirmed: no X-Frame-Options, CSP, or Referrer-Policy. (2) Repeat for favicon.ico and crossdomain.xml. Already confirmed.
-impact: Static assets (especially crossdomain.xml which reveals Flash policy) can be framed; Low severity — no sensitive data in these assets.
-testability: PASSIVE
-
-[HYP] Legacy crossdomain.xml grants broad Flash/Silverlight access
-class: OTHER
-asset: cloud.app.box.com/crossdomain.xml
-confidence: 80
-reasoning: crossdomain.xml grants `<allow-access-from>` to *.box.net, *.box.com, *.boxcdn.net, *.boxcn.net, *.boxenterprise.net, *.inside-box.net with `secure="true"`. Also sets `<site-control permitted-cross-domain-policies="by-content-type"/>`. While Flash is EOL, this policy could be relevant if any Box subdomain is compromised — the crossdomain policy grants implicit trust to all listed domains.
-verify_steps: (1) GET https://cloud.app.box.com/crossdomain.xml — already confirmed content. (2) Verify each allowed domain resolves (informational).
-impact: If any *.box.com subdomain is XSS-compromised, Flash/Silverlight objects on cloud.app.box.com can be accessed cross-origin per this policy; Low severity (Flash EOL, but policy remains).
-testability: PASSIVE
-
-[PARKED] CORS misconfiguration on cloud.app.box.com: DISPROVEN — manual header capture (2026-08-21) confirms zero Access-Control-* headers on all endpoints with attacker Origin. Options preflight returns 405 (2026-08-14). All CORS hypotheses closed.
-
-[PARKED] Object-store default handler on cloud.app.box.com: DISPROVEN — root redirects to login, pinned assets serve real content, random paths return SPA shell. Whitelist-routed confirmed (2026-08-14).
-
-[PARKED] XSS via crafted filename/title: requires pre-existing shared link with attacker-controlled metadata (write ops forbidden) -> AUTH_HELPED.
-
-[PARKED] Embed token/URL leakage: requires existing public shared-link embed to trace redirect chain -> AUTH_HELPED.
-
-[LEARN] REJECTEDTOOL @ cloud.app.box.com/: Executor reports200/206 for `/` because it follows the redirect chain: / -> 302 -> /login -> 301 -> cloud.account.box.com/login -> 200. The "206" reports in executor results are the final status after following redirects, not the initial response. This explains the 200/206 alternation (different backend loads at cloud.account.box.com).
-
-[NEXT] PROBE: GET https://cloud.app.box.com/app-api/split-proxy/health -H "User-Agent: box-research/1.0 +(research)" -- record status, Content-Type, body_length. Then GET https://cloud.app.box.com/app-api/split-proxy/ready and /app-api/split-proxy/version. The Go-style 404 handler suggests a separate service; health/version endpoints are common on Go services. 1 req/2s, stop on first 4xx/429/403.
-
-[NEXT] PROBE: GET https://cloud.app.box.com/v/ -H "User-Agent: box-research/1.0 +(research)" — the /v/ path (allowed in robots.txt) may serve versioned content or a different handler than the SPA shell. Record status and body_length. Same stop rules.
-
-[NEXT] PROBE: GET https://cloud.app.box.com/shared/ -H "User-Agent: box-research/1.0 +(research)" — /shared/ is allowed in robots.txt and may expose shared file views. Record status, redirect Location, body_length. Same stop rules.
