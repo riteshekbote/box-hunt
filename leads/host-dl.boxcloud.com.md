@@ -615,3 +615,4 @@ verify_steps: (1) GET cloud.app.box.com/embed with `Origin: https://evil.example
 impact: If embed endpoint reflects CORS or allows framing without proper X-Frame-Options, could enable cross-origin token theft or UI redress. Severity: Medium.
 testability: PASSIVE
 ## 2026-08-21 19:20:31 UTC dl.boxcloud.com (mimo)
+## 2026-08-21 19:42:30 UTC dl.boxcloud.com (mimo)
