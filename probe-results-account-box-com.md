@@ -92,3 +92,11 @@ https://cloud.account.box.com/.well-known/openid-configuration -> HTTP 404
 https://cloud.account.box.com/login -> 206
 https://account.box.com/login?redirect_url=/ -> 206
 https://accounts.google.com/o/oauth2/v2/auth?response_type=code&access_type=offline&client_id=371608620635-lsbr3prap4hae8kl0netf6r54831t8b4.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Faccount.box.com%2Fintegrations%2Fgoogleplus%2Foauth2Redirect&state=%257B%2522c%2522%253A%25223620c59bdbd8d -> 200
+
+## 2026-08-21 23:14:02 UTC account.box.com
+https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com -> 206
+https://account.box.com/api/oauth2/revoke -> 206
+https://account.box.com/api/v2.0/users/me -> HTTP 404
+https://account.box.com/login -> 206
+https://account.box.com/api/oauth2/token -> HTTP 400
+https://account.box.com/api/oauth2/authorize -> 206
