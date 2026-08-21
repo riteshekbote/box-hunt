@@ -827,3 +827,32 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -s "https://account.box.com/_assets/conf/"` — test for config directory listing in GCS bucket
 [NEXT] PROBE: `curl -s "https://account.box.com/_assets/assetsGenerated.json"` — build output manifest referenced in Makefile.js
 [NEXT] RECON: `curl -sI "https://account.box.com/app-api/split-proxy/health"` — test split-proxy backend health endpoint
+## 2026-08-21 19:25:59 UTC cloud.app.box.com (mimo)
+[LEARN] ACCEPTED MISCONFIG @ account.box.com/api/oauth2/token: wildcard CORS `*` with ALL methods (DELETE, HEAD, GET, OPTIONS, POST, PUT) — confirmed via OPTIONS preflight. The token endpoint is live (`400` with `invalid_request` on GET). Same wildcard pattern as root `/`. Safe per CORS spec (`*` never allows credentials), but unnecessarily broad method enumeration on a sensitive auth endpoint.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/2.0/*: full Box API proxy with `access-control-allow-origin: *`, `access-control-allow-headers: Authorization`, and ALL methods (DELETE, HEAD, GET, OPTIONS, POST, PUT). Same pattern on app.box.com and api.box.com. Requires Bearer auth (401 without token). This is by design for the Box JS SDK — `*` prevents cookie theft but allows explicit Authorization header from any origin.
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com root with Origin header: 302 redirect to /login — no CORS headers on the redirect response. The API proxy layer at `/api/2.0/` is a separate backend with distinct CORS config.
+[HYP] account.box.com `/api/oauth2/token` wildcard CORS + POST acceptance enables cross-origin token grant attempts
+class: MISCONFIG
+asset: account.box.com/api/oauth2/token
+confidence: 40
+reasoning: OPTIONS returns `access-control-allow-origin: *` with `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT`. GET returns `{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}` — the endpoint is live and processes parameters. Any website can craft a cross-origin POST to the token endpoint. However, `*` wildcard never sends cookies/credentials, so only explicit client_secret or authorization_code grants would work — and the attacker would need those values. The method enumeration (DELETE, PUT) is defensive overkill.
+verify_steps: Already confirmed. To test POST acceptance: `curl -s -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/api/oauth2/token"` returns 204 with all methods allowed.
+impact: Any website can make cross-origin requests to the OAuth2 token endpoint. Without stolen credentials this is not directly exploitable. Severity: Informational (defense-in-depth).
+testability: PASSIVE
+[HYP] cloud.app.box.com API proxy enables cross-origin Bearer token usage from any website
+class: MISCONFIG
+asset: cloud.app.box.com/api/2.0/
+confidence: 35
+reasoning: `access-control-allow-origin: *` with `access-control-allow-headers: Authorization` on all `/api/2.0/` endpoints. Any website can send requests with Authorization: Bearer <token> headers to the full Box API via this proxy. `*` wildcard prevents cookie inclusion (safe). If a Box XSS or token leak ever occurs, the wildcard CORS allows exfiltration from any origin without credential restrictions. This is by design for the JS SDK but amplifies impact of any token compromise.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Headers: Authorization" "https://cloud.app.box.com/api/2.0/users/me"` — confirms `access-control-allow-origin: *` and `access-control-allow-headers: Authorization`.
+impact: Amplification vector — any leaked Bearer token can be used from any website. Not a standalone vulnerability. Severity: Informational.
+testability: PASSIVE
+[PARKED] account.box.com `/saml` SSO endpoint: HEAD returns 405, exists but not GET/HEAD-accessible. Would need POST to test SAML flow — out of scope for read-only.
+[PARKED] account.box.com `/_assets/` sibling-object enumeration: package-lock.json, conf/, assetsGenerated.json, .env, config.json, webpack.config.js, .git/config all return 404 (GCS NoSuchKey). GCS key prefix is `resources/` and no sensitive sibling objects exist under it.
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/api/2.0/folders/0/items"` — test if folder listing endpoint returns different error or data without auth
+[NEXT] PROBE: `curl -s -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/api/2.0/" 2>&1` — check API root response body for endpoint discovery
+[NEXT] PROBE: `curl -sI "https://app.box.com/api/2.0/users/me"` — confirm app.box.com API proxy requires auth
+[NEXT] RECON: `curl -sI "https://account.box.com/reset"` — test password reset endpoint from robots.txt path map
+[NEXT] RECON: `curl -sI "https://account.box.com/enduser"` — test enduser path from robots.txt
+[NEXT] RECON: `curl -sI "https://account.box.com/app-center"` — test app-center path from robots.txt
+[NEXT] RECON: `curl -sI "https://account.box.com/integrations"` — test integrations path from robots.txt

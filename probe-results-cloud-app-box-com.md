@@ -126,3 +126,14 @@ https://cloud.app.box.com/` -> HTTP 404
 
 ## 2026-08-20 10:04:48 UTC cloud.app.box.com
 https://cloud.app.box.com/ -> 206
+
+## 2026-08-21 19:26:19 UTC cloud.app.box.com
+https://cloud.app.box.com/api/2.0/users/me -> HTTP 401
+https://cloud.app.box.com/api/2.0/folders/0/items -> HTTP 401
+https://cloud.app.box.com/api/2.0/ -> HTTP 404
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
+https://cloud.app.box.com/api/2.0/events -> HTTP 401
+https://cloud.app.box.com/api/2.0/metadata_templates -> HTTP 401
+https://cloud.app.box.com/api/2.0/collaborations -> HTTP 401
