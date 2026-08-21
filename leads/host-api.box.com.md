@@ -825,3 +825,34 @@ impact: High — if real-time collaboration bypasses standard auth, could allow 
 testability: AUTH_HELPED
 [NEXT] PROBE: 3xGET notes.services.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/realtime (2) /api/collaboration (3) /api/notes/sessions
 [LEARN] ACCEPTED OTHER @ notes.services.box.com: New unexplored surface with distinct architecture from main Box platform — real-time collaboration may have separate auth/session handling
+## 2026-08-21 22:58:52 UTC api.box.com (mimo)
+[PARKED] notes.services.box.com WebSocket/real-time collaboration bypass: Root 302s to services.app.box.com (out of scope), all probed API paths (/api/realtime, /api/collaboration, /api/notes/sessions, /api/1.0/notes) return 404. Express.js backend behind Envoy with CSRF cookies and frame-ancestors CSP — no unauthenticated surface discovered.
+[LEARN] REJECTED AUTH @ notes.services.box.com: Host redirects root to out-of-scope origin (services.app.box.com); all API paths 404. No unauthenticated collaboration surface exists.
+[PARKED] notes.services.box.com real-time collaboration surface: Host redirects to out-of-scope origin, no exposed API surface.
+[NEW] app.box.com: Primary web app with same path structure as account.box.com plus /app-center, /platform, /representation, /app-assets. CDN shared with marketing site.
+[NEW] app.box.com/app-center: Full SPA with embedded Box.config and Box.prefetchedData — requestToken, Zuora billing URL, Pendo/Amplitude/Split.io API keys, runtime metadata, feature flags, micro-frontend versions.
+[HYP] app-box.com/app-center embedded API key abuse
+class: MISCONFIG
+asset: app.box.com/app-center
+confidence: 55
+reasoning: /app-center serves the full Box SPA unauthenticated, embedding third-party API keys (Amplitude: c6eb3d709c5c30ca80c0381080bcc254, Split.io: 3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a, Pendo: 123e0628-cb29-41d1-466c-c592c7ddcd06), Zuora billing endpoint, runtime metadata (us-west4-prod, k8s), feature flags, and preview token timeout (3600s). These keys are client-side by design, but the Zuora billing URL and requestToken embedded in the anonymous page are notable — requestToken could be tested for session fixation or CSRF bypass on unauthenticated endpoints.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) app.box.com/platform (2) app.box.com/integrations (3) app.box.com/enduser — extract Box.config from each and compare requestToken, API keys, feature flags
+impact: Low-Medium — third-party SDK keys are client-side by design; however, Zuora billing endpoint exposure and requestToken reuse across anonymous sessions could enable billing enumeration or CSRF if token is reusable
+testability: PASSIVE
+[HYP] app.box.com CDN preflight/GET CORS mismatch
+class: MISCONFIG
+asset: app.box.com/app-api/*
+confidence: 35
+reasoning: The Envoy/CDN layer returns `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Headers: Authorization` on OPTIONS preflight for all `/app-api/*` paths. However, the actual GET responses from the Express origin do NOT include CORS headers. This is a configuration mismatch between CDN and origin. Currently not exploitable because browser blocks cross-origin reads. If the origin ever adds CORS headers (e.g., for a new feature), the overly permissive preflight would immediately enable cross-origin data theft of the current-user object and any authenticated API responses.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) OPTIONS + GET on /app-api/enduserapp/current-user checking CORS headers (2) OPTIONS + GET on /app-api/split-proxy (3) OPTIONS + GET on /app-gallery-v2/api — confirm GET never reflects Origin
+impact: Low — current misconfiguration is not exploitable, but indicates fragile CORS posture that could become dangerous if origin adds CORS headers
+testability: PASSIVE
+[HYP] app.box.com version string disclosure
+class: OTHER
+asset: app.box.com/app-api/enduserapp/current-user
+confidence: 85
+reasoning: The `x-enduserapp-currentversion: 23.692.0+hotfix.1` response header discloses the exact enduserapp version including hotfix suffix. Combined with the SPA-embedded version strings (preview 3.79.0, 20+ micro-frontend versions from Box.prefetchedData), an attacker can fingerprint the exact deployment and identify known vulnerabilities.
+verify_steps: Already confirmed — no further probing needed
+impact: Low — version disclosure aids targeted attacks but is informational only
+testability: PASSIVE
+[NEXT] PROBE: 3xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/2.0/users/me (2) /api/2.0/folders/0 (3) / — check if the 206 on root is a CDN range-request layer that fronts the origin, or purely static asset serving

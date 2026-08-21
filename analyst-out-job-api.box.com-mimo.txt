@@ -1,24 +1,580 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m→ [0mRead .
-[0m→ [0mRead state_api.box.com.json
-[0m→ [0mRead lead-job-api.box.com-mimo.txt
-Looking at the current state, I'm analyzing the Box bug bounty program. Based on the provided context and current phase (POC), here's my analysis:
+[PROBE] notes.services.box.com — executing the scheduled probes:
+[0m$ [0mcurl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api/realtime"
+404
+[0m
+[0m$ [0msleep 2 && curl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api/collaboration"
+404
+[0m
+[0m$ [0msleep 2 && curl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api/notes/sessions"
+404
+[0m
+All three API paths returned 404. The notes.services.box.com host doesn't expose those endpoints. Let me do basic surface recon to understand what this host actually serves:
+[0m$ [0mcurl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/" 2>&1 | head -30
+HTTP/2 302 
+date: Fri, 21 Aug 2026 22:53:28 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 14
+strict-transport-security: max-age=31536000
+location: https://services.app.box.com/
+box-request-id: 0f9c94529680690ec938d67807bd42a17
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/robots.txt" 2>&1 | head -20
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:53:39 GMT
+content-type: text/html; charset=utf-8
+content-length: 15
+access-control-expose-headers: Server-Timing
+server-timing: traceparent;desc="00-512b314dd04b4c56e947ffc58db8776d-c3ea8ceeef6abff0-00"
+x-powered-by: Express
+set-cookie: _csrf=lUfIlJ368d3l6OtXhQ7lCR-v; Path=/; HttpOnly; Secure; SameSite=None
+set-cookie: csrf-token=fYZlOXmH-BJcdvvr31vu44BiuYIlCmfrYe28; Path=/; Secure; SameSite=None
+strict-transport-security: max-age=31536000
+x-frame-options: ALLOW-FROM https://app.box.com
+content-security-policy: frame-ancestors https://app.box.com
+etag: W/"f-Z280BOLXUGgeynAe/z2VTx5EI7Q"
+x-envoy-upstream-service-time: 3
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api/1.0/notes" 2>&1 | head -20
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:53:48 GMT
+content-type: text/html; charset=utf-8
+content-length: 15
+access-control-expose-headers: Server-Timing
+server-timing: traceparent;desc="00-0bcc8dfdc15bd73554e57e8df37576e8-c4f6db9d7fd1f0e8-00"
+x-powered-by: Express
+set-cookie: _csrf=BIg5-PPuMwlqRiatO6kHoBzl; Path=/; HttpOnly; Secure; SameSite=None
+set-cookie: csrf-token=ykWLje7s-ThFNBRmQ_iKzAW8Dce0oKTcDUZA; Path=/; Secure; SameSite=None
+strict-transport-security: max-age=31536000
+x-frame-options: ALLOW-FROM https://app.box.com
+content-security-policy: frame-ancestors https://app.box.com
+etag: W/"f-Z280BOLXUGgeynAe/z2VTx5EI7Q"
+x-envoy-upstream-service-time: 5
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -D- -X OPTIONS -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api/1.0/notes" 2>&1 | head -30
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:53:59 GMT
+content-type: text/html; charset=utf-8
+content-length: 15
+access-control-expose-headers: Server-Timing
+server-timing: traceparent;desc="00-b6d1485f378b791dc10351e4ac0f7f78-e24310126f71d5d9-00"
+x-powered-by: Express
+set-cookie: _csrf=OPaR1atAb3pudNsIV6CoZpEr; Path=/; HttpOnly; Secure; SameSite=None
+set-cookie: csrf-token=pnXOGyYr-eiTNvCI1KAu1Llr_x81Q4pUE4B8; Path=/; Secure; SameSite=None
+strict-transport-security: max-age=31536000
+x-frame-options: ALLOW-FROM https://app.box.com
+content-security-policy: frame-ancestors https://app.box.com
+etag: W/"f-Z280BOLXUGgeynAe/z2VTx5EI7Q"
+x-envoy-upstream-service-time: 4
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-[NEW] notes.services.box.com: Box Notes backend with real-time collaboration — unexplored surface
-[HYP] notes.services.box.com WebSocket/real-time collaboration bypass
-class: AUTH
-asset: notes.services.box.com
-confidence: 40
-reasoning: Real-time collaboration systems often use WebSockets or Server-Sent Events with different authentication mechanisms than standard HTTP APIs. If the Notes backend implements its own session handling separate from the main Box auth, there could be authentication bypass or session fixation vulnerabilities. The "content sync" functionality may have insecure direct object references or improper access controls.
-evidence_needed: Response headers showing WebSocket upgrade support, authentication requirements on collaboration endpoints, session handling mechanisms
-verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) / with Connection: Upgrade, Upgrade: websocket header (2) /api/collaboration (3) /api/notes - check for authentication requirements and session tokens
-impact: High — if real-time collaboration bypasses standard auth, could allow unauthorized access to Box Notes content
-testability: AUTH_HELPED
+404 - Not Found
+[0m
+Good data. notes.services.box.com root 302s to `services.app.box.com` (out of scope). All API paths return 404. Backend is Express.js behind Envoy, sets CSRF cookies, has `x-frame-options: ALLOW-FROM https://app.box.com`. Host is dead-end — root redirects off-scope, no API surface exposed unauthenticated.
 
-[NEXT] PROBE: 3xGET notes.services.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/realtime (2) /api/collaboration (3) /api/notes/sessions
+[PARKED] notes.services.box.com WebSocket/real-time collaboration bypass: Root 302s to services.app.box.com (out of scope), all probed API paths (/api/realtime, /api/collaboration, /api/notes/sessions, /api/1.0/notes) return 404. Express.js backend behind Envoy with CSRF cookies and frame-ancestors CSP — no unauthenticated surface discovered.
 
-[LEARN] ACCEPTED OTHER @ notes.services.box.com: New unexplored surface with distinct architecture from main Box platform — real-time collaboration may have separate auth/session handling
+[LEARN] REJECTED AUTH @ notes.services.box.com: Host redirects root to out-of-scope origin (services.app.box.com); all API paths 404. No unauthenticated collaboration surface exists.
 
-Note: This analysis is based on the provided context and follows the bug bounty rules. All proposed probes are read-only HTTP requests as required.
+[PARKED] notes.services.box.com real-time collaboration surface: Host redirects to out-of-scope origin, no exposed API surface.
+
+Let me pivot to `app.box.com` — the primary web app, not yet directly probed.
+[0m$ [0mcurl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/" 2>&1 | head -30
+HTTP/2 302 
+date: Fri, 21 Aug 2026 22:54:35 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=414u32mdvnevk2gjdiifrchv99; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=414u32mdvnevk2gjdiifrchv99; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d72be7c539.64126735; expires=Sat, 21 Aug 2027 22:54:35 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:54:35 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=47; expires=Sat, 21 Aug 2027 22:54:35 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 25
+location: https://account.box.com/login
+box-request-id: 0e3d4f21b2724aef3a95e835ad2d6f240
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/robots.txt" 2>&1 | head -30
+HTTP/2 200 
+date: Fri, 21 Aug 2026 22:54:46 GMT
+content-type: text/plain
+last-modified: Fri, 21 Aug 2026 21:27:22 GMT
+x-envoy-upstream-service-time: 33
+strict-transport-security: max-age=31536000
+etag: "6a88c2ba-88b"
+box-request-id: 184a64e2e9ec37db8085b686ea16c9fdc
+accept-ranges: bytes
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/robots.txt"
+User-agent: Twitterbot
+Disallow: /
+Allow: /representation  # Twitter needs to be able to display file thumbnails in social media cards; this prevents those assets from being blocked.
+Allow: /app-assets  # Twitter needs to be able to display the Box logo in social media cards; this prevents those assets from being blocked.
+Allow: /$
+Allow: /sitemap.xml$
+Allow: /login
+Allow: /simpleshare
+Allow: /services
+Allow: /reset
+Allow: /signup
+Allow: /cdn  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /sites  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /platform # Platform static assets (Box Elements) share a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /s/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /shared/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /v/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /app-center
+Allow: /integrations
+Allow: /enduser
+Allow: /fonts
+Allow: /_assets/img/favicons
+Allow: /app-api/split-proxy
+Allow: /app-gallery-v2/api
+
+User-agent: *
+Disallow: /
+Disallow: /signup/collablink/
+Allow: /$
+Allow: /sitemap.xml$
+Allow: /login
+Allow: /simpleshare
+Allow: /services
+Allow: /reset
+Allow: /signup
+Allow: /cdn  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /sites  # The marketing site shares a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /platform # Platform static assets (Box Elements) share a CDN with the webapp; this prevents those assets from being blocked.
+Allow: /s/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /shared/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /v/  # The "noindex" robots directive is only respected if these pages are crawlable
+Allow: /app-center
+Allow: /integrations
+Allow: /enduser
+Allow: /fonts
+Allow: /_assets/img/favicons
+Allow: /app-api/split-proxy
+Allow: /app-gallery-v2/api
+[0m
+Excellent — app.box.com robots.txt mirrors account.box.com's structure with app-specific additions. Key paths: `/app-api/split-proxy`, `/app-gallery-v2/api`, `/enduser`, `/integrations`, `/app-center`, `/platform`. Comments reveal marketing site and Box Elements share CDN with webapp.
+
+[NEW] app.box.com: Primary web app with same path structure as account.box.com plus /app-center, /platform, /representation, /app-assets. CDN shared with marketing site.
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/split-proxy" 2>&1 | head -25
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:54:59 GMT
+content-type: text/plain
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+box-request-id: 05a64d34f4deefe49f2bdaf1eac4202fc
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-center" 2>&1 | head -25
+HTTP/2 200 
+date: Fri, 21 Aug 2026 22:55:07 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=c711b5fr0d92r1g3lo5efbvvlt; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=c711b5fr0d92r1g3lo5efbvvlt; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d74bd63b82.59693811; expires=Sat, 21 Aug 2027 22:55:07 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:55:07 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=41; expires=Sat, 21 Aug 2027 22:55:07 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 53
+box-request-id: 0211dae04a3af4e42880590763aa4e91a
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-center" 2>&1 | head -100
+<!DOCTYPE html><html lang="en-US" data-resin-client="web"><head><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>Box Integrations</title>  <meta name="description" content="Box Integrations provides integration solutions connecting data from Box.com with other applications and services across the web."><meta name="twitter:card" content="summary"><meta name="twitter:site" content="@Box"><meta property="og:title" content="Box Integrations"><meta property="og:type" content="website"><meta property="og:description" content="Box Integrations provides integration solutions connecting data from Box.com with other applications and services across the web."><meta property="og:site_name" content="Box App Center"> <meta property="og:image" content="https://cdn01.boxcdn.net/app-assets/partners/app-gallery/box-social.jpeg"><meta property="article:publisher" content="https://www.facebook.com/Box"> <link rel="canonical" href="https://app.box.com/integrations"/>      <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" /> <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous" />  <link rel="stylesheet" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/main-fonts.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/app.0277bda3b7.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.e65ea5d7b3.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/main.e37ef609c7.css">  <link rel="preload" href="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" as="script" type="text/javascript" crossorigin="anonymous">  <link rel="preload" href="https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/file-request-forms/box_forms_client_remote.2.587.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/hubs-assets/box_hubs_client_remote.2.286.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/money-assets/box_money_client_remote.0.137.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/sign-assets/box_sign_client_remote.2.416.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/relay-trigger-assets/box_trigger_client_remote.16.97.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/docgen-client-assets/box_docgen_client_remote.0.167.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/insights-assets/box_insights_client_remote.1.412.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/extract-client/box_extract_client_remote.1.223.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/workflow-client-assets/box_workflow_client_remote.0.813.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/governance-client/box_governance_client_remote.1.60.11.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-client/box_integrations_client_remote.1.17.4.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-center-client/box_integrations_center_client_remote.1.30.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/aistudio-assets/box_aistudio_client_remote.1.1165.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-prompt-library/box_ai_prompt_library_remote.2.9.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-solutions-client/box_solutions_client_remote.1.18.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/markdown-editor/box_markdown_editor_remote.2.3.18.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-security-client-assets/box_ai_security_client_remote.1.55.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-center/box_ai_center_remote.2.46.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/preview-client-assets/box_preview_client_remote.1.114.2.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-client/box_boxapps_client_remote.0.20260815.362.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-solutions-client/box_boxapps_solutions_client_remote.0.20260810.85.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/items-client-assets/box_items_client_remote.1.73.0.js" as="script" type="text/javascript" crossorigin="anonymous">    <link rel="apple-touch-icon" sizes="57x57" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-57x57-fLlEpj.png">
+<link rel="apple-touch-icon" sizes="60x60" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-60x60-Uv0qzu.png">
+<link rel="apple-touch-icon" sizes="72x72" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-72x72-7aVqne.png">
+<link rel="apple-touch-icon" sizes="76x76" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-76x76-ZVGnRV.png">
+<link rel="apple-touch-icon" sizes="114x114" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-114x114-busq-D.png">
+<link rel="apple-touch-icon" sizes="120x120" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-120x120-K-u4U5.png">
+<link rel="apple-touch-icon" sizes="144x144" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-144x144-va9pYs.png">
+<link rel="apple-touch-icon" sizes="152x152" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-152x152-r5tWgh.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-180x180-tV001c.png">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-32x32-VwW37b.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-32x32-brwW_W.png" sizes="32x32">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/android-chrome-192x192-96i97M.png" sizes="192x192">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-96x96-XU7UE1.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-96x96-TOQ9Kg.png" sizes="96x96">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-16x16-_kQSW4.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-16x16-Ou5N87.png" sizes="16x16">
+<link rel="manifest" href="https://cdn01.boxcdn.net/_assets/img/favicons/manifest-rw1AEP.json">
+<link rel="mask-icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/safari-pinned-tab-jyt2W4.svg">
+<link rel="shortcut icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-yz-tj-.ico" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-EHWWyP.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-TileImage" content="https://cdn01.boxcdn.net/_assets/img/favicons/mstile-144x144-pllCM8.png">
+<meta name="msapplication-config" content="https://cdn01.boxcdn.net/_assets/img/favicons/browserconfig-fdBReK.xml">
+<meta name="theme-color" content="#ffffff">
+
+
+
+</head><body class="is-loading " data-resin-application="files">  <div class="loading-screen-header"></div><div class="loading-screen-progress-bar-container"><div class="loading-screen-progress-bar"></div></div> <style type="text/css" id="loading-screen-css"> 
+
+    .loading-screen-progress-bar-container { left: 0; position: fixed; right: 0; top: 56px; z-index: 21; 
+    } body.is-loading .loading-screen-progress-bar { animation: fadein 0.1s ease-in, progressbar 0.6s ease-in; opacity: 1; width: 95%;
+    }
+
+    .loading-screen-progress-bar {  background: #3c94ff;  height: 3px; transition: width 0.2s ease-in, background 0.125s ease-in, opacity 0.2s ease-out; transition-delay: 0s, 0s, 0.2s; will-change: background, opacity, width;
+    }  body:not(.is-loading) .loading-screen-progress-bar { opacity: 0 !important; width: 100% !important;
+    }
+
+    .loading-screen-header { background-color: #0061D5; border-bottom: 1px solid #0055bb; bottom: 0; height: 56px; left: 0; position: fixed; right: 0; top: 0; z-index: 29; 
+    }
+
+    .loading-screen-nav { background: #fbfbfc; border-right: 1px solid #eaeaea; bottom: 0; left: 0; position: fixed; top: 56px; width: 200px;
+    }
+
+    @media (max-width: 1220px) and (min-width: 481px) { .loading-screen-nav { width: 70px;
+        }
+    }
+
+    @media (max-width: 480px) { .loading-screen-nav { display: none;
+        }
+    }
+
+    .header { animation: fadein 0.125s ease-in;
+    }
+
+    @keyframes fadein { 0% { opacity: 0; } 100% { opacity: 1; }
+    }
+
+    @keyframes progressbar { 0% { width: 20%; } 30% { width: 80%; } 100% { width: 95%; }
+    }</style>   <noscript><div class="noscript-warning"> JavaScript is currently disabled in your browser. You must have JavaScript enabled to take full advantage of Box.</div></noscript><div id="app" class="react-container"></div><script>window.Box = window.Box || {};   Box.prefetchedData = {"\/app-api\/enduserapp\/current-user":{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":"9uf7zzigc89zvpun","storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}};    Box.webpackPublicPath = 'https://cdn01.boxcdn.net/enduser/';    Box.webpackRemotes = {"box_canvas":"https:\/\/cdn01.boxcdn.net\/canvas-assets\/box_canvas_remote.0.340.20.js","box_forms_client":"https:\/\/cdn01.boxcdn.net\/file-request-forms\/box_forms_client_remote.2.587.1.js","box_hubs_client":"https:\/\/cdn01.boxcdn.net\/hubs-assets\/box_hubs_client_remote.2.286.0.js","box_money_client":"https:\/\/cdn01.boxcdn.net\/money-assets\/box_money_client_remote.0.137.1.js","box_sign_client":"https:\/\/cdn01.boxcdn.net\/sign-assets\/box_sign_client_remote.2.416.1.js","box_trigger_client":"https:\/\/cdn01.boxcdn.net\/relay-trigger-assets\/box_trigger_client_remote.16.97.0.js","box_docgen_client":"https:\/\/cdn01.boxcdn.net\/docgen-client-assets\/box_docgen_client_remote.0.167.1.js","box_insights_client":"https:\/\/cdn01.boxcdn.net\/insights-assets\/box_insights_client_remote.1.412.1.js","box_ai_client":"https:\/\/cdn01.boxcdn.net\/box-ai-client\/box_ai_client_remote.1.599.0.js","box_extract_client":"https:\/\/cdn01.boxcdn.net\/extract-client\/box_extract_client_remote.1.223.0.js","box_workflow_client":"https:\/\/cdn01.boxcdn.net\/workflow-client-assets\/box_workflow_client_remote.0.813.1.js","box_governance_client":"https:\/\/cdn01.boxcdn.net\/governance-client\/box_governance_client_remote.1.60.11.js","box_integrations_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-client\/box_integrations_client_remote.1.17.4.js","box_integrations_center_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-center-client\/box_integrations_center_client_remote.1.30.0.js","box_aistudio_client":"https:\/\/cdn01.boxcdn.net\/aistudio-assets\/box_aistudio_client_remote.1.1165.0.js","box_ai_prompt_library":"https:\/\/cdn01.boxcdn.net\/ai-prompt-library\/box_ai_prompt_library_remote.2.9.0.js","box_solutions_client":"https:\/\/cdn01.boxcdn.net\/box-solutions-client\/box_solutions_client_remote.1.18.0.js","box_markdown_editor":"https:\/\/cdn01.boxcdn.net\/markdown-editor\/box_markdown_editor_remote.2.3.18.js","box_ai_security_client":"https:\/\/cdn01.boxcdn.net\/ai-security-client-assets\/box_ai_security_client_remote.1.55.0.js","box_ai_center":"https:\/\/cdn01.boxcdn.net\/ai-center\/box_ai_center_remote.2.46.1.js","box_preview_client":"https:\/\/cdn01.boxcdn.net\/preview-client-assets\/box_preview_client_remote.1.114.2.js","box_boxapps_client":"https:\/\/cdn01.boxcdn.net\/boxapps-client\/box_boxapps_client_remote.0.20260815.362.js","box_boxapps_solutions_client":"https:\/\/cdn01.boxcdn.net\/boxapps-solutions-client\/box_boxapps_solutions_client_remote.0.20260810.85.js","box_items_client":"https:\/\/cdn01.boxcdn.net\/items-client-assets\/box_items_client_remote.1.73.0.js"};    Box.webpackRemotesManifest = {"box_canvas":{"hostname":"cdn01.boxcdn.net","remotePath":"canvas-assets","remoteVersion":"0.340.20","remoteVersionSuffix":".0.340.20","remoteEntryFileName":"box_canvas_remote"},"box_forms_client":{"hostname":"cdn01.boxcdn.net","remotePath":"file-request-forms","remoteVersion":"2.587.1","remoteVersionSuffix":".2.587.1","remoteEntryFileName":"box_forms_client_remote"},"box_hubs_client":{"hostname":"cdn01.boxcdn.net","remotePath":"hubs-assets","remoteVersion":"2.286.0","remoteVersionSuffix":".2.286.0","remoteEntryFileName":"box_hubs_client_remote"},"box_money_client":{"hostname":"cdn01.boxcdn.net","remotePath":"money-assets","remoteVersion":"0.137.1","remoteVersionSuffix":".0.137.1","remoteEntryFileName":"box_money_client_remote"},"box_sign_client":{"hostname":"cdn01.boxcdn.net","remotePath":"sign-assets","remoteVersion":"2.416.1","remoteVersionSuffix":".2.416.1","remoteEntryFileName":"box_sign_client_remote"},"box_trigger_client":{"hostname":"cdn01.boxcdn.net","remotePath":"relay-trigger-assets","remoteVersion":"16.97.0","remoteVersionSuffix":".16.97.0","remoteEntryFileName":"box_trigger_client_remote"},"box_docgen_client":{"hostname":"cdn01.boxcdn.net","remotePath":"docgen-client-assets","remoteVersion":"0.167.1","remoteVersionSuffix":".0.167.1","remoteEntryFileName":"box_docgen_client_remote"},"box_insights_client":{"hostname":"cdn01.boxcdn.net","remotePath":"insights-assets","remoteVersion":"1.412.1","remoteVersionSuffix":".1.412.1","remoteEntryFileName":"box_insights_client_remote"},"box_ai_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-ai-client","remoteVersion":"1.599.0","remoteVersionSuffix":".1.599.0","remoteEntryFileName":"box_ai_client_remote"},"box_extract_client":{"hostname":"cdn01.boxcdn.net","remotePath":"extract-client","remoteVersion":"1.223.0","remoteVersionSuffix":".1.223.0","remoteEntryFileName":"box_extract_client_remote"},"box_workflow_client":{"hostname":"cdn01.boxcdn.net","remotePath":"workflow-client-assets","remoteVersion":"0.813.1","remoteVersionSuffix":".0.813.1","remoteEntryFileName":"box_workflow_client_remote"},"box_governance_client":{"hostname":"cdn01.boxcdn.net","remotePath":"governance-client","remoteVersion":"1.60.11","remoteVersionSuffix":".1.60.11","remoteEntryFileName":"box_governance_client_remote"},"box_integrations_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-client","remoteVersion":"1.17.4","remoteVersionSuffix":".1.17.4","remoteEntryFileName":"box_integrations_client_remote"},"box_integrations_center_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-center-client","remoteVersion":"1.30.0","remoteVersionSuffix":".1.30.0","remoteEntryFileName":"box_integrations_center_client_remote"},"box_aistudio_client":{"hostname":"cdn01.boxcdn.net","remotePath":"aistudio-assets","remoteVersion":"1.1165.0","remoteVersionSuffix":".1.1165.0","remoteEntryFileName":"box_aistudio_client_remote"},"box_ai_prompt_library":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-prompt-library","remoteVersion":"2.9.0","remoteVersionSuffix":".2.9.0","remoteEntryFileName":"box_ai_prompt_library_remote"},"box_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-solutions-client","remoteVersion":"1.18.0","remoteVersionSuffix":".1.18.0","remoteEntryFileName":"box_solutions_client_remote"},"box_markdown_editor":{"hostname":"cdn01.boxcdn.net","remotePath":"markdown-editor","remoteVersion":"2.3.18","remoteVersionSuffix":".2.3.18","remoteEntryFileName":"box_markdown_editor_remote"},"box_ai_security_client":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-security-client-assets","remoteVersion":"1.55.0","remoteVersionSuffix":".1.55.0","remoteEntryFileName":"box_ai_security_client_remote"},"box_ai_center":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-center","remoteVersion":"2.46.1","remoteVersionSuffix":".2.46.1","remoteEntryFileName":"box_ai_center_remote"},"box_preview_client":{"hostname":"cdn01.boxcdn.net","remotePath":"preview-client-assets","remoteVersion":"1.114.2","remoteVersionSuffix":".1.114.2","remoteEntryFileName":"box_preview_client_remote"},"box_boxapps_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-client","remoteVersion":"0.20260815.362","remoteVersionSuffix":".0.20260815.362","remoteEntryFileName":"box_boxapps_client_remote"},"box_boxapps_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-solutions-client","remoteVersion":"0.20260810.85","remoteVersionSuffix":".0.20260810.85","remoteEntryFileName":"box_boxapps_solutions_client_remote"},"box_items_client":{"hostname":"cdn01.boxcdn.net","remotePath":"items-client-assets","remoteVersion":"1.73.0","remoteVersionSuffix":".1.73.0","remoteEntryFileName":"box_items_client_remote"}};   Box.config = {"clientGeoCountryCode":"US","currentRm":"enduserapp_app_gallery_v2_page","datacenterTag":"us-west4-prod","runtimeMetadata":{"availabilityZone":"us-west4-prod","deploymentType":"k8s","environment":"prod"},"requestId":"9uf7zzigc89zvpun","requestToken":"4bd9531699e85884da9244ec800a7c8845a8f1f0f74cd668798998639c1adeda","sessionAge":0,"billing":{"creditCardCreationURL":"https:\/\/api.zuora.com\/rest\/v1\/payment-methods\/credit-cards"},"consoleLoggingEnabled":false,"debug":false,"isBoxEditFallbackEnabled":false,"isBoxToolsLoggingEnabled":false,"isBoxToolsV3EolEnabled":true,"isIEMixedModeEnabled":false,"isMSEdgeSupportForBoxEditEnabled":true,"isSandbox":false,"isWebappApdexV2Enabled":true,"logJSErrorsEnabled":false,"pendoAnalyticsAPIKey":"123e0628-cb29-41d1-466c-c592c7ddcd06","pendoAnalyticsProxyContentHost":"https:\/\/pendo-prod.box.com","pendoAnalyticsProxyDataHost":"https:\/\/pendo-data-prod.box.com","rumBeaconUrl":null,"rumRatio":0,"shouldUseActiveXObjectJSRef":false,"splitIOAPIKey":null,"staticHost":"https:\/\/cdn01.boxcdn.net","useUnSecureUrlForComServer":false};</script> <script src="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" type="text/javascript" crossorigin="anonymous"></script>   </body></html>
+[0m
+Jackpot! `app.box.com/app-center` returns the full SPA with `Box.prefetchedData` and `Box.config` — rich information disclosure. Key findings:
+
+**Box.config:**
+- `runtimeMetadata`: availabilityZone: us-west4-prod, deploymentType: k8s, environment: prod
+- `requestToken`: `4bd9531699e85884da9244ec800a7c8845a8f1f0f74cd668798998639c1adeda` (CSRF/security token)
+- `billing.creditCardCreationURL`: `https://api.zuora.com/rest/v1/payment-methods/credit-cards` (Zuora billing)
+- `pendoAnalyticsAPIKey`: `123e0628-cb29-41d1-466c-c592c7ddcd06`
+- `pendoAnalyticsProxyContentHost`: `https://pendo-prod.box.com`
+- `pendoAnalyticsProxyDataHost`: `https://pendo-data-prod.box.com`
+
+**Box.prefetchedData:**
+- `amplitudeAPIKey`: `c6eb3d709c5c30ca80c0381080bcc254`
+- `splitIOAPIKey`: `3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a`
+- `preview.version`: 3.79.0, `tokenTimeout`: 3600
+- Full feature flags object (canvas, notes, hubs, adminConsole, shield, sign, etc.)
+- All webpack micro-frontend version strings
+
+[NEW] app.box.com/app-center: Full SPA with embedded Box.config and Box.prefetchedData — requestToken, Zuora billing URL, Pendo/Amplitude/Split.io API keys, runtime metadata, feature flags, micro-frontend versions.
+
+[HYP] app-box.com/app-center embedded API key abuse
+class: MISCONFIG
+asset: app.box.com/app-center
+confidence: 55
+reasoning: /app-center serves the full Box SPA unauthenticated, embedding third-party API keys (Amplitude: c6eb3d709c5c30ca80c0381080bcc254, Split.io: 3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a, Pendo: 123e0628-cb29-41d1-466c-c592c7ddcd06), Zuora billing endpoint, runtime metadata (us-west4-prod, k8s), feature flags, and preview token timeout (3600s). These keys are client-side by design, but the Zuora billing URL and requestToken embedded in the anonymous page are notable — requestToken could be tested for session fixation or CSRF bypass on unauthenticated endpoints.
+evidence_needed: (1) Confirm /platform and /integrations serve same or different embedded config (2) Test if requestToken is accepted in any API call (3) Check if amplitude/split.io keys grant broader access than intended
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) app.box.com/platform (2) app.box.com/integrations (3) app.box.com/enduser — extract Box.config from each and compare requestToken, API keys, feature flags
+impact: Low-Medium — third-party SDK keys are client-side by design; however, Zuora billing endpoint exposure and requestToken reuse across anonymous sessions could enable billing enumeration or CSRF if token is reusable
+testability: PASSIVE
+[0m$ [0msleep 2 && curl -s -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/platform" 2>&1 | grep -o 'Box\.config = {[^}]*}' | head -5
+(no output)
+[0m
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/platform" 2>&1 | head -20
+HTTP/2 302 
+date: Fri, 21 Aug 2026 22:55:57 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=tte8gl8viju36ej58pge581git; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=tte8gl8viju36ej58pge581git; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d77dda86b9.99418771; expires=Sat, 21 Aug 2027 22:55:57 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:55:57 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=41; expires=Sat, 21 Aug 2027 22:55:57 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 23
+location: https://www.box.com/platform
+box-request-id: 01df0c0f5b710b6952d5b302c6c3deaec
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/integrations" 2>&1 | head -20
+HTTP/2 200 
+date: Fri, 21 Aug 2026 22:56:04 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=evk4e7cujnc9u1qn50bvdqvf5t; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=evk4e7cujnc9u1qn50bvdqvf5t; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d78484ee02.04786829; expires=Sat, 21 Aug 2027 22:56:04 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:56:04 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=3; expires=Sat, 21 Aug 2027 22:56:04 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 53
+box-request-id: 0ba91e0d021dfdf1b000dd6b22e1c9e7f
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/integrations" 2>&1 | grep -oP 'Box\.(config|prefetchedData) = \{.*?\};' | head -5
+Box.prefetchedData = {"\/app-api\/enduserapp\/current-user":{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":"q78yrfigc8b11xal","storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}};
+Box.config = {"clientGeoCountryCode":"US","currentRm":"enduserapp_app_gallery_v2_page","datacenterTag":"us-west4-prod","runtimeMetadata":{"availabilityZone":"us-west4-prod","deploymentType":"k8s","environment":"prod"},"requestId":"q78yrfigc8b11xal","requestToken":"fbb2c18075f80adef1048623daf5b137b875f502fa4235e73189c71c3b5e6ec2","sessionAge":0,"billing":{"creditCardCreationURL":"https:\/\/api.zuora.com\/rest\/v1\/payment-methods\/credit-cards"},"consoleLoggingEnabled":false,"debug":false,"isBoxEditFallbackEnabled":false,"isBoxToolsLoggingEnabled":false,"isBoxToolsV3EolEnabled":true,"isIEMixedModeEnabled":false,"isMSEdgeSupportForBoxEditEnabled":true,"isSandbox":false,"isWebappApdexV2Enabled":true,"logJSErrorsEnabled":false,"pendoAnalyticsAPIKey":"123e0628-cb29-41d1-466c-c592c7ddcd06","pendoAnalyticsProxyContentHost":"https:\/\/pendo-prod.box.com","pendoAnalyticsProxyDataHost":"https:\/\/pendo-data-prod.box.com","rumBeaconUrl":null,"rumRatio":0,"shouldUseActiveXObjectJSRef":false,"splitIOAPIKey":null,"staticHost":"https:\/\/cdn01.boxcdn.net","useUnSecureUrlForComServer":false};
+[0m
+Same embedded config on /integrations. Key difference: `requestToken` is per-request (different from /app-center), confirming it's not a reusable session token. `currentRm`: "enduserapp_app_gallery_v2_page".
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/enduser" 2>&1 | head -20
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:56:23 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=4okevmdsgalqfrhe6jtnjrq6tm; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=4okevmdsgalqfrhe6jtnjrq6tm; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d7974e6fc2.90352289; expires=Sat, 21 Aug 2027 22:56:23 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:56:23 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=22; expires=Sat, 21 Aug 2027 22:56:23 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 80
+x-robots-tag: noindex, nofollow
+box-request-id: 0b5a858a3aee61ea102bdf6eb1c9b8f96
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+/enduser 404 on app.box.com. Let me check /s/ and /shared/ paths that are in the robots.txt:
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/s/" 2>&1 | head -20
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:56:29 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=ltjaqhekrmfptjhc378tn6uaec; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=ltjaqhekrmfptjhc378tn6uaec; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d79dd2aa83.80959021; expires=Sat, 21 Aug 2027 22:56:29 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:56:29 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=71; expires=Sat, 21 Aug 2027 22:56:29 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 64
+x-robots-tag: noindex, nofollow
+box-request-id: 029a571a3a23e1eb2a33364c1b9610068
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+/s/ 404. Let me test CORS behavior on app.box.com — this is a key attack surface for embedded content views:
+[0m$ [0msleep 2 && curl -s -D- -X OPTIONS -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-center" 2>&1 | head -30
+HTTP/2 204 
+date: Fri, 21 Aug 2026 22:56:45 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 2
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+access-control-allow-headers: Authorization
+box-request-id: 07596958f0c4ad61873ad6b4c3967e20d
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+This is critical. The preflight on app.box.com/app-center returns:
+- `Access-Control-Allow-Origin: *` (wildcard!)
+- `Access-Control-Allow-Headers: Authorization`
+- `Access-Control-Allow-Methods: DELETE, HEAD, GET, OPTIONS, POST, PUT`
+
+This is a wildcard CORS configuration allowing all methods and Authorization header. Let me verify the actual GET response also reflects CORS:
+[0m$ [0msleep 2 && curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-center" 2>&1 | head -30
+HTTP/2 200 
+date: Fri, 21 Aug 2026 22:57:02 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=dffdifp477bnrqcrd3hpdgldip; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=dffdifp477bnrqcrd3hpdgldip; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d7be9b8b13.29982777; expires=Sat, 21 Aug 2027 22:57:02 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:57:02 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=9; expires=Sat, 21 Aug 2027 22:57:02 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 53
+box-request-id: 091c378384a12585eb42863333948a35
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+ <!DOCTYPE html><html lang="en-US" data-resin-client="web"><head><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>Box Integrations</title>  <meta name="description" content="Box Integrations provides integration solutions connecting data from Box.com with other applications and services across the web."><meta name="twitter:card" content="summary"><meta name="twitter:site" content="@Box"><meta property="og:title" content="Box Integrations"><meta property="og:type" content="website"><meta property="og:description" content="Box Integrations provides integration solutions connecting data from Box.com with other applications and services across the web."><meta property="og:site_name" content="Box App Center"> <meta property="og:image" content="https://cdn01.boxcdn.net/app-assets/partners/app-gallery/box-social.jpeg"><meta property="article:publisher" content="https://www.facebook.com/Box"> <link rel="canonical" href="https://app.box.com/integrations"/>      <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" /> <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous" />  <link rel="stylesheet" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/main-fonts.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/app.0277bda3b7.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.e65ea5d7b3.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/main.e37ef609c7.css">  <link rel="preload" href="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" as="script" type="text/javascript" crossorigin="anonymous">  <link rel="preload" href="https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/file-request-forms/box_forms_client_remote.2.587.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/hubs-assets/box_hubs_client_remote.2.286.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/money-assets/box_money_client_remote.0.137.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/sign-assets/box_sign_client_remote.2.416.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/relay-trigger-assets/box_trigger_client_remote.16.97.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/docgen-client-assets/box_docgen_client_remote.0.167.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/insights-assets/box_insights_client_remote.1.412.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/extract-client/box_extract_client_remote.1.223.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/workflow-client-assets/box_workflow_client_remote.0.813.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/governance-client/box_governance_client_remote.1.60.11.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-client/box_integrations_client_remote.1.17.4.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-center-client/box_integrations_center_client_remote.1.30.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/aistudio-assets/box_aistudio_client_remote.1.1165.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-prompt-library/box_ai_prompt_library_remote.2.9.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-solutions-client/box_solutions_client_remote.1.18.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/markdown-editor/box_markdown_editor_remote.2.3.18.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-security-client-assets/box_ai_security_client_remote.1.55.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-center/box_ai_center_remote.2.46.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/preview-client-assets/box_preview_client_remote.1.114.2.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-client/box_boxapps_client_remote.0.20260815.362.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-solutions-client/box_boxapps_solutions_client_remote.0.20260810.85.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/items-client-assets/box_items_client_remote.1.73.0.js" as="script" type="text/javascript" crossorigin="anonymous">    <link rel="apple-touch-icon" sizes="57x57" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-57x57-fLlEpj.png">
+<link rel="apple-touch-icon" sizes="60x60" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-60x60-Uv0qzu.png">
+<link rel="apple-touch-icon" sizes="72x72" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-72x72-7aVqne.png">
+<link rel="apple-touch-icon" sizes="76x76" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-76x76-ZVGnRV.png">
+<link rel="apple-touch-icon" sizes="114x114" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-114x114-busq-D.png">
+<link rel="apple-touch-icon" sizes="120x120" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-120x120-K-u4U5.png">
+<link rel="apple-touch-icon" sizes="144x144" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-144x144-va9pYs.png">
+<link rel="apple-touch-icon" sizes="152x152" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-152x152-r5tWgh.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-180x180-tV001c.png">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-32x32-VwW37b.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-32x32-brwW_W.png" sizes="32x32">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/android-chrome-192x192-96i97M.png" sizes="192x192">
+[0m
+GET response does NOT include CORS headers — the wildcard CORS is only on preflight (OPTIONS). This means the CDN/Envoy layer serves CORS on preflight but the Express origin doesn't reflect it on GET. Not directly exploitable, but indicates the CDN is configured for cross-origin access.
+
+Let me check if there are actual API endpoints with different CORS behavior:
+[0m$ [0msleep 2 && curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/split-proxy" 2>&1 | head -25
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:57:12 GMT
+content-type: text/plain
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+box-request-id: 054df8d2f9635fc68a1e0e23ceb3e331e
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+404 page not found
+[0m
+Interesting! `/app-api/split-proxy` 404 response DOES include `access-control-allow-origin: *`. This is different from `/app-center` GET which didn't. Let me check another API-like path:
+[0m$ [0msleep 2 && curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-gallery-v2/api" 2>&1 | head -25
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:57:20 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 15
+strict-transport-security: max-age=31536000
+box-request-id: 025d4ee3290aeb5e2bd625d5cf031adb0
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+/app-gallery-v2/api 404 without CORS. The `/app-api/split-proxy` is unique in having wildcard CORS on its 404. Let me check if there's a versioned API endpoint that actually works:
+[0m$ [0msleep 2 && curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/enduserapp/current-user" 2>&1 | head -25
+HTTP/2 200 
+date: Fri, 21 Aug 2026 22:57:33 GMT
+content-type: application/json; charset=utf-8
+set-cookie: z=2dinm6o96a5p92abntbge6qt22; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=2dinm6o96a5p92abntbge6qt22; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a88d7dd576f34.37648541; expires=Sat, 21 Aug 2027 22:57:33 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:57:33 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=14; expires=Sat, 21 Aug 2027 22:57:33 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-enduserapp-currentversion: 23.692.0+hotfix.1
+x-envoy-upstream-service-time: 42
+box-request-id: 0823040315a8fd8b3da3c4f91a9a1047a
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":null,"storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}
+[0m
+Major discovery! `/app-api/enduserapp/current-user` returns 200 with live JSON — a working API endpoint. Key new data:
+- `x-enduserapp-currentversion: 23.692.0+hotfix.1` — internal version with hotfix suffix
+- `realtimeSubscriberID: null` (vs populated in SPA pages)
+
+Critical: this endpoint returned `application/json` with NO `access-control-allow-origin` header. Let me verify CORS behavior on this actual API endpoint:
+[0m$ [0msleep 2 && curl -s -D- -X OPTIONS -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/enduserapp/current-user" 2>&1 | head -25
+HTTP/2 204 
+date: Fri, 21 Aug 2026 22:57:45 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+access-control-allow-headers: Authorization
+box-request-id: 0757a41d32f4152fee2dd55ea447299e0
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+Preflight returns wildcard CORS with Authorization header allowed on the actual API endpoint. But the GET didn't reflect Origin. Let me verify if GET reflects Origin when Origin is present:
+[0m$ [0msleep 2 && curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/enduserapp/current-user" 2>&1 | grep -i "access-control"
+(no output)
+[0m
+No CORS on GET response — preflight says `Access-Control-Allow-Origin: *` but the actual GET doesn't reflect it. The browser would block cross-origin reads. This is a CDN-layer preflight configuration that doesn't match the origin response.
+
+Let me explore for more API endpoints on app.box.com:
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/enduserapp/config" 2>&1 | head -20
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:58:07 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 18
+strict-transport-security: max-age=31536000
+box-request-id: 099a9ccaa38dcc3ccebefa815f9598201
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0msleep 2 && curl -s -D- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/enduserapp/features" 2>&1 | head -20
+HTTP/2 404 
+date: Fri, 21 Aug 2026 22:58:15 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 15
+strict-transport-security: max-age=31536000
+box-request-id: 01372425cbf796de8410eddb504ee51c0
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+The `/app-api/enduserapp/config` and `/features` paths don't exist. Let me check what the `cn` cookie increments to — it seems to be a request counter. Let me look at more paths and check `cloud.app.box.com` CORS behavior more closely since that's where the ranked hypotheses focus:
+[0m$ [0msleep 2 && curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/app-api/enduserapp/current-user" 2>&1 | grep -iE "(access-control|version|currentversion)"
+x-enduserapp-currentversion: 23.692.0+hotfix.1
+{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":null,"storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}
+[0m
+Now I have the full picture. The GET response on `/app-api/enduserapp/current-user` does NOT include `access-control-allow-origin` — only the preflight OPTIONS does. This means cross-origin JavaScript can't actually read the response. The CDN preflight is overly permissive, but it's effectively a no-op because the origin doesn't cooperate on actual responses.
+
+Key finding: `x-enduserapp-currentversion: 23.692.0+hotfix.1` — version disclosure via response header.
+
+Let me emit the consolidated output for this cycle:
+
+---
+
+**[LEARN] REJECTED OTHER @ notes.services.box.com**: Root 302s to services.app.box.com (out-of-scope); all API paths (/api/realtime, /api/collaboration, /api/notes/sessions, /api/1.0/notes) return 404. Express.js backend behind Envoy with CSRF cookies. No unauthenticated surface.
+
+**[LEARN] ACCEPTED MISCONFIG @ app.box.com/app-api/enduserapp/current-user**: Live JSON API endpoint returns 200 unauthenticated with full user object, third-party API keys (Amplitude, Split.io), feature flags, and `x-enduserapp-currentversion: 23.692.0+hotfix.1` version header. Preflight OPTIONS returns wildcard CORS with Authorization header allowed, but GET does not reflect CORS — browser blocks cross-origin reads.
+
+[HYP] app.box.com CDN preflight/GET CORS mismatch
+class: MISCONFIG
+asset: app.box.com/app-api/*
+confidence: 35
+reasoning: The Envoy/CDN layer returns `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Headers: Authorization` on OPTIONS preflight for all `/app-api/*` paths. However, the actual GET responses from the Express origin do NOT include CORS headers. This is a configuration mismatch between CDN and origin. Currently not exploitable because browser blocks cross-origin reads. If the origin ever adds CORS headers (e.g., for a new feature), the overly permissive preflight would immediately enable cross-origin data theft of the current-user object and any authenticated API responses.
+evidence_needed: Verify the preflight/GET mismatch is consistent across all /app-api/* endpoints; check if any /app-api/* GET response ever includes Access-Control-Allow-Origin
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) OPTIONS + GET on /app-api/enduserapp/current-user checking CORS headers (2) OPTIONS + GET on /app-api/split-proxy (3) OPTIONS + GET on /app-gallery-v2/api — confirm GET never reflects Origin
+impact: Low — current misconfiguration is not exploitable, but indicates fragile CORS posture that could become dangerous if origin adds CORS headers
+testability: PASSIVE
+
+[HYP] app.box.com version string disclosure
+class: OTHER
+asset: app.box.com/app-api/enduserapp/current-user
+confidence: 85
+reasoning: The `x-enduserapp-currentversion: 23.692.0+hotfix.1` response header discloses the exact enduserapp version including hotfix suffix. Combined with the SPA-embedded version strings (preview 3.79.0, 20+ micro-frontend versions from Box.prefetchedData), an attacker can fingerprint the exact deployment and identify known vulnerabilities.
+evidence_needed: None — confirmed via direct observation
+verify_steps: Already confirmed — no further probing needed
+impact: Low — version disclosure aids targeted attacks but is informational only
+testability: PASSIVE
+
+[NEXT] PROBE: 3xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/2.0/users/me (2) /api/2.0/folders/0 (3) / — check if the 206 on root is a CDN range-request layer that fronts the origin, or purely static asset serving
