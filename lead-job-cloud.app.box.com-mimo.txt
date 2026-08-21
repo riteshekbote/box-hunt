@@ -1,21 +1,40 @@
-[NEW] app.box.com/api/oauth2/authorize: Origin reflection on OAuth authorize endpoint — reflects ANY Origin including `null` on preflight and actual response; preloaded JSON body contains public API keys (splitIOAPIKey, pendoAnalyticsAPIKey, amplitudeAPIKey)
-[CONFIRMED] app.box.com/api/oauth2/authorize reflects ANY Origin in CORS headers
+[CONFIRMED] app.box.com/api/2.0/internal/* wildcard CORS + all methods + Authorization header on preflight
 class: MISCONFIG
-asset: app.box.com/api/oauth2/authorize
-confidence: 78
-reasoning: OPTIONS preflight returns `access-control-allow-origin: <reflected Origin>` with `access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match` and `access-control-allow-methods: GET`. Actual GET response also reflects Origin. Includes `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Critically, Origin `null` is also reflected (sandboxed iframe). However, `access-control-allow-credentials` is NOT present, so cookies are not sent cross-origin. Response body is the logged-out SPA shell with preloaded config containing public API keys.
-verify_steps: `curl -sI -H "Origin: null" "https://app.box.com/api/oauth2/authorize"` — confirms `access-control-allow-origin: null`. `curl -sI -H "Origin: https://attacker.com" "https://app.box.com/api/oauth2/authorize"` — confirms reflected Origin with preflight allowing Authorization header.
-impact: Attacker can read the anonymous/logged-out SPA configuration cross-origin. Public API keys (Split.io, Pendo, Amplitude) are exposed but are client-side public keys already visible in page source. No CSRF tokens or authenticated data leaked. Severity: Low (informational, defense-in-depth).
+asset: app.box.com/api/2.0/internal/*
+confidence: 88
+reasoning: OPTIONS preflight returns `access-control-allow-origin: *` with `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT` and `access-control-allow-headers: Authorization,Content-Type`. Actual GET/HEAD responses on 401 also return `access-control-allow-origin: *`. This is more permissive than api.box.com which only returns CORS on OPTIONS preflight but NOT on actual responses. The wildcard CORS + all methods + Authorization header means if a Bearer token is compromised (via XSS or other chain), attacker can perform ANY operation cross-origin on internal API.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://app.box.com/api/2.0/internal/folders/0"` — confirms all methods + Authorization. `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0"` — confirms wildcard CORS on 401.
+impact: Wildcard CORS on internal API with all methods allowed. If Bearer token is compromised via XSS, attacker can read/create/modify/delete files, shares, metadata, events, webhooks cross-origin. Severity: Medium (requires chaining with token theft).
 testability: PASSIVE
-[CONFIRMED] api.box.com/oauth2/token wildcard CORS + app.box.com/api/oauth2/authorize Origin reflection — combined OAuth attack surface
-class: OATH
-asset: api.box.com/oauth2/token, app.box.com/api/oauth2/authorize
-confidence: 72
-reasoning: The OAuth token endpoint at api.box.com returns `access-control-allow-origin: *` with structured JSON errors. The authorize endpoint at app.box.com reflects ANY Origin including null. OPTIONS preflight on token endpoint allows Authorization header with all methods. If an attacker chains with XSS on Box to steal an authorization code from the OAuth redirect, the wildcard CORS on the token endpoint would allow cross-origin code exchange. However, confidential clients require client_secret (server-side) and public clients require PKCE code_verifier, limiting practical exploitation.
-verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://api.box.com/oauth2/token"` — confirms preflight allows Authorization + all methods. `curl -s -H "Origin: https://evil.example.com" "https://api.box.com/oauth2/token"` — confirms 400 with wildcard CORS and JSON error.
-impact: Wildcard CORS on OAuth token endpoint combined with Origin reflection on authorize endpoint. Cross-origin token exchange possible if attacker obtains authorization_code + client credentials (or bypasses PKCE). Severity: Low-Medium (requires chaining with auth-code theft via XSS or open redirect).
+[CONFIRMED] api.box.com OPTIONS preflight wildcard CORS vs actual response discrepancy
+class: MISCONFIG
+asset: api.box.com/2.0/internal/*
+confidence: 82
+reasoning: OPTIONS preflight on api.box.com/2.0/internal/shared_items returns `access-control-allow-origin: *` with all methods + Authorization header. However, actual GET/HEAD responses on 401 do NOT include CORS headers. This discrepancy means api.box.com is slightly more secure than app.box.com — an attacker cannot read API responses cross-origin even with a stolen token. The preflight still allows cross-origin requests to be sent, but responses are blocked.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" "https://api.box.com/2.0/internal/shared_items"` — confirms preflight wildcard. `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/internal/shared_items"` — confirms NO CORS on actual 401.
+impact: api.box.com allows cross-origin requests to be sent (preflight) but blocks response reading. Less severe than app.box.com. Severity: Low-Medium (defense-in-depth).
 testability: PASSIVE
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/enterprise" 2>&1` — test another internal API path for CORS consistency
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/collaborations" 2>&1` — confirm internal collaborations wildcard CORS
-[NEXT] PROBE: `curl -s "https://app.box.com/api/oauth2/authorize?response_type=code&client_id=known_box_client_id&redirect_uri=https://app.box.com/callback" 2>&1 | head -50` — test OAuth authorize with valid-looking params to see redirect behavior
-[NEXT] RECON: `curl -s "https://app.box.com/" 2>&1 | grep -o 'client_id[^"]*"[^"]*"' | head -10` — look for embedded client_id in SPA shell
+[NEW] app.box.com/api/oauth2/revoke wildcard CORS on token revocation endpoint
+class: MISCONFIG
+asset: app.box.com/api/oauth2/revoke
+confidence: 75
+reasoning: OPTIONS preflight returns `access-control-allow-origin: *` with all methods + Authorization/Content-Type headers. Actual POST returns 400 with structured JSON error (`invalid_client`) and `access-control-allow-origin: *` in response. The endpoint actively processes requests (returns meaningful errors). This is consistent with the token endpoint behavior but adds a revocation surface.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://app.box.com/api/oauth2/revoke"` — confirms preflight. `curl -s -H "Origin: https://evil.example.com" "https://app.box.com/api/oauth2/revoke"` — confirms 400 with wildcard CORS.
+impact: Wildcard CORS on token revocation endpoint. If attacker obtains a valid access token, they could revoke it cross-origin (denial of service). Severity: Low (requires token theft).
+testability: PASSIVE
+[CONFIRMED] account.box.com/login Origin reflection without credentials
+class: MISCONFIG
+asset: account.box.com/login
+confidence: 65
+reasoning: OPTIONS preflight reflects Origin (`access-control-allow-origin: https://evil.example.com`) with `access-control-allow-methods: GET` and `access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match`. Actual GET also reflects Origin with `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. However, `access-control-allow-credentials` is NOT present, so cookies are not sent cross-origin. The login page HTML is publicly accessible.
+verify_steps: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://account.box.com/login"` — confirms preflight with Origin reflection. `curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login"` — confirms GET with Origin reflection.
+impact: Attacker can read the login page HTML cross-origin. Contains branding, CSS, and public configuration. No sensitive data leaked. Severity: Low (informational).
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ app.box.com/api/2.0/internal/*: Wildcard CORS with all methods + Authorization header. More permissive than api.box.com. Severity: Medium.
+[LEARN] ACCEPTED MISCONFIG @ api.box.com/2.0/internal/*: OPTIONS has wildcard but actual responses have NO CORS. Severity: Low-Medium.
+[LEARN] ACCEPTED MISCONFIG @ app.box.com/api/oauth2/revoke: Wildcard CORS on revocation endpoint. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com/login: Origin reflection without credentials. Severity: Low.
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/devices" 2>&1` — test additional internal endpoint for consistency
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/groups" 2>&1` — test groups endpoint
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/retention_policies" 2>&1` — test retention policies
+[NEXT] PROBE: `curl -sI -H "Origin: null" "https://app.box.com/api/oauth2/authorize" 2>&1` — re-verify null Origin reflection on authorize endpoint
