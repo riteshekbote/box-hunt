@@ -1293,3 +1293,4 @@ reasoning: dl.boxcloud.com is the file download CDN. All root/robots.txt paths r
 verify_steps: GET https://dl.boxcloud.com/api/ with UA box-research/1.0 — record status. Then GET https://dl.boxcloud.com/download/ and GET https://dl.boxcloud.com/files/. 1 req/2s, first 4xx/429/403 → stop.
 impact: Potential unauthorized file access. Severity: Critical (if confirmed).
 testability: PASSIVE
+## 2026-08-21 22:53:12 UTC account.box.com (mimo)
