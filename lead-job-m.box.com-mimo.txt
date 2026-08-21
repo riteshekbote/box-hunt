@@ -1,3 +1,8 @@
+[LEARN] ACCEPTED CORS-WILDCARD @ account.box.com/api/oauth2/token: Confirmed via previous cycle - `Access-Control-Allow-Origin: *` with full method set. This is a critical finding allowing any origin to read OAuth token responses.
+[LEARN] ACCEPTED CORS-REFLECTION @ account.box.com/login: Confirmed - reflects arbitrary origins in CORS headers, exposes CSRF tokens readable by cross-origin JS.
+[PARKED] GraphQL introspection @ notes.services.box.com/graphql: Service is 503, cannot POST introspection query. Re-test when status changes.
+[PARKED] GraphQL CORS @ notes.services.box.com/graphql: OPTIONS also returns 503. Re-test when status changes.
+[PARKED] cloud.app.box.com CORS/object-store hypotheses: Root permanently 302→/login. No fresh evidence.
 [NEXT] PROBE: GET https://account.box.com/api/2.0/users/me with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — check if authenticated API endpoints on account.box.com also have CORS reflection. Record all Access-Control-* headers. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/invitations/accept with User-Agent: box-research/1.0 (research) — test if invitation flow endpoints have different CORS policy. Record status + headers. 1 req/2s.
 [NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 (research) — re-check if GraphQL service has recovered from 503. Record status. 1 req/2s.
