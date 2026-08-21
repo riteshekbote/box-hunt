@@ -889,3 +889,4 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -s "https://cloud.app.box.com/v/test123" -H "User-Agent: box-research/1.0"` — test if /v/ path triggers different route mapper
 [NEXT] PROBE: `curl -s "https://cloud.app.box.com/folders/0" -H "User-Agent: box-research/1.0"` — test if /folders/ path triggers folder route
 [NEXT] PROBE: `curl -s -I "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET"` — test CORS preflight on SPA catch-all root
+## 2026-08-21 19:57:34 UTC cloud.app.box.com (mimo)

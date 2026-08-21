@@ -151,3 +151,8 @@ https://cloud.app.box.com/api/2.0/ -> HTTP 404
 https://cloud.app.box.com/static/ -> HTTP 404
 https://cloud.app.box.com/anything-here-test -> HTTP 404
 https://cloud.app.box.com/login -> 206
+
+## 2026-08-21 19:57:41 UTC cloud.app.box.com
+https://cloud.app.box.com/shared/test123 -> HTTP 404
+https://cloud.app.box.com/v/test123 -> HTTP 404
+https://cloud.app.box.com/folders/0 -> HTTP 404
