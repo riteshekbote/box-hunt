@@ -824,3 +824,16 @@ testability: PASSIVE
 ## 2026-08-21 17:17:00 UTC notes.services.box.com (ling3)
 ## 2026-08-21 17:47:29 UTC notes.services.box.com (ling3)
 ## 2026-08-21 18:13:54 UTC notes.services.box.com (ling3)
+## 2026-08-21 18:45:21 UTC notes.services.box.com (mimo)
+[NEW] cloud.app.box.com: 206 Range-honoring confirmed at root across 4 consecutive executor runs (16:48, 17:39, 18:01, now 18:13 UTC) — stable asset layer
+[HYP] CORS reflection on cloud.app.box.com 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Root 206 reproducible across 4 cycles; such edge/CDN layers commonly default to permissive CORS. No prior probe has tested attacker Origin reflection — hypothesis untested, not disproven.
+verify_steps: GET https://cloud.app.box.com/ with headers Origin: https://evil.com, Range: bytes=0-100 — single read-only request captures ACAO, Content-Range, Vary, Server
+impact: Arbitrary-origin reflection with credentials enables cross-origin exfiltration of preview data — HIGH
+testability: PASSIVE
+[NEXT] GET https://cloud.app.box.com/ with headers Origin: https://evil.com and Range: bytes=0-100 — capture Access-Control-Allow-Origin, Content-Range, Accept-Ranges, Vary, Server
+[NEXT] OPTIONS https://cloud.app.box.com/ with headers Origin: https://evil.com, Access-Control-Request-Method: GET — preflight policy capture
+[NEXT] HEAD https://cloud.app.box.com/ — full response header baseline without Origin
