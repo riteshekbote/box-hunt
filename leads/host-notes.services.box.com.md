@@ -1005,3 +1005,23 @@ impact: An attacker page on evil.com can force a logged-in Box user to upload ar
 testability: AUTH_HELPED — requires victim to be logged into Box
 [NEXT] VERIFY: HEAD https://upload.box.com/api/2.0/files/content to confirm 404 vs active endpoint behavior
 [NEXT] VERIFY: OPTIONS on upload.box.com/api/2.0/files (list files) with GET method to check if GET is also reflected with credentials
+## 2026-08-21 21:48:16 UTC notes.services.box.com (mimo)
+[CONFIRMED] upload.box.com CORS Origin reflection with credentials on POST preflight
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content, upload.box.com/api/2.0/files/upload_session
+confidence: 85
+reasoning: OPTIONS preflight on /api/2.0/files/content reflects ANY Origin (evil.com, attacker.com, null) in access-control-allow-origin with access-control-allow-credentials: true. Allows POST with authorization and content-type headers. Live endpoint confirmed (POST returns 400, not 404). Same pattern on /api/2.0/files/upload_session. GET has no CORS headers — only POST is misconfigured. POST response itself lacks CORS headers, so attacker cannot read response body.
+verify_steps: OPTIONS with Origin reflection confirmed on /files/content and /files/upload_session. POST returns 400 (live endpoint). GET returns 404 (dead path).
+impact: CSRF forced file upload to victim's Box account. Attacker page (or sandboxed iframe from file://) forces logged-in user to upload arbitrary files. Severity: MEDIUM — attacker controls upload content and destination folder (parent_id), cannot read response. Null Origin widens attack surface to file:// URIs and sandboxed iframes.
+testability: AUTH_HELPED — requires victim to be authenticated to Box
+[NEW] upload.box.com/api/2.0/files/content: null Origin reflected with credentials — sandboxed iframe upload possible without attacker domain
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content
+confidence: 85
+reasoning: access-control-allow-origin: null is returned with credentials:true on preflight, meaning sandboxed iframes (sandbox="allow-scripts") can trigger cross-origin POST without needing an attacker-controlled domain. This lowers the bar for exploitation significantly.
+verify_steps: OPTIONS with Origin: null confirmed reflected. POST with null Origin returns 400.
+impact: Expands CSRF file upload to any page that can embed sandboxed iframes, including file:// URIs, data: URIs, and compromised sites.
+testability: AUTH_HELPED
+[NEXT] VERIFY: POST https://upload.box.com/api/2.0/files/content with multipart boundary-only body (no actual file) to determine if server returns structured JSON error with file metadata or just generic 400 — affects PoC construction
+[NEXT] VERIFY: GET https://upload.box.com/api/2.0/files with Bearer token to check if list endpoint also has CORS headers (GET-based data exfil)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks with null Origin to test if other API paths inherit the POST CORS policy or if it's path-restricted

@@ -37,18 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 20:45:03 UTC"
 }=== MY LAST LEADS (tail) ===
-verify_steps: N/A — behavior changed
-impact: None — 206 behavior no longer present
-testability: PASSIVE
-[PARKED] Disproven — 206 behavior absent, root returns 302 redirect.
-[HYP] dl.boxcloud.com wildcard CORS on file download proxy
-class: MISCONFIG
-asset: dl.boxcloud.com/
-confidence: 0
-reasoning: All paths return 404, no CORS headers on any response (GET, HEAD, OPTIONS). CDN edge is completely locked down with nginx.
-verify_steps: OPTIONS and GET probes confirm no CORS headers
-impact: None — no CORS policy exposed
-testability: PASSIVE
 [PARKED] Disproven — dl.boxcloud.com returns 404 with no CORS headers on all endpoints.
 [HYP] upload.box.com wildcard CORS on upload endpoint
 class: MISCONFIG
@@ -97,17 +85,19 @@ impact: LOW — informational; may indicate inconsistent method handling
 testability: PASSIVE
 [PARKED] Low impact — 405 is expected behavior for routes that don't support HEAD.
 ## 2026-08-21 21:00:02 UTC notes.services.box.com (mimo)
+## 2026-08-21 21:36:44 UTC notes.services.box.com (mimo)
+[NEW] upload.box.com/api/*: CORS Origin reflection with credentials on OPTIONS preflight allows CSRF file upload
+[HYP] upload.box.com CORS misconfiguration enables CSRF file upload
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 70
+reasoning: OPTIONS preflight reflects any Origin in access-control-allow-origin and sets access-control-allow-credentials: true, allowing POST with Authorization and Content-Type headers. The upload endpoint (POST /api/2.0/files/content) processes requests with victim session cookies. Actual POST responses lack CORS headers, so attacker cannot read the response, but server processes the upload. This is a CORS preflight misconfiguration enabling CSRF.
+verify_steps: OPTIONS probe on upload.box.com/api/2.0/files/content confirms Origin reflection + credentials. POST probe confirms server processes the request (400 with multipart error = live endpoint, not stub).
+impact: An attacker page on evil.com can force a logged-in Box user to upload arbitrary files to their account. Impact: MEDIUM — forced file upload (CSRF), no data exfiltration (attacker cannot read response).
+testability: AUTH_HELPED — requires victim to be logged into Box
+[NEXT] VERIFY: HEAD https://upload.box.com/api/2.0/files/content to confirm 404 vs active endpoint behavior
+[NEXT] VERIFY: OPTIONS on upload.box.com/api/2.0/files (list files) with GET method to check if GET is also reflected with credentials
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 19:52:51 UTC
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
@@ -138,25 +128,19 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 21:35:17 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 19:52:51 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-21 20:56:08 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 21:35:17 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
