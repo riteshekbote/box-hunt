@@ -202,3 +202,17 @@ https://app.box.com/api/2.0/events -> HTTP 401
 https://app.box.com/api/2.0/folders/0 -> HTTP 401
 https://app.box.com/api/2.0/users/me -> HTTP 401
 https://cloud.app.box.com/api/oauth2/authorize?response_type=code&redirect_uri=https%3A%2F%2Fevil.com%2Fcb -> 206
+
+## 2026-08-21 22:08:28 UTC app.box.com
+https://app.box.com/api/2.0/me -> HTTP 401
+https://app.box.com/api/2.0/events -> HTTP 401
+https://app.box.com/ -> 206
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://app.box.com/login -> 206
+https://cloud.app.box.com/api/oauth2/authorize -> 206
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
+https://app.box.com/api/2.0/tasks -> HTTP 401
+https://app.box.com/api/2.0/collaborations -> HTTP 401
+https://app.box.com/api/2.0/events?stream_type=admin_logs -> HTTP 401
+https://app.box.com/realtime -> HTTP 404
