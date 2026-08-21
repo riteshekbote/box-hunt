@@ -944,3 +944,12 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS preflight
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1` — test app.box.com API path CORS
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1` — test SPA shell route for CORS headers
+## 2026-08-21 21:47:11 UTC cloud.app.box.com (mimo)
+[LEARN] REJECTED account.box.com/_assets/ sibling-object enumeration: all tested paths return 404 from GCS — not accessible.
+[LEARN] REJECTED cloud.app.box.com SPA catch-all for /shared/, /folders/, /v/ paths: /shared/test123 returns 404, /folders/0 returns 404, /v/test123 returns 200 with SPA shell. Only /s/<token> paths consistently return 206 SPA shell with route resolution.
+[LEARN] REJECTED cloud.app.box.com internal API paths: /app-api/enduserapp/current-user and /app-api/enduserapp/shared-item return 404 when accessed directly.
+[LEARN] REJECTED dl.boxcloud.com download proxy: All tested paths return 404 with no CORS headers. The download CDN requires valid signed URLs.
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS on unauthenticated request
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS preflight
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1` — test app.box.com API path CORS
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1` — test SPA shell route for CORS headers

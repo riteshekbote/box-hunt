@@ -170,3 +170,6 @@ https://cloud.app.box.com/preview/abc123 -> HTTP 404
 
 ## 2026-08-21 21:27:29 UTC cloud.app.box.com
 https://cloud.app.box.com/s/test123 -> HTTP 404
+
+## 2026-08-21 21:47:14 UTC cloud.app.box.com
+https://cloud.app.box.com/s/test123 -> HTTP 404
