@@ -775,3 +775,30 @@ impact: LOW. Origin reflection is a misconfiguration, but the endpoint only serv
 testability: PASSIVE
 [LEARN] ACCEPTED CORS wildcard preflight @ cloud.app.box.com: Confirmed via OPTIONS on root and /api/* paths returning access-control-allow-origin: * with full method list including DELETE/POST/PUT and Authorization header allowance. However, the impact is limited because actual GET responses lack CORS headers.
 ## 2026-08-21 18:57:20 UTC app.box.com (mimo)
+## 2026-08-21 19:28:29 UTC app.box.com (mimo)
+[CONFIRMED] CORS wildcard preflight on account.box.com + api.box.com
+class: MISCONFIG
+asset: account.box.com, api.box.com (root OPTIONS)
+confidence: 75
+reasoning: Both hosts return access-control-allow-origin: * with DELETE/HEAD/GET/OPTIONS/POST/PUT methods and Authorization header allowed on OPTIONS preflight. Same pattern as cloud.app.box.com and notes.services.box.com — a shared edge/CDN wildcard config across all Box origins. api.box.com GET responses return 401 without CORS headers, so the permissive preflight does not enable cross-origin data reads.
+verify_steps: 1) OPTIONS with Origin: evil.com on account.box.com  2) GET on api.box.com/2.0/folders/0 with Origin to confirm no CORS in 401 response
+impact: LOW. Wildcard preflight is overly permissive but mitigated by absence of CORS on actual API responses. Cannot chain into data exfiltration without an endpoint that returns CORS headers on GET.
+testability: PASSIVE
+[CONFIRMED] Origin reflection on cloud.account.box.com/api/oauth2/authorize
+class: MISCONFIG
+asset: cloud.account.Box.com/api/oauth2/authorize
+confidence: 85
+reasoning: GET with attacker Origin returns access-control-allow-origin: https://evil.com plus access-control-expose-headers: WWW-Authenticate,Server-Authorization. The 200 response body is an SPA shell with Box.prefetchedData containing Amplitude API key, Split.io API key, Pendo API key, internal deployment metadata (k8s, us-west4-prod), feature flags, and preview config. No Access-Control-Allow-Credentials means only unauthenticated data is readable cross-origin.
+verify_steps: 1) Cross-origin fetch from evil.com to cloud.account.Box.com/api/oauth2/authorize  2) Parse HTML to extract Box.prefetchedData JSON  3) Confirm keys are already present in public JS bundles
+impact: LOW-MEDIUM. The API keys are client-side analytics keys already in JS bundles, so they're effectively public. However, the CORS misconfiguration pattern (origin reflection + expose-headers) combined with the wildcard preflight is a defense-in-depth violation. If any authenticated endpoint ever adds CORS headers, the pattern would become exploitable.
+testability: PASSIVE
+[CONFIRMED] CORS wildcard preflight shared across ALL Box edge origins
+class: MISCONFIG
+asset: cloud.app.box.com, cloud.account.box.com, account.box.com, api.box.com, notes.services.box.com
+confidence: 80
+reasoning: All five Box origins return the identical OPTIONS preflight response: access-control-allow-origin: *, methods DELETE/HEAD/GET/OPTIONS/POST/PUT, headers Authorization (and Content-Type on some). This is a shared edge/CDN configuration, not per-service. The wildcard allows any origin to make cross-origin requests with any HTTP method and Authorization header.
+verify_steps: 1) Compare OPTIONS response headers across all five hosts  2) Check if Box developer docs mention CORS policy
+impact: LOW. While the preflight is maximally permissive, the actual GET/HEAD responses on api.box.com and other API endpoints do NOT include CORS headers, blocking cross-origin reads. The only responses with CORS reflection are HTML pages on cloud.account.box.com serving unauthenticated content.
+testability: PASSIVE
+[PARKED] api.box.com www-authenticate header leakage via CORS: api.box.com returns 401 with www-authenticate: Bearer realm="Service" header, but the response has NO access-control-allow-origin header, so the header is not readable cross-origin. If any future endpoint adds CORS headers, this would become exploitable.
+[NEXT] HEAD https://app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0

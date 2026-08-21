@@ -141,3 +141,17 @@ https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
 https://cloud.app.box.com/api/2.0/events -> HTTP 401
 https://cloud.app.box.com/api/2.0/metadata_templates -> HTTP 401
 https://services.app.box.com/ -> 206
+
+## 2026-08-21 19:28:57 UTC app.box.com
+https://app.box.com/ -> 206
+https://cloud.app.box.com/api/2.0 -> HTTP 404
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/embed -> 206
+https://cloud.app.box.com/preview -> HTTP 404
+https://cloud.app.box.com/shared -> HTTP 404
+https://cloud.app.box.com/view -> HTTP 404
+https://cloud.app.box.com/v/embed -> 206
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/api/2.0/files/12345 -> HTTP 401
+https://cloud.app.box.com/login?redirect_url=https%3A%2F%2Fevil.com -> 206
+https://cloud.app.box.com/login?redirect_url=https%3A%2F%2Fevil.com%2Fsteal-token -> 206

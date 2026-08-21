@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 18:48:19 UTC"
 }=== MY LAST LEADS (tail) ===
-impact: If Origin is reflected with credentials, attacker can cross-origin read preview/embed assets served by this layer (HIGH). If Allow-Methods is wide, preflight succeeds for any method.
 testability: PASSIVE
 [NEXT] HEAD https://cloud.app.box.com/ with headers: Origin: https://evil.com, User-Agent: box-research/1.0
 ## 2026-08-20 20:51:57 UTC app.box.com (ling3)
@@ -97,6 +96,7 @@ verify_steps: 1) Check if /login ever returns 200 (not redirect) with CORS heade
 impact: LOW. Origin reflection is a misconfiguration, but the endpoint only serves redirects with empty bodies. No data exfiltration possible via cross-origin reads on this specific path.
 testability: PASSIVE
 [LEARN] ACCEPTED CORS wildcard preflight @ cloud.app.box.com: Confirmed via OPTIONS on root and /api/* paths returning access-control-allow-origin: * with full method list including DELETE/POST/PUT and Authorization header allowance. However, the impact is limited because actual GET responses lack CORS headers.
+## 2026-08-21 18:57:20 UTC app.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
