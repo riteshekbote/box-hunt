@@ -860,3 +860,27 @@ verify_steps: N/A
 impact: No direct impact — confirms standard CDN architecture
 testability: PASSIVE
 [PARKED] Object-store default handler vs whitelist-routed: infrastructure behavior confirmed, not exploitable — no security impact.
+## 2026-08-21 19:46:31 UTC notes.services.box.com (mimo)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 85
+reasoning: |
+verify_steps: |
+impact: |
+testability: PASSIVE
+class: MISCONFIG
+asset: cloud.app.box.com/, api.box.com/, account.box.com/
+confidence: 90
+reasoning: |
+verify_steps: N/A
+impact: No impact — standard CDN wildcard CORS behavior.
+testability: PASSIVE
+[PARKED] Not exploitable.
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 0
+reasoning: |
+verify_steps: N/A
+impact: None — 206 behavior no longer present.
+testability: PASSIVE
+[PARKED] Disproven — 206 behavior absent, ACAO is wildcard not reflection.
