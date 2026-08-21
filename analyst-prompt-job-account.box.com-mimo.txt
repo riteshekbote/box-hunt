@@ -35,43 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 18:52:24 UTC"
+  "last_advance": "2026-08-21 19:01:02 UTC"
 }=== MY LAST LEADS (tail) ===
-## 2026-08-21 09:22:10 UTC account.box.com (ling3)
-## 2026-08-21 09:55:47 UTC account.box.com (ling3)
-## 2026-08-21 10:20:55 UTC account.box.com (ling3)
-## 2026-08-21 10:52:34 UTC account.box.com (ling3)
-## 2026-08-21 11:13:24 UTC account.box.com (ling3)
-## 2026-08-21 11:41:05 UTC account.box.com (ling3)
-## 2026-08-21 11:59:53 UTC account.box.com (ling3)
-## 2026-08-21 12:50:48 UTC account.box.com (ling3)
-## 2026-08-21 13:34:33 UTC account.box.com (ling3)
-## 2026-08-21 14:09:18 UTC account.box.com (ling3)
-## 2026-08-21 14:50:57 UTC account.box.com (ling3)
-## 2026-08-21 15:17:56 UTC account.box.com (ling3)
-## 2026-08-21 15:51:06 UTC account.box.com (ling3)
-## 2026-08-21 16:15:20 UTC account.box.com (ling3)
-## 2026-08-21 16:51:59 UTC account.box.com (ling3)
-## 2026-08-21 17:19:59 UTC account.box.com (bigpickle)
-[NEW] cloud.app.box.com/: Root GET = HTTP 206 across 3 consecutive executor cycles (14:49/15:44/16:48 UTC) while every nonce path (`/bhx-xp4k7-m9f3q`, `/robots`, `/ROBOTS.TXT`, `/bhx-p3n7r/robots.txt`) = 404 — the 206/Range layer is pinned-asset routed, NOT an object-store default handler fronting arbitrary keys.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/: stable 206-on-root vs uniform 404-on-nonce resolves the routing-model question halfway — whitelist/pinned routing confirmed, "default handler serves whole bucket" branch REJECTED.
-[HYP] 206/Range asset layer on origin root — header, method and CORS surface unresolved
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 55
-reasoning: Root answers 206 (partial-content) to a normal GET — anomalous for an app origin; nonce paths 404 identically across 3 cycles, proving route pinning. Unknown: whether root echoes Content-Range/Accept-Ranges, enumerates methods via OPTIONS, or reflects attacker Origin in Access-Control-Allow-Origin with credentials (the [45] CORS branch remains untested on this layer).
-verify_steps: `curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Range: bytes=0-15" "https://cloud.app.box.com/"` ; `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://cloud.app.box.com/"`
-impact: If ACAO reflects arbitrary Origin with credentials on the authenticated app origin → cross-origin read of victim data (High/Critical). If the 206 layer mis-parses byte ranges on the root document, cache/key confusion on pinned assets possible (Medium).
-testability: PASSIVE
-[PARKED] OAuth token-endpoint wildcard CORS: preflight `/api/oauth2/token` returned `*` without credentials echo — spec-safe, no attacker-readable path; reopen only if another endpoint reflects Origin together with ACAC:true.
-[HYP] Reflected parameter injection via `errorParams` JSON in OAuth2 authorize page — UNTESTED VARIANT (prior XSS-REFLECT/XSS-REFLECT2 lines were never picked up by the executor)
-class: XSS
-asset: cloud.app.box.com/api/oauth2/authorize
-confidence: 30
-reasoning: All query params are reflected inside `Box.prefetchedData.errorParams` JSON in inline `<script>`. Breakout via `redirect_uri` payloads queued twice but not executed; switching injection point to `state` avoids the no-op dedup and tests the same sink.
-verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&state=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E"`
-impact: DOM/HTML-context XSS on the embedded-content origin → session theft (Critical if unescaped).
-testability: PASSIVE
 [NEXT] RANGE-CORS-ROOT: `curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Range: bytes=0-15" "https://cloud.app.box.com/"`
 [NEXT] XSS-STATE-BREAK: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&state=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E"`
 ## 2026-08-21 17:47:42 UTC account.box.com (ling3)
@@ -97,6 +62,41 @@ testability: PASSIVE
 [PARKED] cloud.app.box.com XSS via errorParams: JSON string escaping prevents breakout on all reflected parameters (state, clientId, redirect_uri).
 [NEXT] UPLOAD-CORS-DEEP: Test additional upload.box.com paths for any GET endpoint: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files/upload_sessions"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files"`
 [NEXT] ACCOUNT-AUTH-DEEP: Probe account.box.com SSO/OAuth paths for reflected-origin-with-credentials: `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://account.box.com/api/oauth2/token"` then `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://upload.box.com/api/oauth2/token"`
+## 2026-08-21 19:00:35 UTC account.box.com (mimo)
+[LEARN] ACCEPTED CORS+credentials @ upload.box.com/api/oauth2/token: OPTIONS reflects attacker Origin with `ACAC: true` + `Allow-Methods: POST`. Confirmed — full CORS preflight bypass on token endpoint. GET returns 404 (nginx fallback), no GET-accessible data surface on this host.
+[LEARN] REJECTED CORS+credentials @ account.box.com/login/reset: OPTIONS reflects Origin in `access-control-allow-origin` but WITHOUT `ACAC: true` — safe, no credentialed reads possible.
+[LEARN] ACCEPTED API design @ api.box.com: All endpoints return `ACAC: *` (wildcard without credentials) — by design for public API. No misconfiguration.
+[LEARN] ACCEPTED API design @ account.box.com/api/oauth2/token: Returns `ACAC: *` — safe by spec.
+[HYP] Open redirect via account.box.com SSO redirect chain (2-hop)
+class: AUTH
+asset: account.box.com/sso
+confidence: 55
+reasoning: `/sso?redirect_url=https://evil.example.com` causes 302 to `/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Fevil.example.com`. The login form's hidden `redirect_url` field preserves the full `/sso?redirect_url=https://evil.example.com` path. After successful login, the server would redirect to `/sso?redirect_url=https://evil.example.com`. The critical unknown is whether the SSO handler follows the external URL after authentication — this is untestable without valid credentials.
+verify_steps: HUMAN_ONLY — requires authentic Box account login via `https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Fevil.example.com`
+impact: If the SSO handler follows the external redirect_url → full open redirect on account.box.com (High). If the SSO handler ignores/validates the redirect_url → no impact.
+testability: HUMAN_ONLY
+[HYP] CORS+credentials misconfiguration on upload.box.com token endpoint
+class: MISCONFIG
+asset: upload.box.com/api/oauth2/token
+confidence: 85
+reasoning: OPTIONS preflight reflects attacker Origin with `ACAC: true`, `Allow-Methods: POST`, `Allow-Headers: Authorization,Content-Type`. This is a full CORS+credentials misconfiguration. However, GET returns 404 and no GET-accepting endpoint exists on this host — all paths are nginx fallback 404. The finding is confirmed misconfiguration but not currently exploitable for data exfiltration via unauthenticated read-only probes.
+verify_steps: Already verified via OPTIONS preflight probes.
+impact: If any authenticated GET endpoint existed on upload.box.com → cross-origin read of user data via cookies (Critical). Current status: misconfiguration confirmed, no exploitable GET surface.
+testability: PASSIVE
+[HYP] CORS+credentials misconfiguration on upload.box.com files/content endpoint
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content
+confidence: 85
+reasoning: OPTIONS preflight returns reflected Origin with `ACAC: true`, `Allow-Methods: POST` — identical pattern to the token endpoint. GET returns 404 (nginx fallback). No exploitable GET surface. Same class as upload token finding.
+verify_steps: Already verified.
+impact: Same as upload token finding — misconfiguration confirmed, no exploitable surface.
+testability: PASSIVE
+[PARKED] cloud.app.box.com XSS via errorParams: JSON string escaping prevents breakout on all reflected parameters (state, clientId, redirect_uri). Tested and rejected in prior cycle.
+[PARKED] cloud.app.box.com CORS misconfiguration: Origin reflected without ACAC on /api/oauth2/authorize — by design for OAuth2, no credential-bearing reads possible.
+[PARKED] cloud.app.box.com 206/Range asset layer: Root now consistently returns 302→login across all probes. Prior 206 was transient CDN artifact. Abandoned.
+[PARKED] upload.box.com CORS+credentials (combined): Confirmed misconfiguration but no GET-accessible data surface. All GET paths return 404. Requires POST which is outside read-only scope.
+[NEXT] SSO-CHAIN-AUTH: Attempt authenticated open redirect test by probing `/sso` with various `redirect_url` values to see if any validation is applied: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://evil.example.com/path"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=//evil.example.com"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=%2F%2Fevil.example.com"`
+[NEXT] ACCOUNT-CORS-DEEP: Check if account.box.com has CORS+credentials on any additional paths beyond OPTIONS: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://account.box.com/login" | grep -i "access-control"` then test `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://account.box.com/login/reset?email=test"`
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
