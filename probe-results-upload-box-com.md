@@ -33,3 +33,17 @@ https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
 
 ## 2026-08-21 21:53:04 UTC upload.box.com
 https://upload.box.com/ -> HTTP 404
+
+## 2026-08-21 22:35:50 UTC upload.box.com
+https://upload.box.com/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/api/2.0/files -> HTTP 404
+https://upload.box.com/api/2.0/folders/0/items -> HTTP 404
+https://upload.box.com/api/2.0/tasks -> HTTP 404
+https://upload.box.com/api/2.0/files/12345 -> HTTP 404
+https://upload.box.com/api/2.0/me -> HTTP 404
+https://upload.box.com/api/2.0/shared_items -> HTTP 404
+https://upload.box.com/api/2.0/collaborations -> HTTP 404
+https://upload.box.com/api/2.0/comments -> HTTP 404
+https://upload.box.com/static/ -> HTTP 404
+https://upload.box.com/p/ -> HTTP 404

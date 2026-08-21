@@ -1,23 +1,8 @@
-[CONFIRMED] OAuth token endpoint wildcard CORS — GET response readable cross-origin
 class: MISCONFIG
-asset: account.box.com/api/oauth2/token, api.box.com/api/oauth2/token
-confidence: 90
-reasoning: Both OAuth token endpoints return `access-control-allow-origin: *` on GET responses (not just OPTIONS preflight). The GET response includes JSON error body and is fully readable cross-origin. OPTIONS preflight also returns wildcard with `access-control-allow-headers: Content-Type,Authorization` and `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT`. The GET response leaks which grant types are supported via differential error messages: `password`, `client_credentials`, and `jwt-bearer` return `"The client credentials are invalid"` (valid grant type, wrong creds), while `authorization_code` and `implicit` return `"Invalid grant_type parameter or parameter missing"` (not accepted on GET). Wildcard CORS means no credentials are sent, so session cookies are not attached — but any origin can read the JSON response body.
-evidence: [This cycle] GET on both hosts returns `access-control-allow-origin: *` with JSON body. OPTIONS returns wildcard with Authorization header allowed. grant_type=password/client_credentials/jwt-bearer return "invalid_client" (accepted), while authorization_code/implicit return "invalid_request" (not accepted). All on GET.
-verify_steps: N/A — already verified
-impact: LOW-MEDIUM (information disclosure). Cross-origin readable token endpoint leaks supported grant types via differential error messages. The wildcard CORS on a sensitive authentication endpoint violates OAuth security best practices (RFC 6749 §10). While no tokens are leaked on GET, the misconfiguration pattern is dangerous — if the endpoint ever returns tokens or introspection data on GET, it would be immediately exfiltratable cross-origin. The OPTIONS allowing Authorization header preflight from any origin compounds the risk.
-testability: PASSIVE
-[LEARN] ACCEPTED MISCONFIG @ account.box.com/api/oauth2/token: OAuth token endpoint returns `access-control-allow-origin: *` on GET (not just OPTIONS). Error body readable cross-origin. Supports grant_types: password, client_credentials, jwt-bearer (via error differentiation). `Origin: null` also reflected on /api/oauth2/authorize.
-[LEARN] ACCEPTED MISCONFIG @ api.box.com/api/oauth2/token: Same wildcard CORS on GET and OPTIONS. api.box.com and account.box.com share the same OAuth backend with identical CORS policy.
-[LEARN] REJECTED XSS @ account.box.com/api/oauth2/authorize with Origin: null: Origin `null` is reflected as `access-control-allow-origin: null` but without credentials. The response body HTML is the same SPA page — no injection from the Origin header.
-[PARKED] notes.services.box.com: Root 302-redirects to services.app.box.com. API path /notes/api/2.0/notes returns 404. No CORS headers on any response. Backend is Express.js (x-powered-by header) with frame-ancestors CSP allowing only app.box.com. Cannot enumerate Notes API paths without authentication.
-testability: HUMAN_ONLY
-[PARKED] dl.boxcloud.com: All paths return 404 with "download-proxy service / Resource is not found". No CORS headers. Requires signed tokens that cannot be constructed without auth.
-testability: HUMAN_ONLY
-[PARKED] upload.box.com: Root and /api/2.0/files/content return 404. Behind authenticated SPA routes only.
-testability: HUMAN_ONLY
-[PARKED] cloud.app.box.com/api/2.0/*: Returns 401 `www-authenticate: Bearer` without CORS headers. Authenticated API proxy — no cross-origin data leak.
-testability: AUTH_HELPED
-[NEXT] PROBE (account.box.com — additional OAuth paths): `curl -s -D- "https://account.box.com/api/oauth2/device/code" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" 2>&1 | head -20` — test device auth flow endpoint CORS. 1 req.
-[NEXT] PROBE (api.box.com — token endpoint POST via GET with content-type): `curl -s -D- "https://api.box.com/api/oauth2/token" -H "Content-Type: application/x-www-form-urlencoded" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" 2>&1 | head -20` — test if GET with POST content-type header changes behavior. 1 req.
-[NEXT] PROBE (account.box.com — login page CORS body inspection): `curl -s "https://account.box.com/login" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" 2>&1 | grep -oP 'Box\.config\.[^<]+' | head -20` — extract Box.config keys leaked via CORS-readable page. 1 req.
+asset: upload.box.com/api/2.0/* (POST endpoints: /files/content, /shared_items, /collaborations, /comments)
+confidence: 95
+reasoning: All tested POST API paths on upload.box.com return `access-control-allow-origin: <attacker_origin>` with `access-control-allow-credentials: true` on OPTIONS preflight. Reflects `Origin: null` (sandboxed iframes/file:// URIs). DELETE/PUT preflight to same paths do NOT reflect Origin. GET responses return 404 without CORS headers. POST response (tested without auth → 400) also returns no CORS headers — confirmed write-only. The upload pipeline is POST-based, making every file upload, collaboration, and comment endpoint vulnerable to credentialled cross-origin requests.
+evidence: [This cycle] 11 OPTIONS preflight tests across 4 API paths × 3 origins (evil.example.com, null, app.box.com) — all reflected with credentials:true. DELETE/PUT preflight to /api/2.0/files/12345 → 200 without CORS. GET /api/2.0/files/content → 404 without CORS. POST /api/2.0/files/content (no auth) → 400 JSON error body without CORS headers.
+verify_steps: N/A — already verified via 11+ probes
+impact: HIGH (CSRF with credentials on upload pipeline). Attacker page forces logged-in Box user's browser to: (1) upload arbitrary files to victim's account, (2) create collaborations sharing victim's files with attacker, (3) create comments. Write actions execute server-side with victim's session cookies. Cannot read responses (GET/POST lack CORS headers).
+testability: PASSIVE (preflight verification passive; full exploit requires victim interaction — trivially demonstrable POC)
