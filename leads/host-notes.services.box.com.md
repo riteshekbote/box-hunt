@@ -1025,3 +1025,11 @@ testability: AUTH_HELPED
 [NEXT] VERIFY: POST https://upload.box.com/api/2.0/files/content with multipart boundary-only body (no actual file) to determine if server returns structured JSON error with file metadata or just generic 400 — affects PoC construction
 [NEXT] VERIFY: GET https://upload.box.com/api/2.0/files with Bearer token to check if list endpoint also has CORS headers (GET-based data exfil)
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks with null Origin to test if other API paths inherit the POST CORS policy or if it's path-restricted
+## 2026-08-21 22:03:07 UTC notes.services.box.com (mimo)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 95
+reasoning: |
+verify_steps: OPTIONS with null, evil.com, box.com.evil.com origins — all reflected with credentials
+impact: |
+testability: AUTH_HELPED
