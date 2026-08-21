@@ -776,3 +776,25 @@ testability: PASSIVE
 ## 2026-08-21 21:47:34 UTC dl.boxcloud.com (mimo)
 ## 2026-08-21 22:02:52 UTC dl.boxcloud.com (mimo)
 ## 2026-08-21 22:32:30 UTC dl.boxcloud.com (mimo)
+## 2026-08-21 22:53:22 UTC dl.boxcloud.com (mimo)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: SPA catch-all confirmed — root `/` returns 206. Route mapper and prefetchedData consistently present. This is stable infrastructure behavior, not a vulnerability in itself.
+[NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1500 chars), content-type, and any x-amz-*/x-goog-*/server headers. **CRITICAL: This is the highest-priority evidence gap.**
+[NEXT] PROBE: GET https://cloud.app.box.com/admin — capture currentRm and prefetchedData keys for route mapper enumeration.
+[NEXT] PROBE: GET https://cloud.app.box.com/settings — same capture.
+[NEXT] PROBE: GET https://cloud.app.box.com/debug — same capture.
+[HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
+class: BUSLOGIC
+asset: cloud.app.box.com/?list-type=2
+confidence: 55
+reasoning: S3 ListObjects-v2 query parameter accepted with 200 across multiple cycles. Body content never captured. If XML ListBucketResult returned, public bucket listing. If HTML SPA shell, 200 is benign catch-all.
+verify_steps: GET https://cloud.app.box.com/?list-type=2
+impact: Object enumeration without auth. Severity: Medium-High.
+testability: PASSIVE
+[HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
+class: MISCONFIG
+asset: cloud.app.box.com/<path>
+confidence: 60
+reasoning: Confirmed 206 catch-all. Different paths trigger different route mappers (currentRm). prefetchedData includes server-side API lookups. If privileged paths trigger sensitive prefetchedData, attacker extracts data from 206.
+verify_steps: GET https://cloud.app.box.com/admin, GET /settings, GET /debug
+impact: Sensitive data disclosure from server-side prefetchedData. Severity: Low-Medium.
+testability: PASSIVE

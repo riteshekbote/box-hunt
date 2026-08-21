@@ -1,19 +1,32 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m→ [0mRead .
-[0m✱ [0mGlob "**/*.md"[90m 18 matches[0m
-[0m→ [0mRead scope.txt
-[0m→ [0mRead state_dl.boxcloud.com.json
-[0m→ [0mRead leads/host-dl.boxcloud.com.md
-[0m→ [0mRead leads/host-dl.boxcloud.com.md[90m [offset=505][0m
-[0m→ [0mRead probe-results-cloud-app-box-com.md
-[0m→ [0mRead probe-results-next.md
-[0m→ [0mRead probe-results-next.md[90m [offset=1018][0m
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/cloud-list2-headers.txt "https://cloud.app.box.com/?list-type=2" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-list2-body 2>&1 && echo "---HEADERS---" && cat /tmp/cloud-list2-headers.txt && echo "---BODY-START---" && head -c 2000 /tmp/cloud-list2-body && echo "---BODY-END---" && wc -c /tmp/cloud-list2-body failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/cloud-admin-headers.txt "https://cloud.app.box.com/admin" -H "User-Agent: box-research/1.0 +(research)" -o /tmp/cloud-admin-body 2>&1 && echo "---HEADERS---" && cat /tmp/cloud-admin-headers.txt && echo "---BODY-START---" && head -c 2000 /tmp/cloud-admin-body && echo "---BODY-END---" && wc -c /tmp/cloud-admin-body failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-Now I'll execute the critical probes that the executor has been unable to reach. Let me run the two key hypothesis verification probes in parallel:
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: SPA catch-all confirmed — root `/` returns 206. Route mapper and prefetchedData consistently present. This is stable infrastructure behavior, not a vulnerability in itself.
+
+[NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1500 chars), content-type, and any x-amz-*/x-goog-*/server headers. **CRITICAL: This is the highest-priority evidence gap.**
+
+[NEXT] PROBE: GET https://cloud.app.box.com/admin — capture currentRm and prefetchedData keys for route mapper enumeration.
+
+[NEXT] PROBE: GET https://cloud.app.box.com/settings — same capture.
+
+[NEXT] PROBE: GET https://cloud.app.box.com/debug — same capture.
+
+[HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
+class: BUSLOGIC
+asset: cloud.app.box.com/?list-type=2
+confidence: 55
+reasoning: S3 ListObjects-v2 query parameter accepted with 200 across multiple cycles. Body content never captured. If XML ListBucketResult returned, public bucket listing. If HTML SPA shell, 200 is benign catch-all.
+evidence_needed: Response body + content-type + server headers from GET /?list-type=2
+verify_steps: GET https://cloud.app.box.com/?list-type=2
+impact: Object enumeration without auth. Severity: Medium-High.
+testability: PASSIVE
+
+[HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
+class: MISCONFIG
+asset: cloud.app.box.com/<path>
+confidence: 60
+reasoning: Confirmed 206 catch-all. Different paths trigger different route mappers (currentRm). prefetchedData includes server-side API lookups. If privileged paths trigger sensitive prefetchedData, attacker extracts data from 206.
+evidence_needed: currentRm + prefetchedData keys for /admin, /settings, /debug paths
+verify_steps: GET https://cloud.app.box.com/admin, GET /settings, GET /debug
+impact: Sensitive data disclosure from server-side prefetchedData. Severity: Low-Medium.
+testability: PASSIVE
