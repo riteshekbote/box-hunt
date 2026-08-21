@@ -1,0 +1,11 @@
+[NEW] cloud.app.box.com/: root 206 reproduced in 3 consecutive executor runs (23:36, 23:55, 01:54 UTC) — stable Range-honoring layer at origin root; random nonce paths still 404, so the open question narrows to root-vs-pinned-assets routing. Prior CORS probes (OPTIONS/GET with attacker Origin) were queued but never executed — hypothesis untested, not disproven.
+[HYP] CORS reflection on cloud.app.box.com 206 asset layer
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 50
+reasoning: Root serving 206 across repeated cycles proves a non-standard object-store/edge handler fronts the origin root; such layers commonly attach permissive Access-Control-* headers. Attacker-Origin probes have never returned a result, so no disconfirming evidence exists.
+verify_steps: GET https://cloud.app.box.com/ with request headers Origin: https://evil.com and Range: bytes=0-100 — single read-only request captures ACAO reflection plus Content-Range/Accept-Ranges/Vary and any Authorization-header exposure in Access-Control-Allow-Headers.
+impact: Arbitrary-origin reflection with credentials enables cross-origin exfiltration of authenticated preview data — HIGH.
+testability: PASSIVE
+[PARKED] OAuth token endpoint exposure on cloud.app.box.com: zero observed endpoints or doc references; any token exchange violates rule 2 (no credential submission) — AUTH_HELPED/HUMAN_ONLY, parked until explicit new rule.
+[NEXT] GET https://cloud.app.box.com/ with request headers Origin: https://evil.com, Range: bytes=0-100 — full header capture (Access-Control-*, Content-Range, Accept-Ranges, Vary, Server)
