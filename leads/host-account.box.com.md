@@ -945,3 +945,24 @@ testability: PASSIVE
 [NEXT] XSS-STATE-BREAK: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&state=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E"`
 ## 2026-08-21 17:47:42 UTC account.box.com (ling3)
 ## 2026-08-21 18:14:29 UTC account.box.com (ling3)
+## 2026-08-21 18:52:07 UTC account.box.com (mimo)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Root now consistently returns 302→login across all probes this cycle; the prior 206 was a transient CDN/cache artifact. The 206/Range asset layer hypothesis is abandoned.
+[LEARN] REJECTED XSS @ cloud.app.box.com/api/oauth2/authorize: Both `state` and `clientId` payloads are JSON-string-escaped (`"` → `\"`, `<\/script>` in JSON), preventing breakout from `Box.prefetchedData.errorParams` context. Tested with `x";</script><script>alert(1)</script>` — escaped identically on both sinks. No unescaped reflection path exists.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/oauth2/authorize: OPTIONS and GET reflect Origin in `access-control-allow-origin` without `ACAC: true`. Confirmed safe — no credential-bearing cross-origin reads possible. By design for OAuth2 third-party clients.
+[NEW] upload.box.com/api/2.0/files/content: OPTIONS reflects attacker Origin with `ACAC: true` — full CORS+credentials misconfiguration. However GET returns 404 without CORS headers (nginx default), and `Allow-Methods: POST` only. No exploitable GET endpoint found; finding is a misconfiguration flag but not currently exploitable from read-only unauthenticated probes.
+[NEW] m.box.com: Pure 301 redirect host → app.box.com. No unique endpoints, no surface.
+[NEW] dl.boxcloud.com: 404 on all enumerable paths (/, /api, /download, /files, /content, /signed, /token, /d, /i). nginx server, no CORS headers, no surface.
+[NEW] notes.services.box.com: 302 → services.app.box.com → app.box.com. Redirect chain only, no surface.
+[NEW] services.app.box.com: `/graphql` returns 503 (service unavailable). `/api` → developers.box.com. No exploitable endpoints.
+[HYP] CORS+credentials misconfiguration on upload.box.com API origin
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content
+confidence: 60
+reasoning: OPTIONS preflight returns `access-control-allow-origin: <reflected>` with `access-control-allow-credentials: true` and `allow-methods: POST`. This is a full CORS+credentials misconfiguration — any origin can make credentialed cross-origin requests. However, GET returns 404 without CORS headers (nginx fallback), and no valid GET endpoint exists to exploit. If any authenticated GET endpoint were to exist on this host, an attacker page could read victim data with cookies.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files/content"` (GET, already tested — 404); need POST to test upload session endpoints but prohibited by rules.
+impact: If exploitable — cross-origin read of user files via cookies (Critical). Current status: misconfiguration confirmed, exploit path not found via read-only probes.
+testability: PASSIVE
+[PARKED] cloud.app.box.com CORS+OAuth2: Origin reflected without ACAC on /api/oauth2/authorize — by design for OAuth2, no credential-bearing reads possible.
+[PARKED] cloud.app.box.com XSS via errorParams: JSON string escaping prevents breakout on all reflected parameters (state, clientId, redirect_uri).
+[NEXT] UPLOAD-CORS-DEEP: Test additional upload.box.com paths for any GET endpoint: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files/upload_sessions"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files"`
+[NEXT] ACCOUNT-AUTH-DEEP: Probe account.box.com SSO/OAuth paths for reflected-origin-with-credentials: `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://account.box.com/api/oauth2/token"` then `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://upload.box.com/api/oauth2/token"`

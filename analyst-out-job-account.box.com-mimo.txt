@@ -1,0 +1,889 @@
+[0m
+> build · mimo-v2.5-free
+[0m
+Looking at the state: POC phase, cloud.app.box.com active. Two pending [NEXT] probes need execution. Let me run both:
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Range: bytes=0-15" "https://cloud.app.box.com/" 2>&1 | head -50
+HTTP/2 302 
+date: Fri, 21 Aug 2026 18:45:15 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=pd257goibchmbskoi2clgc7qec; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=pd257goibchmbskoi2clgc7qec; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889cbbcfb6d0.32634501; expires=Sat, 21 Aug 2027 18:45:15 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:45:15 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=53; expires=Sat, 21 Aug 2027 18:45:15 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 79
+location: https://cloud.app.box.com/login
+box-request-id: 1e205ba9b794168c8ce4cfefbd08f9a0f
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+Root with Range header returns 302→login. Let me also run the XSS probe and re-check root without Range:
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/" 2>&1 | head -30
+HTTP/2 302 
+date: Fri, 21 Aug 2026 18:45:19 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=9ibhp6tgd81vrqlhbesaqb37tp; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=9ibhp6tgd81vrqlhbesaqb37tp; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889cbf94c6a4.44693179; expires=Sat, 21 Aug 2027 18:45:19 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:45:19 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=26; expires=Sat, 21 Aug 2027 18:45:19 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 40
+location: https://cloud.app.box.com/login
+box-request-id: 046691792f4f2ba48a216ec18ea9f4e83
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+Root now returns 302→login (previously 206). Behavior changed. Let me also test OPTIONS and the XSS probe:
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" "https://cloud.app.box.com/" 2>&1 | head -30
+HTTP/2 204 
+date: Fri, 21 Aug 2026 18:45:23 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+box-request-id: 1457912b1a151ee5182dafc3a82876960
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+OPTIONS returns `Access-Control-Allow-Origin: *` with all methods (DELETE, GET, POST, PUT). Let me check the XSS probe and also test with credentials:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&state=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E" 2>&1 | head -80
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:45:29 GMT
+content-type: text/html; charset=UTF-8
+expires: 0
+x-envoy-upstream-service-time: 176
+vary: origin,accept-encoding
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+strict-transport-security: max-age=31536000
+pragma: no-cache
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+set-cookie: z=74og3makh3rrt92mkb1ueo0jc8; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=74og3makh3rrt92mkb1ueo0jc8; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889cc919cfb8.65690412; expires=Sat, 21 Aug 2027 18:45:29 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:45:29 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=26; expires=Sat, 21 Aug 2027 18:45:29 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889cc9501607.76102848; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 05c99fbc4912354de15fb7fe862ea0efd
+server-timing: traceparent;desc="00-d46cd454647fdd06dc8fc5f184f8fa93-fabcb701445e2244-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+accept-ranges: bytes
+surrogate-control: max-age=0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+ <!DOCTYPE html><html lang="en-US" data-resin-client="web"><head><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"> <meta name="robots" content="noindex, nofollow">  <title>Box</title>    <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" /> <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous" />  <link rel="stylesheet" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/main-fonts.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/app.0277bda3b7.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.e65ea5d7b3.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/main.e37ef609c7.css">  <link rel="preload" href="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" as="script" type="text/javascript" crossorigin="anonymous">  <link rel="preload" href="https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/file-request-forms/box_forms_client_remote.2.587.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/hubs-assets/box_hubs_client_remote.2.286.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/money-assets/box_money_client_remote.0.137.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/sign-assets/box_sign_client_remote.2.416.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/relay-trigger-assets/box_trigger_client_remote.16.97.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/docgen-client-assets/box_docgen_client_remote.0.167.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/insights-assets/box_insights_client_remote.1.412.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/extract-client/box_extract_client_remote.1.223.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/workflow-client-assets/box_workflow_client_remote.0.813.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/governance-client/box_governance_client_remote.1.60.11.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-client/box_integrations_client_remote.1.17.4.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-center-client/box_integrations_center_client_remote.1.30.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/aistudio-assets/box_aistudio_client_remote.1.1165.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-prompt-library/box_ai_prompt_library_remote.2.9.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-solutions-client/box_solutions_client_remote.1.18.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/markdown-editor/box_markdown_editor_remote.2.3.18.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-security-client-assets/box_ai_security_client_remote.1.55.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-center/box_ai_center_remote.2.36.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/preview-client-assets/box_preview_client_remote.1.113.13.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-client/box_boxapps_client_remote.0.20260815.362.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-solutions-client/box_boxapps_solutions_client_remote.0.20260810.85.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/items-client-assets/box_items_client_remote.1.73.0.js" as="script" type="text/javascript" crossorigin="anonymous">    <link rel="apple-touch-icon" sizes="57x57" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-57x57-fLlEpj.png">
+<link rel="apple-touch-icon" sizes="60x60" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-60x60-Uv0qzu.png">
+<link rel="apple-touch-icon" sizes="72x72" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-72x72-7aVqne.png">
+<link rel="apple-touch-icon" sizes="76x76" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-76x76-ZVGnRV.png">
+<link rel="apple-touch-icon" sizes="114x114" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-114x114-busq-D.png">
+<link rel="apple-touch-icon" sizes="120x120" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-120x120-K-u4U5.png">
+<link rel="apple-touch-icon" sizes="144x144" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-144x144-va9pYs.png">
+<link rel="apple-touch-icon" sizes="152x152" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-152x152-r5tWgh.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-180x180-tV001c.png">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-32x32-VwW37b.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-32x32-brwW_W.png" sizes="32x32">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/android-chrome-192x192-96i97M.png" sizes="192x192">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-96x96-XU7UE1.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-96x96-TOQ9Kg.png" sizes="96x96">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-16x16-_kQSW4.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-16x16-Ou5N87.png" sizes="16x16">
+<link rel="manifest" href="https://cdn01.boxcdn.net/_assets/img/favicons/manifest-rw1AEP.json">
+<link rel="mask-icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/safari-pinned-tab-jyt2W4.svg">
+<link rel="shortcut icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-yz-tj-.ico" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-EHWWyP.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-TileImage" content="https://cdn01.boxcdn.net/_assets/img/favicons/mstile-144x144-pllCM8.png">
+<meta name="msapplication-config" content="https://cdn01.boxcdn.net/_assets/img/favicons/browserconfig-fdBReK.xml">
+<meta name="theme-color" content="#ffffff">
+
+
+
+</head><body class="is-loading " data-resin-application="files">  <noscript><div class="noscript-warning"> JavaScript is currently disabled in your browser. You must have JavaScript enabled to take full advantage of Box.</div></noscript><div id="app" class="react-container"></div><script>window.Box = window.Box || {};   Box.prefetchedData = {"\/app-api\/enduserapp\/current-user":{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":"w8qhf9igc126037v","storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/cloud.account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/cloud.app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0},"\/api\/oauth2\/authorize\/data":{"error":"invalid_client","errorParams":{"responseType":"code","state":"x\";<\/script><script>alert(1)<\/script>","clientId":"test"}}};    Box.webpackPublicPath = 'https://cdn01.boxcdn.net/enduser/';    Box.webpackRemotes = {"box_canvas":"https:\/\/cdn01.boxcdn.net\/canvas-assets\/box_canvas_remote.0.340.20.js","box_forms_client":"https:\/\/cdn01.boxcdn.net\/file-request-forms\/box_forms_client_remote.2.587.1.js","box_hubs_client":"https:\/\/cdn01.boxcdn.net\/hubs-assets\/box_hubs_client_remote.2.286.0.js","box_money_client":"https:\/\/cdn01.boxcdn.net\/money-assets\/box_money_client_remote.0.137.1.js","box_sign_client":"https:\/\/cdn01.boxcdn.net\/sign-assets\/box_sign_client_remote.2.416.1.js","box_trigger_client":"https:\/\/cdn01.boxcdn.net\/relay-trigger-assets\/box_trigger_client_remote.16.97.0.js","box_docgen_client":"https:\/\/cdn01.boxcdn.net\/docgen-client-assets\/box_docgen_client_remote.0.167.1.js","box_insights_client":"https:\/\/cdn01.boxcdn.net\/insights-assets\/box_insights_client_remote.1.412.1.js","box_ai_client":"https:\/\/cdn01.boxcdn.net\/box-ai-client\/box_ai_client_remote.1.599.0.js","box_extract_client":"https:\/\/cdn01.boxcdn.net\/extract-client\/box_extract_client_remote.1.223.0.js","box_workflow_client":"https:\/\/cdn01.boxcdn.net\/workflow-client-assets\/box_workflow_client_remote.0.813.1.js","box_governance_client":"https:\/\/cdn01.boxcdn.net\/governance-client\/box_governance_client_remote.1.60.11.js","box_integrations_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-client\/box_integrations_client_remote.1.17.4.js","box_integrations_center_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-center-client\/box_integrations_center_client_remote.1.30.0.js","box_aistudio_client":"https:\/\/cdn01.boxcdn.net\/aistudio-assets\/box_aistudio_client_remote.1.1165.0.js","box_ai_prompt_library":"https:\/\/cdn01.boxcdn.net\/ai-prompt-library\/box_ai_prompt_library_remote.2.9.0.js","box_solutions_client":"https:\/\/cdn01.boxcdn.net\/box-solutions-client\/box_solutions_client_remote.1.18.0.js","box_markdown_editor":"https:\/\/cdn01.boxcdn.net\/markdown-editor\/box_markdown_editor_remote.2.3.18.js","box_ai_security_client":"https:\/\/cdn01.boxcdn.net\/ai-security-client-assets\/box_ai_security_client_remote.1.55.0.js","box_ai_center":"https:\/\/cdn01.boxcdn.net\/ai-center\/box_ai_center_remote.2.36.1.js","box_preview_client":"https:\/\/cdn01.boxcdn.net\/preview-client-assets\/box_preview_client_remote.1.113.13.js","box_boxapps_client":"https:\/\/cdn01.boxcdn.net\/boxapps-client\/box_boxapps_client_remote.0.20260815.362.js","box_boxapps_solutions_client":"https:\/\/cdn01.boxcdn.net\/boxapps-solutions-client\/box_boxapps_solutions_client_remote.0.20260810.85.js","box_items_client":"https:\/\/cdn01.boxcdn.net\/items-client-assets\/box_items_client_remote.1.73.0.js"};    Box.webpackRemotesManifest = {"box_canvas":{"hostname":"cdn01.boxcdn.net","remotePath":"canvas-assets","remoteVersion":"0.340.20","remoteVersionSuffix":".0.340.20","remoteEntryFileName":"box_canvas_remote"},"box_forms_client":{"hostname":"cdn01.boxcdn.net","remotePath":"file-request-forms","remoteVersion":"2.587.1","remoteVersionSuffix":".2.587.1","remoteEntryFileName":"box_forms_client_remote"},"box_hubs_client":{"hostname":"cdn01.boxcdn.net","remotePath":"hubs-assets","remoteVersion":"2.286.0","remoteVersionSuffix":".2.286.0","remoteEntryFileName":"box_hubs_client_remote"},"box_money_client":{"hostname":"cdn01.boxcdn.net","remotePath":"money-assets","remoteVersion":"0.137.1","remoteVersionSuffix":".0.137.1","remoteEntryFileName":"box_money_client_remote"},"box_sign_client":{"hostname":"cdn01.boxcdn.net","remotePath":"sign-assets","remoteVersion":"2.416.1","remoteVersionSuffix":".2.416.1","remoteEntryFileName":"box_sign_client_remote"},"box_trigger_client":{"hostname":"cdn01.boxcdn.net","remotePath":"relay-trigger-assets","remoteVersion":"16.97.0","remoteVersionSuffix":".16.97.0","remoteEntryFileName":"box_trigger_client_remote"},"box_docgen_client":{"hostname":"cdn01.boxcdn.net","remotePath":"docgen-client-assets","remoteVersion":"0.167.1","remoteVersionSuffix":".0.167.1","remoteEntryFileName":"box_docgen_client_remote"},"box_insights_client":{"hostname":"cdn01.boxcdn.net","remotePath":"insights-assets","remoteVersion":"1.412.1","remoteVersionSuffix":".1.412.1","remoteEntryFileName":"box_insights_client_remote"},"box_ai_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-ai-client","remoteVersion":"1.599.0","remoteVersionSuffix":".1.599.0","remoteEntryFileName":"box_ai_client_remote"},"box_extract_client":{"hostname":"cdn01.boxcdn.net","remotePath":"extract-client","remoteVersion":"1.223.0","remoteVersionSuffix":".1.223.0","remoteEntryFileName":"box_extract_client_remote"},"box_workflow_client":{"hostname":"cdn01.boxcdn.net","remotePath":"workflow-client-assets","remoteVersion":"0.813.1","remoteVersionSuffix":".0.813.1","remoteEntryFileName":"box_workflow_client_remote"},"box_governance_client":{"hostname":"cdn01.boxcdn.net","remotePath":"governance-client","remoteVersion":"1.60.11","remoteVersionSuffix":".1.60.11","remoteEntryFileName":"box_governance_client_remote"},"box_integrations_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-client","remoteVersion":"1.17.4","remoteVersionSuffix":".1.17.4","remoteEntryFileName":"box_integrations_client_remote"},"box_integrations_center_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-center-client","remoteVersion":"1.30.0","remoteVersionSuffix":".1.30.0","remoteEntryFileName":"box_integrations_center_client_remote"},"box_aistudio_client":{"hostname":"cdn01.boxcdn.net","remotePath":"aistudio-assets","remoteVersion":"1.1165.0","remoteVersionSuffix":".1.1165.0","remoteEntryFileName":"box_aistudio_client_remote"},"box_ai_prompt_library":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-prompt-library","remoteVersion":"2.9.0","remoteVersionSuffix":".2.9.0","remoteEntryFileName":"box_ai_prompt_library_remote"},"box_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-solutions-client","remoteVersion":"1.18.0","remoteVersionSuffix":".1.18.0","remoteEntryFileName":"box_solutions_client_remote"},"box_markdown_editor":{"hostname":"cdn01.boxcdn.net","remotePath":"markdown-editor","remoteVersion":"2.3.18","remoteVersionSuffix":".2.3.18","remoteEntryFileName":"box_markdown_editor_remote"},"box_ai_security_client":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-security-client-assets","remoteVersion":"1.55.0","remoteVersionSuffix":".1.55.0","remoteEntryFileName":"box_ai_security_client_remote"},"box_ai_center":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-center","remoteVersion":"2.36.1","remoteVersionSuffix":".2.36.1","remoteEntryFileName":"box_ai_center_remote"},"box_preview_client":{"hostname":"cdn01.boxcdn.net","remotePath":"preview-client-assets","remoteVersion":"1.113.13","remoteVersionSuffix":".1.113.13","remoteEntryFileName":"box_preview_client_remote"},"box_boxapps_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-client","remoteVersion":"0.20260815.362","remoteVersionSuffix":".0.20260815.362","remoteEntryFileName":"box_boxapps_client_remote"},"box_boxapps_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-solutions-client","remoteVersion":"0.20260810.85","remoteVersionSuffix":".0.20260810.85","remoteEntryFileName":"box_boxapps_solutions_client_remote"},"box_items_client":{"hostname":"cdn01.boxcdn.net","remotePath":"items-client-assets","remoteVersion":"1.73.0","remoteVersionSuffix":".1.73.0","remoteEntryFileName":"box_items_client_remote"}};   Box.config = {"clientGeoCountryCode":"US","currentRm":"box_oauth2_server_authorize","datacenterTag":"us-west4-prod","runtimeMetadata":{"availabilityZone":"us-west4-prod","deploymentType":"k8s","environment":"prod"},"requestId":"w8qhf9igc126037v","requestToken":null,"sessionAge":0,"billing":{"creditCardCreationURL":"https:\/\/api.zuora.com\/rest\/v1\/payment-methods\/credit-cards"},"consoleLoggingEnabled":false,"debug":false,"isBoxEditFallbackEnabled":false,"isBoxToolsLoggingEnabled":false,"isBoxToolsV3EolEnabled":true,"isIEMixedModeEnabled":false,"isMSEdgeSupportForBoxEditEnabled":true,"isSandbox":false,"isWebappApdexV2Enabled":true,"logJSErrorsEnabled":false,"pendoAnalyticsAPIKey":"123e0628-cb29-41d1-466c-c592c7ddcd06","pendoAnalyticsProxyContentHost":"https:\/\/pendo-prod.box.com","pendoAnalyticsProxyDataHost":"https:\/\/pendo-data-prod.box.com","rumBeaconUrl":null,"rumRatio":0,"shouldUseActiveXObjectJSRef":false,"splitIOAPIKey":null,"staticHost":"https:\/\/cdn01.boxcdn.net","useUnSecureUrlForComServer":false};</script> <script src="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" type="text/javascript" crossorigin="anonymous"></script>   </body></html>
+[0m
+Key findings from this cycle:
+
+1. **Root behavior changed**: Now 302→login (was 206 before) — previous 206 was likely cached/CDN behavior
+2. **OPTIONS on root**: Returns `ACAO: *` WITHOUT `ACAC: true` → wildcard-safe, not exploitable
+3. **XSS via `state`**: Payload reflected inside `Box.prefetchedData.errorParams` JSON string, but JSON escaping (`"` → `\"`, `<\/script>`) prevents breakout
+
+The XSS payload `x";</script><script>alert(1)</script>` is reflected as:
+```json
+"state":"x\";<\/script><script>alert(1)<\/script>"
+```
+— properly escaped in both JSON and HTML contexts.
+
+Let me check if `clientId` has a different escape behavior and test the OAuth2 authorize OPTIONS:
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" "https://cloud.app.box.com/api/oauth2/authorize" 2>&1 | head -20
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:46:07 GMT
+expires: 0
+x-envoy-upstream-service-time: 12
+access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+access-control-allow-methods: GET
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://bhx-cors-probe.example
+access-control-max-age: 86400
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 06e35147b7a92630ec418bae843c307bb
+server-timing: traceparent;desc="00-af020bd3f6a7eb98c6f104ec9c12bc38-997a97ec85b5da93-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+[0m
+The `/api/oauth2/authorize` OPTIONS **reflects the Origin** (`https://bhx-cors-probe.example`)! No `ACAC: true` though. Let me check the GET response too:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code" 2>&1 | head -30
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:46:14 GMT
+content-type: text/html; charset=UTF-8
+expires: 0
+x-envoy-upstream-service-time: 124
+vary: origin,accept-encoding
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+strict-transport-security: max-age=31536000
+pragma: no-cache
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://bhx-cors-probe.example
+set-cookie: z=eupa27f4bqbegjkcshq7mmsqn6; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=eupa27f4bqbegjkcshq7mmsqn6; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889cf6c473e8.84697363; expires=Sat, 21 Aug 2027 18:46:14 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:46:14 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=1; expires=Sat, 21 Aug 2027 18:46:14 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889cf6104b33.49812971; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 03da55be58649ed2ea8efef88de2c0f60
+server-timing: traceparent;desc="00-62d1dcf6534888f6d2d03b5b3d519b82-2b2111b05028ac01-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+accept-ranges: bytes
+surrogate-control: max-age=0
+via: 1.1 google
+[0m
+GET also reflects Origin but no `ACAC: true`. Cookies won't be sent cross-origin. Let me now test `clientId` parameter for XSS and check the `/app-api` endpoint CORS:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=x%22%3B%3C%2Fscript%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E&response_type=code" 2>&1 | grep -o '"errorParams":{[^}]*}'
+"errorParams":{"responseType":"code","clientId":"x\";<\/script><script>alert(1)<\/script>"}
+[0m
+Same JSON escaping on `clientId` — no XSS breakout possible. Let me check if there are any other endpoints on cloud.app.box.com that might have `ACAC: true`:
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" "https://cloud.app.box.com/login" 2>&1 | head -20
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:46:44 GMT
+expires: 0
+x-envoy-upstream-service-time: 4
+access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+access-control-allow-methods: GET
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://bhx-cors-probe.example
+access-control-max-age: 86400
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 07d6612fc9ac4dfffc268f66c5014e2a7
+server-timing: traceparent;desc="00-7d09390d11ee52e4c15d1dca0e369a1a-11992dc095577f6d-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://cloud.app.box.com/login" 2>&1 | head -30
+HTTP/2 301 
+date: Fri, 21 Aug 2026 18:46:47 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 74
+expires: 0
+vary: origin
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://bhx-cors-probe.example
+set-cookie: box_visitor_id=6a889d1731b039.43043751; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+location: https://cloud.account.box.com/login
+box-request-id: 0ab9acb871918c953a7a4b5545e851a6c
+server-timing: traceparent;desc="00-1e58639954b41d2f775f97f25325d0fa-3046ff12c56d40c3-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" "https://cloud.app.box.com/app-api/enduserapp/current-user" 2>&1 | head -20
+HTTP/2 204 
+date: Fri, 21 Aug 2026 18:46:55 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 5
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+access-control-allow-headers: Authorization
+box-request-id: 0d0a22b393bfcfe3341ac7daea602fc87
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Good — `/app-api` OPTIONS also returns `ACAO: *` without `ACAC: true`. No credential-bearing cross-origin reads possible. Let me check CSP headers and test redirect_uri for open redirect:
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&redirect_uri=https://evil.example.com/callback" 2>&1 | head -30
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:47:12 GMT
+content-type: text/html; charset=UTF-8
+expires: 0
+x-envoy-upstream-service-time: 138
+vary: origin,accept-encoding
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+strict-transport-security: max-age=31536000
+pragma: no-cache
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://bhx-cors-probe.example
+set-cookie: z=6v2ud7852ej2e354i5bhk9ch0c; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=6v2ud7852ej2e354i5bhk9ch0c; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889d302dcdc5.19222480; expires=Sat, 21 Aug 2027 18:47:12 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:47:12 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=22; expires=Sat, 21 Aug 2027 18:47:12 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889d30d066c2.63953493; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 1bca4e8724ad943eef43cb30d0d65de97
+server-timing: traceparent;desc="00-253d62b7fa6ba303ae7ebae0284340bd-70fbd6fba673e484-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+accept-ranges: bytes
+surrogate-control: max-age=0
+via: 1.1 google
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code&redirect_uri=https://evil.example.com/callback" 2>&1 | grep -o '"errorParams":{[^}]*}'
+"errorParams":{"responseType":"code","redirectUri":"https:\/\/evil.example.com\/callback","clientId":"test"}
+[0m
+`redirect_uri` is properly escaped too (`/` → `\/`). Let me check the token endpoint and CSP:
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/token" 2>&1 | head -20
+HTTP/2 400 
+date: Fri, 21 Aug 2026 18:47:27 GMT
+content-type: application/json;charset=UTF-8
+x-envoy-upstream-service-time: 48
+box-request-id: 0aa1a72af34b602ec95a1eb604d70b539
+cache-control: no-store
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" "https://cloud.app.box.com/api/oauth2/token" 2>&1 | head -20
+HTTP/2 204 
+date: Fri, 21 Aug 2026 18:47:30 GMT
+content-type: text/plain charset=UTF-8;charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 24
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+box-request-id: 093a91cc15d11488955b323e7028016b4
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Token endpoint: `ACAO: *` without `ACAC` on OPTIONS, 400 on GET. All cloud.app.box.com endpoints show consistent CORS pattern: no `ACAC: true` anywhere. Let me check a few more potential API paths:
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://cloud.app.box.com/api/2.0/files" 2>&1 | head -20
+HTTP/2 401 
+date: Fri, 21 Aug 2026 18:48:06 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 076bc5a4dac05a6feb511cc0bfeac326a
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+API proxy returns 401 (auth required), no CORS headers. Let me check a few more potential paths on the embedded content viewer:
+[0m$ [0mfor path in /embedded /preview /shared /canvas /docgen /sign /hubs /relay; do echo -n "$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com$path" 2>&1 | head -1; done
+/embedded -> HTTP/2 404 
+/preview -> HTTP/2 404 
+/shared -> HTTP/2 404 
+/canvas -> HTTP/2 302 
+/docgen -> HTTP/2 404 
+/sign -> HTTP/2 200 
+/hubs -> HTTP/2 302 
+/relay -> HTTP/2 302
+[0m
+`/sign` returns 200, `/canvas`, `/hubs`, `/relay` return 302. Let me check `/sign` content and follow the redirects:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/sign" 2>&1 | head -40
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:48:19 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=maju879gt9boami29s3p13pd1s; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=maju879gt9boami29s3p13pd1s; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889d73a4e105.73716236; expires=Sat, 21 Aug 2027 18:48:19 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:48:19 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=48; expires=Sat, 21 Aug 2027 18:48:19 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 71
+x-frame-options: SAMEORIGIN
+box-request-id: 0bd3b758237be999810537cb67d2e700c
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+ <!DOCTYPE html><html lang="en-US" data-resin-client="web"><head><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"> <meta name="robots" content="noindex, nofollow">  <title>Box</title>    <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous" /> <link rel="preload" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/Lato-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous" />  <link rel="stylesheet" href="https://cdn01.boxcdn.net/fonts/1.0.17/lato/main-fonts.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/app.0277bda3b7.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.e65ea5d7b3.css"> <link rel="stylesheet" href="https://cdn01.boxcdn.net/enduser/main.e37ef609c7.css">  <link rel="preload" href="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" as="script" type="text/javascript" crossorigin="anonymous">  <link rel="preload" href="https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/file-request-forms/box_forms_client_remote.2.587.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/hubs-assets/box_hubs_client_remote.2.286.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/money-assets/box_money_client_remote.0.137.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/sign-assets/box_sign_client_remote.2.416.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/relay-trigger-assets/box_trigger_client_remote.16.97.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/docgen-client-assets/box_docgen_client_remote.0.167.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/insights-assets/box_insights_client_remote.1.412.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/extract-client/box_extract_client_remote.1.223.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/workflow-client-assets/box_workflow_client_remote.0.813.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/governance-client/box_governance_client_remote.1.60.11.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-client/box_integrations_client_remote.1.17.4.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-integrations-center-client/box_integrations_center_client_remote.1.30.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/aistudio-assets/box_aistudio_client_remote.1.1165.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-prompt-library/box_ai_prompt_library_remote.2.9.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/box-solutions-client/box_solutions_client_remote.1.18.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/markdown-editor/box_markdown_editor_remote.2.3.18.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-security-client-assets/box_ai_security_client_remote.1.55.0.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/ai-center/box_ai_center_remote.2.36.1.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/preview-client-assets/box_preview_client_remote.1.113.13.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-client/box_boxapps_client_remote.0.20260815.362.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/boxapps-solutions-client/box_boxapps_solutions_client_remote.0.20260810.85.js" as="script" type="text/javascript" crossorigin="anonymous"> <link rel="preload" href="https://cdn01.boxcdn.net/items-client-assets/box_items_client_remote.1.73.0.js" as="script" type="text/javascript" crossorigin="anonymous">    <link rel="apple-touch-icon" sizes="57x57" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-57x57-fLlEpj.png">
+<link rel="apple-touch-icon" sizes="60x60" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-60x60-Uv0qzu.png">
+<link rel="apple-touch-icon" sizes="72x72" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-72x72-7aVqne.png">
+<link rel="apple-touch-icon" sizes="76x76" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-76x76-ZVGnRV.png">
+<link rel="apple-touch-icon" sizes="114x114" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-114x114-busq-D.png">
+<link rel="apple-touch-icon" sizes="120x120" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-120x120-K-u4U5.png">
+<link rel="apple-touch-icon" sizes="144x144" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-144x144-va9pYs.png">
+<link rel="apple-touch-icon" sizes="152x152" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-152x152-r5tWgh.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://cdn01.boxcdn.net/_assets/img/favicons/apple-touch-icon-180x180-tV001c.png">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-32x32-VwW37b.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-32x32-brwW_W.png" sizes="32x32">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/android-chrome-192x192-96i97M.png" sizes="192x192">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-96x96-XU7UE1.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-96x96-TOQ9Kg.png" sizes="96x96">
+<link rel="icon" type="image/png" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-16x16-_kQSW4.png" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-16x16-Ou5N87.png" sizes="16x16">
+<link rel="manifest" href="https://cdn01.boxcdn.net/_assets/img/favicons/manifest-rw1AEP.json">
+<link rel="mask-icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/safari-pinned-tab-jyt2W4.svg">
+<link rel="shortcut icon" href="https://cdn01.boxcdn.net/_assets/img/favicons/favicon-yz-tj-.ico" data-notification-icon-href="https://cdn01.boxcdn.net/_assets/img/favicons/notification-favicon-EHWWyP.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-TileImage" content="https://cdn01.boxcdn.net/_assets/img/favicons/mstile-144x144-pllCM8.png">
+<meta name="msapplication-config" content="https://cdn01.boxcdn.net/_assets/img/favicons/browserconfig-fdBReK.xml">
+<meta name="theme-color" content="#ffffff">
+[0m
+`/sign` returns the same SPA shell. Let me check `/sign` and `/canvas` CORS behavior:
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" "https://cloud.app.box.com/sign" 2>&1 | head -15
+HTTP/2 204 
+date: Fri, 21 Aug 2026 18:48:25 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 2
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+box-request-id: 06e157d112f83fd379d6b8f1d6daef172
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/canvas" 2>&1 | grep -i "location\|access-control"
+location: https://cloud.account.box.com/login?redirect_url=%2Fcanvas
+[0m
+`/canvas` redirects to login (expected). Let me check a few more creative paths before wrapping up cloud.app.box.com:
+[0m$ [0mfor path in /.well-known/openid-configuration /.env /debug /admin /config /status /health /info /actuator /graphql /socket.io /v1 /v2; do echo -n "$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com$path" 2>&1 | head -1; done
+/.well-known/openid-configuration -> HTTP/2 404 
+/.env -> HTTP/2 404 
+/debug -> HTTP/2 302 
+/admin -> HTTP/2 403 
+/config -> HTTP/2 404 
+/status -> HTTP/2 404 
+/health -> HTTP/2 404 
+/info -> HTTP/2 301 
+/actuator -> HTTP/2 404 
+/graphql -> HTTP/2 503 
+/socket.io -> HTTP/2 404 
+/v1 -> HTTP/2 404 
+/v2 -> HTTP/2 404
+[0m
+`/admin` returns 403, `/graphql` returns 503, `/debug` and `/info` redirect. Let me check these:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/graphql" 2>&1 | head -20
+HTTP/2 503 
+date: Fri, 21 Aug 2026 18:48:48 GMT
+strict-transport-security: max-age=31536000
+box-request-id: 0eb1be31c33168fa7cf30c78b487e625
+x-envoy-upstream-service-time: 49
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+{"type":"error","status":503,"code":"service_unavailable","help_url":"http://developers.box.com/docs/#errors","message":"Service Unavailable","request_id":"0eb1be31c33168fa7cf30c78b487e625"}
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://cloud.app.box.com/graphql" 2>&1 | head -15
+HTTP/2 503 
+date: Fri, 21 Aug 2026 18:48:51 GMT
+strict-transport-security: max-age=31536000
+box-request-id: 0d1f9a85ad0457646fd7852ea50f8bb38
+x-envoy-upstream-service-time: 54
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/admin" 2>&1 | head -20
+HTTP/2 403 
+date: Fri, 21 Aug 2026 18:48:53 GMT
+content-type: text/html; charset=utf-8
+x-envoy-upstream-service-time: 25
+box-request-id: 0f811d46ff58f42bbe782d66c5e8deeca
+strict-transport-security: max-age=31536000
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/info" 2>&1 | grep -i "location" && curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/debug" 2>&1 | grep -i "location"
+location: /features/
+location: /v/debug
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/features/" 2>&1 | head -10 && echo "---" && curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/v/debug" 2>&1 | head -10
+HTTP/2 301 
+date: Fri, 21 Aug 2026 18:48:59 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 16
+strict-transport-security: max-age=31536000
+location: /business/features/
+box-request-id: 0d3d63996081a6213fc24eb00ef6b1e37
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+---
+HTTP/2 302 
+date: Fri, 21 Aug 2026 18:48:59 GMT
+content-type: text/html; charset=utf-8
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 123
+strict-transport-security: max-age=31536000
+pragma: no-cache
+set-cookie: z=vjblh4qhkh9gci9ipalcaik4ch; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=vjblh4qhkh9gci9ipalcaik4ch; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: z=vjblh4qhkh9gci9ipalcaik4ch; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/graphql?query=%7B__schema%7Btypes%7Bname%7D%7D%7D" 2>&1 | head -15
+HTTP/2 503 
+date: Fri, 21 Aug 2026 18:49:04 GMT
+strict-transport-security: max-age=31536000
+box-request-id: 0a06874b461641ad1cbb11e9547116fc8
+x-envoy-upstream-service-time: 81
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+{"type":"error","status":503,"code":"service_unavailable","help_url":"http://developers.box.com/docs/#errors","message":"Service Unavailable","request_id":"0a06874b461641ad1cbb11e9547116fc8"}
+[0m
+Let me check CSP headers and wrap up the cloud.app.box.com investigation:
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://cloud.app.box.com/api/oauth2/authorize?client_id=test&response_type=code" 2>&1 | grep -i "content-security-policy\|x-frame\|x-content-type\|x-xss"
+x-frame-options: SAMEORIGIN
+x-xss-protection: 0
+x-content-type-options: nosniff
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/" 2>&1 | head -40
+HTTP/2 301 
+cache-control: private
+location: https://app.box.com/
+content-length: 0
+date: Fri, 21 Aug 2026 18:49:27 GMT
+content-type: text/html; charset=UTF-8
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+No CSP header. Security headers are minimal but adequate (X-Frame-Options, X-Content-Type-Options). Cloud.app.box.com is exhausted — all hypotheses REJECTED.
+
+Now I'll move to `m.box.com` (mobile web app, separate rendering/session logic):
+`m.box.com` redirects to `app.box.com`. Let me check if it has any unique paths:
+[0m$ [0mfor path in /login /api /config /manifest.json /robots.txt /.well-known/apple-app-site-association /sw.js /service-worker.js; do echo -n "m.box.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com$path" 2>&1 | head -1; done
+m.box.com/login -> HTTP/2 301 
+m.box.com/api -> HTTP/2 301 
+m.box.com/config -> HTTP/2 301 
+m.box.com/manifest.json -> HTTP/2 301 
+m.box.com/robots.txt -> HTTP/2 301 
+m.box.com/.well-known/apple-app-site-association -> HTTP/2 301 
+m.box.com/sw.js -> HTTP/2 301 
+m.box.com/service-worker.js -> HTTP/2 301
+[0m
+Everything 301s to `app.box.com`. `m.box.com` is just a redirect host. Let me now investigate `dl.boxcloud.com` (download CDN):
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://dl.boxcloud.com/" 2>&1 | head -20
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 18:49:34 GMT
+content-type: text/html;charset=utf-8
+content-length: 144
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" "https://dl.boxcloud.com/" 2>&1 | head -15
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 18:49:37 GMT
+content-type: text/html;charset=utf-8
+content-length: 144
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mfor path in /api /download /files /content /signed /token /auth /public /shared /d /i; do echo -n "dl.boxcloud.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://dl.boxcloud.com$path" 2>&1 | head -1; done
+dl.boxcloud.com/api -> HTTP/2 404 
+dl.boxcloud.com/download -> HTTP/2 404 
+dl.boxcloud.com/files -> HTTP/2 404 
+dl.boxcloud.com/content -> HTTP/2 404 
+dl.boxcloud.com/signed -> HTTP/2 404 
+dl.boxcloud.com/token -> HTTP/2 404 
+dl.boxcloud.com/auth -> HTTP/2 404 
+dl.boxcloud.com/public -> HTTP/2 404 
+dl.boxcloud.com/shared -> HTTP/2 404 
+dl.boxcloud.com/d -> HTTP/2 404 
+dl.boxcloud.com/i -> HTTP/2 404
+[0m
+dl.boxcloud.com appears to be a signed-URL CDN with no enumerable endpoints. Let me now focus on `upload.box.com` (file upload pipeline):
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com/" 2>&1 | head -20
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 18:49:48 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mfor path in /api /upload /files /content /multipart /resume /chunked /v2 /v1 /api/2.0 /api/2.0/files /api/2.0/folders; do echo -n "upload.box.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com$path" 2>&1 | head -1; done
+upload.box.com/api -> HTTP/2 404 
+upload.box.com/upload -> HTTP/2 404 
+upload.box.com/files -> HTTP/2 404 
+upload.box.com/content -> HTTP/2 404 
+upload.box.com/multipart -> HTTP/2 404 
+upload.box.com/resume -> HTTP/2 404 
+upload.box.com/chunked -> HTTP/2 404 
+upload.box.com/v2 -> HTTP/2 404 
+upload.box.com/v1 -> HTTP/2 404 
+upload.box.com/api/2.0 -> HTTP/2 404 
+upload.box.com/api/2.0/files -> HTTP/2 404 
+upload.box.com/api/2.0/folders -> HTTP/2 404
+[0m
+upload.box.com also all 404s. Let me check CORS on it and then move to `notes.services.box.com`:
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://upload.box.com/api/2.0/files/content" 2>&1 | head -15
+HTTP/2 200 
+server: nginx
+date: Fri, 21 Aug 2026 18:49:56 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: https://bhx-cors-probe.example
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+access-control-allow-headers: Authorization,Content-Type
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files/content" 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 18:50:01 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+**CRITICAL FINDING**: `upload.box.com` returns `ACAO: <reflected>` with `ACAC: true` on `/api/2.0/files/content`! Let me verify with a GET:
+GET returns 404 without CORS headers. The OPTIONS has `ACAC: true` but the GET response lacks CORS headers. Let me check if there are other endpoints:
+[0m$ [0mfor path in /api/2.0/files/upload_sessions /api/2.0/files/definitively /api/2.0/folders/items /api/2.0/search /api/2.0/users/me; do echo -n "upload.box.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com$path" 2>&1 | head -1; done
+upload.box.com/api/2.0/files/upload_sessions -> HTTP/2 404 
+upload.box.com/api/2.0/files/definitively -> HTTP/2 404 
+upload.box.com/api/2.0/folders/items -> HTTP/2 404 
+upload.box.com/api/2.0/search -> HTTP/2 404 
+upload.box.com/api/2.0/users/me -> HTTP/2 404
+[0m
+[0m$ [0mfor path in /api/2.0/tasks /api/2.0/events /api/2.0/metadata /api/2.0/shared_items /api/2.0/collaborations; do echo -n "upload.box.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com$path" 2>&1 | head -1; done
+upload.box.com/api/2.0/tasks -> HTTP/2 404 
+upload.box.com/api/2.0/events -> HTTP/2 404 
+upload.box.com/api/2.0/metadata -> HTTP/2 404 
+upload.box.com/api/2.0/shared_items -> HTTP/2 404 
+upload.box.com/api/2.0/collaborations -> HTTP/2 404
+[0m
+All 404. Let me now check `notes.services.box.com`:
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/" 2>&1 | head -20
+HTTP/2 302 
+date: Fri, 21 Aug 2026 18:50:20 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 18
+strict-transport-security: max-age=31536000
+location: https://services.app.box.com/
+box-request-id: 1cb1d8a9aebde9424085bd75b352a83a9
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+Redirects to `services.app.box.com`. Let me check that and also check `account.box.com` (the auth plane which has been heavily probed):
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://services.app.box.com/" 2>&1 | head -30
+HTTP/2 302 
+date: Fri, 21 Aug 2026 18:50:25 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=7bg8kku4oajp8gppk01k44al4r; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=7bg8kku4oajp8gppk01k44al4r; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889df13656d3.23481214; expires=Sat, 21 Aug 2027 18:50:25 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:50:25 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=18; expires=Sat, 21 Aug 2027 18:50:25 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 33
+location: https://app.box.com/
+box-request-id: 0a3ca795962a6155b933bce5f3dcf741b
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+Redirect chain: `notes.services.box.com` → `services.app.box.com` → `app.box.com`. Let me check if `services.app.box.com` has any unique endpoints:
+[0m$ [0mfor path in /api /config /graphql /health /status /ws /realtime /notes /sync; do echo -n "services.app.box.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" "https://services.app.box.com$path" 2>&1 | head -1; done
+services.app.box.com/api -> HTTP/2 301 
+services.app.box.com/config -> HTTP/2 404 
+services.app.box.com/graphql -> HTTP/2 503 
+services.app.box.com/health -> HTTP/2 302 
+services.app.box.com/status -> HTTP/2 404 
+services.app.box.com/ws -> HTTP/2 404 
+services.app.box.com/realtime -> HTTP/2 404 
+services.app.box.com/notes -> HTTP/2 302 
+services.app.box.com/sync -> HTTP/2 301
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://services.app.box.com/api" 2>&1 | grep -i "location\|access-control"
+location: https://developers.box.com/
+[0m
+Redirects to developers.box.com. Let me now check `app.box.com` (primary web app) — this is the main target:
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" "https://app.box.com/" 2>&1 | head -15
+HTTP/2 204 
+date: Fri, 21 Aug 2026 18:50:43 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+box-request-id: 0c60c5a7274b9b4e752e86c39268de0e
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+`app.box.com` OPTIONS returns `ACAO: *` without `ACAC`. Let me check its GET and API endpoints:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://app.box.com/" 2>&1 | head -20
+HTTP/2 302 
+date: Fri, 21 Aug 2026 18:50:48 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=mbqigbc0ba56lugufap6ntf6j9; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=mbqigbc0ba56lugufap6ntf6j9; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889e0853e137.03766478; expires=Sat, 21 Aug 2027 18:50:48 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:50:48 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=93; expires=Sat, 21 Aug 2027 18:50:48 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 21
+location: https://account.box.com/login
+box-request-id: 068a905ffdcf8daaa8d272e70d0e1a642
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+Let me check the upload.box.com CORS more carefully — the `ACAC: true` with Origin reflection is significant:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files/content" 2>&1 | head -20
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 18:50:55 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+The GET returns 404 without CORS headers. The OPTIONS has `ACAC: true` but the actual response lacks CORS headers. Let me check if there are any upload-related paths that might work:
+[0m$ [0mfor path in /api/2.0/files/upload_sessions /api/2.0/files/content_pregenerate /api/2.0/files/commit_upload /api/2.0/files/escalate_upload /api/2.0/files/resumable_upload; do echo -n "upload.box.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com$path" 2>&1 | head -1; done
+upload.box.com/api/2.0/files/upload_sessions -> HTTP/2 404 
+upload.box.com/api/2.0/files/content_pregenerate -> HTTP/2 404 
+upload.box.com/api/2.0/files/commit_upload -> HTTP/2 404 
+upload.box.com/api/2.0/files/escalate_upload -> HTTP/2 404 
+upload.box.com/api/2.0/files/resumable_upload -> HTTP/2 404
+[0m
+upload.box.com has a **CORS misconfiguration**: OPTIONS reflects Origin with `ACAC: true`, but all GET endpoints return 404 without CORS headers. The misconfiguration exists but there's no valid GET endpoint to exploit it from unauthenticated read-only probes.
+
+Let me check account.box.com's CORS behavior more carefully — it's the auth plane:
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" "https://account.box.com/api/2.0/users/me" 2>&1 | head -15
+HTTP/2 204 
+date: Fri, 21 Aug 2026 18:51:12 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 6
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+access-control-allow-headers: Authorization
+box-request-id: 0454dbf211d492afd40e0b31fdd3f1309
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://account.box.com/api/2.0/users/me" 2>&1 | head -15
+HTTP/2 401 
+date: Fri, 21 Aug 2026 18:51:15 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 0632712734085cc6e2c8e727f4fd0e1e4
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+401, no CORS headers on actual response. Safe. Let me check account.box.com's login-related endpoints:
+[0m$ [0mfor path in /api/oauth2/authorize /api/oauth2/token /api/oauth2/revoke /api/oauth2/device-code /sso /oauth /api/v2 /api/v1 /.well-known/openid-configuration /jwks.json; do echo -n "account.box.com$path -> "; curl -sD- -o /dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://account.box.com$path" 2>&1 | head -1; done
+account.box.com/api/oauth2/authorize -> HTTP/2 200 
+account.box.com/api/oauth2/token -> HTTP/2 400 
+account.box.com/api/oauth2/revoke -> HTTP/2 302 
+account.box.com/api/oauth2/device-code -> HTTP/2 404 
+account.box.com/sso -> HTTP/2 302 
+account.box.com/oauth -> HTTP/2 302 
+account.box.com/api/v2 -> HTTP/2 404 
+account.box.com/api/v1 -> HTTP/2 404 
+account.box.com/.well-known/openid-configuration -> HTTP/2 404 
+account.box.com/jwks.json -> HTTP/2 302
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: GET" "https://account.box.com/api/oauth2/authorize" 2>&1 | head -15
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:51:27 GMT
+expires: 0
+x-envoy-upstream-service-time: 7
+access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+access-control-allow-methods: GET
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://bhx-cors-probe.example
+access-control-max-age: 86400
+x-xss-protection: 0
+x-content-type-options: nosniff
+[0m
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://account.box.com/api/oauth2/authorize?client_id=test&response_type=code" 2>&1 | head -30
+HTTP/2 200 
+date: Fri, 21 Aug 2026 18:51:30 GMT
+content-type: text/html; charset=UTF-8
+expires: 0
+x-envoy-upstream-service-time: 114
+vary: origin,accept-encoding
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+strict-transport-security: max-age=31536000
+pragma: no-cache
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://bhx-cors-probe.example
+set-cookie: z=0fu9ahetjjhb7425hn5fom9htg; path=/; domain=.account.box.com; secure; HttpOnly
+set-cookie: z=0fu9ahetjjhb7425hn5fom9htg; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889e329d14c6.94687847; expires=Sat, 21 Aug 2027 18:51:30 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 18:51:30 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
+set-cookie: cn=94; expires=Sat, 21 Aug 2027 18:51:30 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a889e3286e984.48418837; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 0c25050d6a2c7532660ba8979cbba2730
+server-timing: traceparent;desc="00-4db32ab4a2108b0ef619edbe1ca7dfee-1216fa054f294999-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+accept-ranges: bytes
+surrogate-control: max-age=0
+via: 1.1 google
+[0m
+Reflected Origin on GET but no `ACAC: true`. Let me check the response body and also check the `/api/oauth2/token` endpoint:
+[0m$ [0mcurl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/api/oauth2/authorize?client_id=test&response_type=code" 2>&1 | grep -o '"errorParams":{[^}]*}'
+"errorParams":{"responseType":"code","clientId":"test"}
+[0m
+[0m$ [0mcurl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://account.box.com/api/oauth2/token" 2>&1 | head -15
+HTTP/2 204 
+date: Fri, 21 Aug 2026 18:51:40 GMT
+content-type: text/plain charset=UTF-8;charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 16
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+access-control-allow-headers: Authorization,Content-Type
+box-request-id: 0a87a04b3fc5b4f91ce984d59a5bbed1b
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+OK, let me now summarize all findings and output the analysis.
+
+---
+
+## Analysis Output
+
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: Root now consistently returns 302→login across all probes this cycle; the prior 206 was a transient CDN/cache artifact. The 206/Range asset layer hypothesis is abandoned.
+
+[LEARN] REJECTED XSS @ cloud.app.box.com/api/oauth2/authorize: Both `state` and `clientId` payloads are JSON-string-escaped (`"` → `\"`, `<\/script>` in JSON), preventing breakout from `Box.prefetchedData.errorParams` context. Tested with `x";</script><script>alert(1)</script>` — escaped identically on both sinks. No unescaped reflection path exists.
+
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/oauth2/authorize: OPTIONS and GET reflect Origin in `access-control-allow-origin` without `ACAC: true`. Confirmed safe — no credential-bearing cross-origin reads possible. By design for OAuth2 third-party clients.
+
+[NEW] upload.box.com/api/2.0/files/content: OPTIONS reflects attacker Origin with `ACAC: true` — full CORS+credentials misconfiguration. However GET returns 404 without CORS headers (nginx default), and `Allow-Methods: POST` only. No exploitable GET endpoint found; finding is a misconfiguration flag but not currently exploitable from read-only unauthenticated probes.
+
+[NEW] m.box.com: Pure 301 redirect host → app.box.com. No unique endpoints, no surface.
+
+[NEW] dl.boxcloud.com: 404 on all enumerable paths (/, /api, /download, /files, /content, /signed, /token, /d, /i). nginx server, no CORS headers, no surface.
+
+[NEW] notes.services.box.com: 302 → services.app.box.com → app.box.com. Redirect chain only, no surface.
+
+[NEW] services.app.box.com: `/graphql` returns 503 (service unavailable). `/api` → developers.box.com. No exploitable endpoints.
+
+[HYP] CORS+credentials misconfiguration on upload.box.com API origin
+class: MISCONFIG
+asset: upload.box.com/api/2.0/files/content
+confidence: 60
+reasoning: OPTIONS preflight returns `access-control-allow-origin: <reflected>` with `access-control-allow-credentials: true` and `allow-methods: POST`. This is a full CORS+credentials misconfiguration — any origin can make credentialed cross-origin requests. However, GET returns 404 without CORS headers (nginx fallback), and no valid GET endpoint exists to exploit. If any authenticated GET endpoint were to exist on this host, an attacker page could read victim data with cookies.
+evidence_needed: A valid GET endpoint on upload.box.com that returns a response with ACAO reflection + ACAC:true headers; OR evidence that POST responses include the same CORS headers.
+verify_steps: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files/content"` (GET, already tested — 404); need POST to test upload session endpoints but prohibited by rules.
+impact: If exploitable — cross-origin read of user files via cookies (Critical). Current status: misconfiguration confirmed, exploit path not found via read-only probes.
+testability: PASSIVE
+
+[PARKED] cloud.app.box.com CORS+OAuth2: Origin reflected without ACAC on /api/oauth2/authorize — by design for OAuth2, no credential-bearing reads possible.
+
+[PARKED] cloud.app.box.com XSS via errorParams: JSON string escaping prevents breakout on all reflected parameters (state, clientId, redirect_uri).
+
+[NEXT] UPLOAD-CORS-DEEP: Test additional upload.box.com paths for any GET endpoint: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files/upload_sessions"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" "https://upload.box.com/api/2.0/files"`
+
+[NEXT] ACCOUNT-AUTH-DEEP: Probe account.box.com SSO/OAuth paths for reflected-origin-with-credentials: `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://account.box.com/api/oauth2/token"` then `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://bhx-cors-probe.example" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://upload.box.com/api/oauth2/token"`
