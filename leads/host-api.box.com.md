@@ -813,3 +813,15 @@ verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on fi
 impact: Recon-grade — discovering real-time collaboration endpoints could reveal session handling flaws, CORS misconfigurations, or authentication bypass opportunities in the Notes feature
 testability: PASSIVE
 [NEXT] PROBE: 3xGET notes.services.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) / (2) /robots.txt (3) /api/
+## 2026-08-21 22:32:23 UTC api.box.com (mimo)
+[NEW] notes.services.box.com: Box Notes backend with real-time collaboration — unexplored surface
+[HYP] notes.services.box.com WebSocket/real-time collaboration bypass
+class: AUTH
+asset: notes.services.box.com
+confidence: 40
+reasoning: Real-time collaboration systems often use WebSockets or Server-Sent Events with different authentication mechanisms than standard HTTP APIs. If the Notes backend implements its own session handling separate from the main Box auth, there could be authentication bypass or session fixation vulnerabilities. The "content sync" functionality may have insecure direct object references or improper access controls.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) / with Connection: Upgrade, Upgrade: websocket header (2) /api/collaboration (3) /api/notes - check for authentication requirements and session tokens
+impact: High — if real-time collaboration bypasses standard auth, could allow unauthorized access to Box Notes content
+testability: AUTH_HELPED
+[NEXT] PROBE: 3xGET notes.services.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/realtime (2) /api/collaboration (3) /api/notes/sessions
+[LEARN] ACCEPTED OTHER @ notes.services.box.com: New unexplored surface with distinct architecture from main Box platform — real-time collaboration may have separate auth/session handling
