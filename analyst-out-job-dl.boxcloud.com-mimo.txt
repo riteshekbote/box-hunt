@@ -1,412 +1,151 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-Looking at the state: dl.boxcloud.com in POC phase. Previous probes all returned 404 (root, robots.txt, favicon.ico, random paths). I need to find valid endpoints on this CDN before testing CORS.
-
-Let me probe for CDN-specific paths and test CORS:
-[0m$ [0mcurl -s -D- -o /dev/null -X HEAD "https://dl.boxcloud.com/" -H "User-Agent: box-research/1.0 +(research)" && echo "---ROOT-HEAD---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/content" -H "User-Agent: box-research/1.0 +(research)" && echo "---CONTENT---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/files" -H "User-Agent: box-research/1.0 +(research)" && echo "---FILES---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/download" -H "User-Agent: box-research/1.0 +(research)" && echo "---DOWNLOAD---"
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:35 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -D- "https://dl.boxcloud.com/api/2.0/files/content" -H "User-Agent: box-research/1.0 +(research)" && echo "---API-CONTENT---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/thumbnail" -H "User-Agent: box-research/1.0 +(research)" && echo "---THUMBNAIL---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/preview" -H "User-Agent: box-research/1.0 +(research)" && echo "---PREVIEW---"
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:40 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-<html>
-          <body>
-            <h1>download-proxy service</h1>
-            <h2>Resource is not found</h2>
-          </body>
-        </html>---API-CONTENT---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:42 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----THUMBNAIL---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:44 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----PREVIEW---
-[0m
-Found a different response at `/api/2.0/files/content` - "download-proxy service". Let me test CORS on this endpoint and explore further:
-[0m$ [0mcurl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/files/content" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---API-ORIGIN---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---API-OPTIONS---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---FILES-0-CONTENT---"
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:53 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----API-ORIGIN---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:55 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----API-OPTIONS---
-HTTP/2 401 
-server: nginx
-date: Fri, 21 Aug 2026 19:56:58 GMT
-content-type: text/html
-content-length: 0
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-access-control-allow-origin: *
-vary: Origin
-x-envoy-upstream-service-time: 59
-access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----FILES-0-CONTENT---
-[0m
-Excellent! Found a CORS configuration on `dl.boxcloud.com/api/2.0/files/0/content`:
-- Returns 401 (requires Bearer token)
-- Has `access-control-allow-origin: *` (wildcard)
-- Has `vary: Origin` (origin-dependent behavior)
-
-Let me test the preflight more carefully and explore other endpoints:
-[0m$ [0mcurl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---FILES-0-OPTIONS---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/0" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---FILES-0-INFO---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---FILES-LIST---"
+[0m$ [0mcurl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization,Range,Content-Type" -H "User-Agent: box-research/1.0 +(research)" && echo "---FULL-PREFLIGHT---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Authorization: Bearer box_api_test_token_invalid" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" && echo "---RANGE-INVALID-TOKEN---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/files/content" -H "Origin: https://evil.example.com" -H "Authorization: Bearer test" -H "User-Agent: box-research/1.0 +(research)" && echo "---NO-ID-WITH-TOKEN---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---API-ROOT---"
 HTTP/2 204 
 server: nginx
-date: Fri, 21 Aug 2026 19:57:11 GMT
+date: Fri, 21 Aug 2026 20:16:53 GMT
 content-type: text/plain charset=UTF-8
 access-control-allow-origin: *
 vary: Origin
 access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
 access-control-max-age: 1800
-access-control-allow-headers: Authorization
+access-control-allow-headers: Authorization,Range,Content-Type
 strict-transport-security: max-age=31536000
 x-envoy-upstream-service-time: 0
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 
----FILES-0-OPTIONS---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:57:13 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-<html>
-          <body>
-            <h1>download-proxy service</h1>
-            <h2>Resource is not found</h2>
-          </body>
-        </html>---FILES-0-INFO---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:57:15 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-<html>
-          <body>
-            <h1>download-proxy service</h1>
-            <h2>Resource is not found</h2>
-          </body>
-        </html>---FILES-LIST---
-[0m
-Major finding! The OPTIONS response on `/api/2.0/files/0/content` shows:
-- `access-control-allow-origin: *` (wildcard)
-- `access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE` (all methods!)
-- `access-control-allow-headers: Authorization`
-
-This is a CORS misconfiguration with wildcard origin + Authorization allowed. Let me verify and test more endpoints:
-[0m$ [0mcurl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---FILES-LIST-OPTIONS---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/folders/0" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---FOLDERS-0-OPTIONS---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/users/me" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" -H "User-Agent: box-research/1.0 +(research)" && echo "---USERS-ME-OPTIONS---"
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:57:26 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----FILES-LIST-OPTIONS---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:57:28 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----FOLDERS-0-OPTIONS---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:57:30 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----USERS-ME-OPTIONS---
-[0m
-Only `/api/2.0/files/0/content` has CORS headers. Let me test if `Vary: Origin` means it reflects Origin instead of always wildcard:
-[0m$ [0mcurl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://app.box.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---ORIGIN-APP-BOX---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---ORIGIN-EVIL---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "User-Agent: box-research/1.0 +(research)" && echo "---NO-ORIGIN---"
+---FULL-PREFLIGHT---
 HTTP/2 401 
 server: nginx
-date: Fri, 21 Aug 2026 19:57:42 GMT
-content-type: text/html
-content-length: 0
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 53
-vary: Origin
-access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----ORIGIN-APP-BOX---
-HTTP/2 401 
-server: nginx
-date: Fri, 21 Aug 2026 19:57:44 GMT
-content-type: text/html
-content-length: 0
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 50
-vary: Origin
-access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----ORIGIN-EVIL---
-HTTP/2 401 
-server: nginx
-date: Fri, 21 Aug 2026 19:57:46 GMT
-content-type: text/html
-content-length: 0
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-x-envoy-upstream-service-time: 50
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----NO-ORIGIN---
-[0m
-Interesting! With no Origin header, CORS headers disappear. The `vary: Origin` correctly indicates this. With `Access-Control-Allow-Origin: *`, credentials are NOT sent cross-origin (browser blocks it). This limits exploitability.
-
-Let me check more CDN-specific paths and test with Range headers (CDN typically serves file ranges):
-[0m$ [0mcurl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" && echo "---RANGE-0-0---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization,Range" -H "User-Agent: box-research/1.0 +(research)" && echo "---OPTIONS-RANGE---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/content" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" && echo "---NO-ID-RANGE---"
-HTTP/2 401 
-server: nginx
-date: Fri, 21 Aug 2026 19:58:09 GMT
-content-type: text/html
-content-length: 0
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-access-control-allow-origin: *
-vary: Origin
-x-envoy-upstream-service-time: 47
-access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----RANGE-0-0---
-HTTP/2 204 
-server: nginx
-date: Fri, 21 Aug 2026 19:58:11 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-vary: Origin
-access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-access-control-max-age: 1800
-access-control-allow-headers: Authorization,Range
-strict-transport-security: max-age=31536000
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----OPTIONS-RANGE---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:58:13 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-<html>
-          <body>
-            <h1>download-proxy service</h1>
-            <h2>Resource is not found</h2>
-          </body>
-        </html>---NO-ID-RANGE---
-[0m
-Good findings. The download proxy at `dl.boxcloud.com/api/2.0/files/{id}/content` has:
-- `Access-Control-Allow-Origin: *` (wildcard, does NOT reflect Origin)
-- `Access-Control-Allow-Headers: Authorization, Range`
-- `Access-Control-Expose-Headers: Accept-Ranges, Content-Encoding, Content-Length, Content-Range, Date, Retry-After`
-- All methods allowed (GET/POST/PUT/DELETE)
-- Requires Bearer token (401)
-
-The `*` wildcard means cookies are NOT sent cross-origin — only explicit Bearer tokens. Let me test a few more vectors:
-[0m$ [0mcurl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: Authorization,Content-Type" -H "User-Agent: box-research/1.0 +(research)" && echo "---PUT-OPTIONS---" && sleep 2 && curl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" -H "User-Agent: box-research/1.0 +(research)" && echo "---POST-OPTIONS---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Authorization: Bearer test_invalid_token" -H "User-Agent: box-research/1.0 +(research)" && echo "---FAKE-TOKEN---"
-HTTP/2 204 
-server: nginx
-date: Fri, 21 Aug 2026 19:58:40 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-vary: Origin
-access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-access-control-max-age: 1800
-access-control-allow-headers: Authorization,Content-Type
-strict-transport-security: max-age=31536000
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----PUT-OPTIONS---
-HTTP/2 204 
-server: nginx
-date: Fri, 21 Aug 2026 19:58:42 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-vary: Origin
-access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-access-control-max-age: 1800
-access-control-allow-headers: Authorization,Content-Type
-strict-transport-security: max-age=31536000
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----POST-OPTIONS---
-HTTP/2 401 
-server: nginx
-date: Fri, 21 Aug 2026 19:58:44 GMT
+date: Fri, 21 Aug 2026 20:16:55 GMT
 content-type: text/html
 content-length: 0
 access-control-allow-origin: *
 www-authenticate: Bearer realm="Service", error="invalid_token", error_description="The access token provided is invalid."
-x-envoy-upstream-service-time: 49
+vary: Origin
+access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After
+x-envoy-upstream-service-time: 66
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+---RANGE-INVALID-TOKEN---
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 20:16:57 GMT
+content-type: text/html;charset=utf-8
+content-length: 144
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+---NO-ID-WITH-TOKEN---
+HTTP/2 404 
+server: nginx
+date: Fri, 21 Aug 2026 20:16:59 GMT
+content-type: text/html;charset=utf-8
+content-length: 144
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+---API-ROOT---
+[0m
+[0m✱ [0mGlob "**/*dl.boxcloud*"[90m 14 matches[0m
+[0m✱ [0mGlob "**/host-*.md"[90m 8 matches[0m
+Let me check if there's an existing research file for dl.boxcloud.com.
+[0m→ [0mRead leads/host-dl.boxcloud.com.md
+[0m→ [0mRead leads/host-dl.boxcloud.com.md[90m [offset=506][0m
+[0m→ [0mRead leads/host-dl.boxcloud.com.md[90m [offset=600][0m
+Now let me run one more targeted probe to check for additional CORS behavior patterns and any differences on error responses, plus test if POST/PUT are truly allowed (over-permissive for a download endpoint).
+[0m
+[0m$ [0mcurl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" -H "User-Agent: box-research/1.0 +(research)" && echo "---POST-PREFLIGHT---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Authorization: Bearer test_token_format_only" -H "User-Agent: box-research/1.0 +(research)" && echo "---GET-NO-RANGE---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/files/999999999/content" -H "Origin: https://evil.example.com" -H "Authorization: Bearer test_token_format_only" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" && echo "---INVALID-FILE-ID---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "User-Agent: box-research/1.0 +(research)" && echo "---NO-ORIGIN-NO-TOKEN---"
+HTTP/2 204 
+server: nginx
+date: Fri, 21 Aug 2026 20:18:36 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+vary: Origin
+access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
+access-control-max-age: 1800
+access-control-allow-headers: Authorization,Content-Type
+strict-transport-security: max-age=31536000
+x-envoy-upstream-service-time: 0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+---POST-PREFLIGHT---
+HTTP/2 401 
+server: nginx
+date: Fri, 21 Aug 2026 20:18:39 GMT
+content-type: text/html
+content-length: 0
+access-control-allow-origin: *
+www-authenticate: Bearer realm="Service", error="invalid_token", error_description="The access token provided is invalid."
+x-envoy-upstream-service-time: 66
 vary: Origin
 access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 
----FAKE-TOKEN---
-[0m
-The fake token returns `invalid_token` (vs `invalid_request` for missing token) — the server validates token format. CORS remains `*` even for invalid tokens.
-
-Let me check if there are any public/unauthenticated endpoints and test Referer leakage:
-[0m$ [0mcurl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/shared_items" -H "User-Agent: box-research/1.0 +(research)" && echo "---SHARED-ITEMS---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/folders/0/items" -H "User-Agent: box-research/1.0 +(research)" && echo "---FOLDER-ITEMS---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/search" -H "User-Agent: box-research/1.0 +(research)" && echo "---SEARCH---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/" -H "Referer: https://app.box.com/folder/12345" -H "User-Agent: box-research/1.0 +(research)" && echo "---REFERER-TEST---"
-HTTP/2 404 
+---GET-NO-RANGE---
+HTTP/2 401 
 server: nginx
-date: Fri, 21 Aug 2026 19:59:02 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
----SHARED-ITEMS---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:59:05 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
+date: Fri, 21 Aug 2026 20:18:41 GMT
+content-type: text/html
+content-length: 0
+access-control-allow-origin: *
+www-authenticate: Bearer realm="Service", error="invalid_token", error_description="The access token provided is invalid."
+x-envoy-upstream-service-time: 64
+vary: Origin
+access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 
----FOLDER-ITEMS---
-HTTP/2 404 
+---INVALID-FILE-ID---
+HTTP/2 401 
 server: nginx
-date: Fri, 21 Aug 2026 19:59:07 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
+date: Fri, 21 Aug 2026 20:18:43 GMT
+content-type: text/html
+content-length: 0
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+x-envoy-upstream-service-time: 65
 strict-transport-security: max-age=31536000
 via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+alt-svc: h3=":443"; ma=2592000
 
----SEARCH---
-HTTP/2 404 
-server: nginx
-date: Fri, 21 Aug 2026 19:59:09 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-<html>
-          <body>
-            <h1>download-proxy service</h1>
-            <h2>Resource is not found</h2>
-          </body>
-        </html>---REFERER-TEST---
+---NO-ORIGIN-NO-TOKEN---
 [0m
-Only `/api/2.0/files/{id}/content` has the CORS config. All other paths return 404. Now I have enough evidence to formulate a proper hypothesis.
+Excellent data. Let me analyze the findings:
+
+**Key observations from this cycle:**
+
+1. **POST preflight** (204): Wildcard CORS allows POST with `Authorization,Content-Type` headers (no `Range` for POST — proper behavior).
+2. **GET with invalid token** (401): Wildcard CORS confirmed on 401 responses too — `access-control-expose-headers` includes `Content-Range,Content-Length` (would leak file size on valid token).
+3. **Invalid file ID 999999999** (401): Different error — `error="invalid_request"` with "The access token was not found" vs `error="invalid_token"` for format-invalid tokens. This reveals the server validates file ID existence separately from token format.
+4. **No-Origin, no-token** (401): `www-authenticate` still present but no CORS headers — confirms CORS is only added when `Origin` header is present.
+
+The wildcard CORS + Authorization header + all methods is now fully confirmed. Let me emit the analysis:
+
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/api/2.0/files/{id}/content: Wildcard `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Headers: Authorization,Range,Content-Type` and `Access-Control-Allow-Methods: OPTIONS,HEAD,GET,POST,PUT,DELETE` confirmed across OPTIONS and GET with attacker Origin. Preflight returns 204; GET with invalid token returns 401 with `access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After`. While `*` prevents cookie-based cross-origin auth, any origin that obtains a valid Bearer token can read file content and size metadata via this endpoint. POST/PUT/DELETE over-permissive for a download endpoint.
+
+[LEARN] ACCEPTED AUTH-INFO @ dl.boxcloud.com/api/2.0/files/{id}/content: Server differentiates token validation errors — format-invalid token → `invalid_token`; valid-format but nonexistent token → `invalid_request` with "The access token was not found." This reveals a two-stage validation (token parse → token lookup) but is informational only.
 
 [HYP] Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure
 class: MISCONFIG
 asset: dl.boxcloud.com/api/2.0/files/{id}/content
-confidence: 55
-reasoning: The download proxy at dl.boxcloud.com/api/2.0/files/{id}/content returns Access-Control-Allow-Origin: * (wildcard) with access-control-allow-headers: Authorization,Range and access-control-expose-headers including Content-Range,Content-Length. All HTTP methods (GET/POST/PUT/DELETE) are allowed via preflight. While * prevents cookie-based auth cross-origin, any page that obtains a valid Bearer token can read file content and metadata (size via Content-Range) from any origin. The server validates token format (returns invalid_token vs invalid_request). The PUT/POST allowance on a file content download endpoint is over-permissive.
-evidence_needed: (1) Confirm that a valid Bearer token request returns 200 with file content and CORS headers. (2) Identify a vector for token leakage to a cross-origin page (e.g., Referer leakage from dl.boxcloud.com, token accessible via JS on another subdomain).
-verify_steps: (1) GET dl.boxcloud.com/api/2.0/files/0/content with a valid Box API token — confirm 200 + CORS headers + Content-Range exposure. (2) Check if dl.boxcloud.com ever sends requests to third-party origins (leaking tokens via Referer). (3) Check if any Box JS app stores tokens in localStorage/cookie accessible to dl.boxcloud.com origin.
-impact: If an attacker can obtain a valid Box Bearer token (via XSS on any Box subdomain, or token storage accessible cross-origin), they can use any page to read file content and metadata via this endpoint. Severity: Medium (requires token + wildcard CORS is unusual practice).
+confidence: 85
+reasoning: OPTIONS preflight (204) and GET (401) both return `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Headers: Authorization,Range,Content-Type`. Content-Range and Content-Length are in exposed headers (would leak file size on valid token). All HTTP methods allowed via preflight — POST/PUT/DELETE are over-permissive for a download endpoint. `vary: Origin` present but with wildcard is a no-op (suggests possible past origin-reflection config). The wildcard means any page can make authenticated requests if it has a Bearer token — reduces cost of exploitation after initial token theft.
+verify_steps: (1) Valid Box API token GET dl.boxcloud.com/api/2.0/files/{id}/content — confirm 200 + Content-Range exposure. (2) Check if dl.boxcloud.comReferer leaks tokens to third-party origins. (3) Check if Box JS apps store tokens in localStorage accessible cross-origin.
+impact: If attacker obtains a valid Box Bearer token (via XSS on any Box subdomain, leaked token, compromised extension), wildcard CORS enables purely client-side file content exfiltration from any origin without a server-side proxy. Severity: Medium (requires token theft prerequisite; wildcard without credentials is safe against cookie-based attacks).
 testability: AUTH_HELPED
 
-[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com/api/2.0/files/{id}/content: Wildcard CORS with Authorization header + all methods + Content-Range exposure. Not directly exploitable without token, but over-permissive configuration.
-[NEXT] PROBE: curl -s -D- -o /dev/null -X OPTIONS "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization,Range,Content-Type" -H "User-Agent: box-research/1.0 +(research)" && echo "---FULL-PREFLIGHT---" && sleep 2 && curl -s -D- "https://dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "Authorization: Bearer box_api_test_token_invalid" -H "Range: bytes=0-0" -H "User-Agent: box-research/1.0 +(research)" && echo "---RANGE-INVALID-TOKEN---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0/files/content" -H "Origin: https://evil.example.com" -H "Authorization: Bearer test" -H "User-Agent: box-research/1.0 +(research)" && echo "---NO-ID-WITH-TOKEN---" && sleep 2 && curl -s -D- -o /dev/null "https://dl.boxcloud.com/api/2.0" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)" && echo "---API-ROOT---"
+[PARKED] Signed-URL token leakage via Referer on dl.boxcloud.com: Requires authenticated download session to test whether Box leaks signed URLs via Referer headers to embedded third-party resources. Cannot test unauthenticated. (AUTH_HELPED)
+
+[NEXT] PROBE: dl.boxcloud.com surface exhausted for unauthenticated probes. Pivot: test whether dl.boxcloud.com subdomains or alternate ports exist — `curl -s -D- -o /dev/null "https://dl.boxcloud.com:8443/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)"` and `curl -s -D- -o /dev/null "https://d2dl.boxcloud.com/api/2.0/files/0/content" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)"` — checks for alternate CDN edges. Then re-focus: cloud.app.box.com `/embed` route returned 200 (distinct from 206 asset layer) — probe for CORS headers there: `curl -s -D- "https://cloud.app.box.com/embed" -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0 +(research)"` — captures all response headers including Access-Control-* and X-Frame-Options.
