@@ -929,3 +929,4 @@ testability: PASSIVE
 [PARKED] upload.box.com: nginx, all paths 404, no CORS headers.
 [PARKED] m.box.com: 301→app.box.com. No unique surface.
 [NEXT] GET https://cloud.app.box.com/app-api/enduserapp/current-user with headers: Origin: https://evil.com, User-Agent: box-research/1.0 — check response body for user data + CORS headers; then GET https://cloud.app.box.com/api/oauth2/authorize?response_type=code with same Origin — check if 4th subdomain reflects CORS on OAuth2 SPA shell
+## 2026-08-21 22:53:27 UTC app.box.com (mimo)
