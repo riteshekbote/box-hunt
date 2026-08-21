@@ -1,36 +1,28 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m• [0mExplore Box codebase state[90m Explore Agent[0m
-[0m✓ [0mExplore Box codebase state[90m Explore Agent[0m
-[0m→ [0mRead probe-results-dl-boxcloud-com.md
-[0m→ [0mRead leads/host-dl.boxcloud.com.md[90m [limit=100][0m
-[0m→ [0mRead leads/host-dl.boxcloud.com.md[90m [offset=650][0m
-[0m→ [0mRead probe-results-cloud-app-box-com.md
-[0m→ [0mRead leads/host-cloud.app.box.com.md[90m [limit=100, offset=400][0m
-[0m→ [0mRead leads/host-cloud.app.box.com.md[90m [limit=100, offset=490][0m
-[0m→ [0mRead leads/host-cloud.app.box.com.md[90m [limit=150, offset=750][0m
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: SPA catch-all confirmed — ANY path returns 206 with embedded Box.config and Box.prefetchedData. Route mapper names disclosed via currentRm. Server-side API lookups visible in prefetchedData. This is a confirmed information disclosure.
 [LEARN] ACCEPTED MISCONFIG @ account.box.com `/_assets/`: GCS bucket `box-prod-static-assets-assets-us` serves package.json with internal build config (gitenterprise.inside-box.net, build paths). Wildcard CORS `*,*` allows cross-origin read. Two origins (account.box.com, cloud.app.box.com) front the same bucket.
 [LEARN] ACCEPTED MISCONFIG @ account.box.com robots.txt: Full path map disclosed — /login, /services, /reset, /signup, /representation, /app-assets, /simpleshare, /app-api/split-proxy, /app-gallery-v2/api, /cdn, /sites, /platform, /s/, /shared/, /v/, /app-center, /integrations, /enduser, /fonts, /_assets/img/favicons.
+
 [HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
 class: BUSLOGIC
 asset: cloud.app.box.com/?list-type=2
 confidence: 55
 reasoning: GET /?list-type=2 returns 200 (observed across 6+ cycles since 2026-08-16). S3 ListObjects-v2 query parameter accepted. Previous probes with prefix=/ and max-keys=1 also returned 200. The body content has never been captured — if it contains ListBucketResult XML, this is a public bucket listing vulnerability. If it returns HTML, the 200 is just the SPA catch-all ignoring the query string.
-evidence_needed: Response body of GET /?list-type=2 — XML with Contents/Key elements = public listing; HTML SPA shell = benign.
 verify_steps: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1000 chars), content-type header, and any x-amz-* or x-goog-* headers.
 impact: If S3 bucket listing is enabled, attacker can enumerate all objects in the embedded-content bucket, discovering internal file names, folder structure, and potentially sensitive file metadata without authentication. Severity: Medium-High.
 testability: PASSIVE
+
 [HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
 class: MISCONFIG
 asset: cloud.app.box.com/<path>
 confidence: 60
 reasoning: Confirmed SPA catch-all returns 206 with currentRm and prefetchedData for any path. Different paths trigger different route mappers: /s/ → enduserapp_shared_item_page, arbitrary → shared_page_vanity_name. The prefetchedData includes server-side API lookups (/app-api/enduserapp/shared-item, /app-api/enduserapp/current-user). If other path patterns trigger privileged API lookups (e.g., admin, settings, internal), more sensitive data could be prefetched.
-evidence_needed: Test paths that might trigger different API lookups: /admin, /settings, /internal, /debug, /config.
 verify_steps: GET https://cloud.app.box.com/admin — observe currentRm and prefetchedData keys. GET https://cloud.app.box.com/settings — same. GET https://cloud.app.box.com/debug — same.
 impact: If certain paths trigger privileged server-side API lookups that return sensitive data in prefetchedData, an attacker can extract that data from the 206 response without authentication. Severity: Low-Medium.
 testability: PASSIVE
+
 [NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1000 chars), content-type, and any x-amz-*/x-goog-* headers. This is the critical evidence to confirm or reject the S3 bucket-listing hypothesis.
 [NEXT] PROBE: GET https://cloud.app.box.com/admin — observe currentRm and prefetchedData keys for route mapper enumeration.
 [NEXT] PROBE: GET https://cloud.app.box.com/settings — observe currentRm and prefetchedData keys.

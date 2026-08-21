@@ -37,30 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 20:50:40 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: GET returns 301 redirect to cloud.account.box.com/login with Access-Control-Allow-Origin reflecting attacker Origin. Preflight allows GET + Authorization. However, this is just a redirect handler.
-verify_steps: (1) GET cloud.app.box.com/login with Origin — capture all headers
-impact: Origin reflection on redirect. Limited impact. Severity: Low.
-testability: PASSIVE
-class: MISCONFIG
-asset: dl.boxcloud.com/api/2.0/files/{id}/content + d2dl.boxcloud.com (mirror)
-confidence: 90
-reasoning: OPTIONS and GET both return Access-Control-Allow-Origin: * with Authorization,Range headers. All methods allowed. Content-Range exposed. CDN mirror confirmed on d2dl.boxcloud.com with identical config.
-verify_steps: (1) GET dl.boxcloud.com/api/2.0/files/{id}/content with valid token — confirm 200 + CORS + Content-Range
-impact: Cross-origin file content + size exfiltration with stolen token. Severity: Medium.
-testability: AUTH_HELPED
-class: MISCONFIG
-asset: api.box.com/2.0/*
-confidence: 80
-reasoning: OPTIONS preflight on 5 different api.box.com endpoints all return Access-Control-Allow-Origin: * with Authorization header and all methods. The /oauth2/token POST is also allowed via CORS. GET 401 responses lack CORS headers (different middleware than dl.boxcloud.com) but preflight policy confirms server accepts cross-origin authenticated requests.
-verify_steps: (1) GET api.box.com/2.0/users/me with valid token — check if 200 includes CORS. (2) POST api.box.com/oauth2/token with valid credentials — check CORS. (3) Check if access-control-expose-headers present on success.
-impact: If attacker obtains valid Bearer token, any page can access files, folders, users, search, events, metadata via api.box.com. Severity: Medium (requires token theft prerequisite; wildcard without credentials is safe against cookie-based attacks).
-testability: AUTH_HELPED
-class: MISCONFIG
-asset: cloud.account.box.com/login
-confidence: 70
-reasoning: GET and OPTIONS both return Access-Control-Allow-Origin: https://evil.example.com (exact origin reflection). Preflight allows GET + Authorization header. Max-age 86400. However, response is a login page (redirect to auth) — limited data exposure.
-verify_steps: (1) OPTIONS cloud.account.box.com/api/oauth2/authorize with Origin. (2) GET cloud.account.box.com/api/oauth2/authorize with Origin.
-impact: Origin reflection on auth plane. Limited impact as /login returns login page. Severity: Low.
 testability: PASSIVE
 class: MISCONFIG
 asset: cloud.app.box.com/login
@@ -97,6 +73,30 @@ reasoning: GET and OPTIONS both return access-control-allow-origin reflecting at
 verify_steps: (1) Check other account.box.com paths for Origin reflection. (2) Check if account.box.com/api endpoints reflect Origin.
 impact: Origin reflection on auth plane with static config data. Limited impact. Severity: Low.
 testability: PASSIVE
+## 2026-08-21 21:04:05 UTC dl.boxcloud.com (mimo)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: SPA catch-all confirmed — ANY path returns 206 with embedded Box.config and Box.prefetchedData. Route mapper names disclosed via currentRm. Server-side API lookups visible in prefetchedData. This is a confirmed information disclosure.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com `/_assets/`: GCS bucket `box-prod-static-assets-assets-us` serves package.json with internal build config (gitenterprise.inside-box.net, build paths). Wildcard CORS `*,*` allows cross-origin read. Two origins (account.box.com, cloud.app.box.com) front the same bucket.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com robots.txt: Full path map disclosed — /login, /services, /reset, /signup, /representation, /app-assets, /simpleshare, /app-api/split-proxy, /app-gallery-v2/api, /cdn, /sites, /platform, /s/, /shared/, /v/, /app-center, /integrations, /enduser, /fonts, /_assets/img/favicons.
+[HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
+class: BUSLOGIC
+asset: cloud.app.box.com/?list-type=2
+confidence: 55
+reasoning: GET /?list-type=2 returns 200 (observed across 6+ cycles since 2026-08-16). S3 ListObjects-v2 query parameter accepted. Previous probes with prefix=/ and max-keys=1 also returned 200. The body content has never been captured — if it contains ListBucketResult XML, this is a public bucket listing vulnerability. If it returns HTML, the 200 is just the SPA catch-all ignoring the query string.
+verify_steps: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1000 chars), content-type header, and any x-amz-* or x-goog-* headers.
+impact: If S3 bucket listing is enabled, attacker can enumerate all objects in the embedded-content bucket, discovering internal file names, folder structure, and potentially sensitive file metadata without authentication. Severity: Medium-High.
+testability: PASSIVE
+[HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
+class: MISCONFIG
+asset: cloud.app.box.com/<path>
+confidence: 60
+reasoning: Confirmed SPA catch-all returns 206 with currentRm and prefetchedData for any path. Different paths trigger different route mappers: /s/ → enduserapp_shared_item_page, arbitrary → shared_page_vanity_name. The prefetchedData includes server-side API lookups (/app-api/enduserapp/shared-item, /app-api/enduserapp/current-user). If other path patterns trigger privileged API lookups (e.g., admin, settings, internal), more sensitive data could be prefetched.
+verify_steps: GET https://cloud.app.box.com/admin — observe currentRm and prefetchedData keys. GET https://cloud.app.box.com/settings — same. GET https://cloud.app.box.com/debug — same.
+impact: If certain paths trigger privileged server-side API lookups that return sensitive data in prefetchedData, an attacker can extract that data from the 206 response without authentication. Severity: Low-Medium.
+testability: PASSIVE
+[NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1000 chars), content-type, and any x-amz-*/x-goog-* headers. This is the critical evidence to confirm or reject the S3 bucket-listing hypothesis.
+[NEXT] PROBE: GET https://cloud.app.box.com/admin — observe currentRm and prefetchedData keys for route mapper enumeration.
+[NEXT] PROBE: GET https://cloud.app.box.com/settings — observe currentRm and prefetchedData keys.
+[NEXT] PROBE: GET https://cloud.app.box.com/debug — observe currentRm and prefetchedData keys.
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)
