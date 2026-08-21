@@ -1048,3 +1048,70 @@ reasoning: The `/sso` endpoint preserves ALL redirect_url values without validat
 verify_steps: HUMAN_ONLY — requires authentic Box account login.
 impact: If post-auth SSO handler follows the redirect_url → full open redirect on account.box.com (High). If validated post-auth → no impact.
 testability: HUMAN_ONLY
+## 2026-08-21 19:58:00 UTC account.box.com (mimo)
+[LEARN] ACCEPTED UPLOAD-WILDCARD CORS @ upload.box.com: OPTIONS preflight reflects ANY origin (evil-box.com, test.box.com) with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Complete wildcard CORS misconfiguration. Only POST method allowed; all GET paths return 404. No unauthenticated data exfil via GET.
+[LEARN] ACCEPTED SSO-PRESERVE @ account.box.com/sso: javascript: URIs and external domains (including subdomain tricks) are preserved in redirect_url parameter without validation. data: URIs with angle brackets rejected with 400 (URL parsing, not security validation). Post-authentication redirect behavior unverified.
+[LEARN] REJECTED ACCOUNT-DEBUG @ account.box.com: /debug, /status, /health, /metrics all return 302→login. No exposed debug/metrics endpoints.
+[HYP] upload.box.com Wildcard CORS + POST endpoint
+class: MISCONFIG
+asset: upload.box.com/api/*
+confidence: 98
+reasoning: Complete wildcard CORS misconfiguration confirmed. Any attacker-controlled origin is reflected with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Only POST method supported; all GET paths return 404 nginx. No unauthenticated data exfil possible via GET.
+verify_steps: Already verified via OPTIONS preflight probes with evil-box.com and test.box.com.
+impact: Enables cross-origin CSRF with response reading on any POST endpoint that accepts cookie authentication. If any POST endpoint returns sensitive data (e.g., token exchange), attacker can read response. Current limitation: no confirmed exploitable POST endpoint for data exfil.
+testability: PASSIVE
+[HYP] account.box.com SSO Open Redirect
+class: AUTH
+asset: account.box.com/sso
+confidence: 70
+reasoning: /sso endpoint preserves ALL redirect_url values without validation - including javascript: URIs and external domains. Full redirect chain: /sso → 302→ /login?redirect_url=%2Fsso%3Fredirect_url%3D{payload}. Login form stores this as hidden field. Post-authentication behavior unverified.
+verify_steps: HUMAN_ONLY - requires authentic Box account login via https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert(1)
+impact: If post-auth SSO handler follows the redirect_url → full open redirect on account.box.com (High). If validated post-auth → no impact.
+testability: HUMAN_ONLY
+[NEXT] SSO-AUTH-TEST: Test if the SSO redirect chain can be exploited with a benign external URL to verify post-auth behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://httpbin.org/redirect-to?url=https://example.com"
+[NEXT] NOTES-RECON: Probe notes.services.box.com for API endpoints and behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api"
+[NEXT] MBOX-RECON: Probe m.box.com for mobile-specific endpoints: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/api"
+[LEARN] ACCEPTED UPLOAD-WILDCARD CORS @ upload.box.com: OPTIONS preflight reflects ANY origin (evil-box.com, test.box.com) with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Complete wildcard CORS misconfiguration. Only POST method allowed; all GET paths return 404. No unauthenticated data exfil via GET.
+[LEARN] ACCEPTED SSO-PRESERVE @ account.box.com/sso: javascript: URIs and external domains (including subdomain tricks) are preserved in redirect_url parameter without validation. data: URIs with angle brackets rejected with 400 (URL parsing, not security validation). Post-authentication redirect behavior unverified.
+[LEARN] REJECTED ACCOUNT-DEBUG @ account.box.com: /debug, /status, /health, /metrics all return 302→login. No exposed debug/metrics endpoints.
+[HYP] upload.box.com Wildcard CORS + POST endpoint
+class: MISCONFIG
+asset: upload.box.com/api/*
+confidence: 98
+reasoning: Complete wildcard CORS misconfiguration confirmed. Any attacker-controlled origin is reflected with access-control-allow-origin: {origin} + access-control-allow-credentials: true. Only POST method supported; all GET paths return 404 nginx. No unauthenticated data exfil possible via GET.
+verify_steps: Already verified via OPTIONS preflight probes with evil-box.com and test.box.com.
+impact: Enables cross-origin CSRF with response reading on any POST endpoint that accepts cookie authentication. If any POST endpoint returns sensitive data (e.g., token exchange), attacker can read response. Current limitation: no confirmed exploitable POST endpoint for data exfil.
+testability: PASSIVE
+[HYP] account.box.com SSO Open Redirect
+class: AUTH
+asset: account.box.com/sso
+confidence: 70
+reasoning: /sso endpoint preserves ALL redirect_url values without validation - including javascript: URIs and external domains. Full redirect chain: /sso → 302→ /login?redirect_url=%2Fsso%3Fredirect_url%3D{payload}. Login form stores this as hidden field. Post-authentication behavior unverified.
+verify_steps: HUMAN_ONLY - requires authentic Box account login via https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert(1)
+impact: If post-auth SSO handler follows the redirect_url → full open redirect on account.box.com (High). If validated post-auth → no impact.
+testability: HUMAN_ONLY
+[NEXT] SSO-AUTH-TEST: Test if the SSO redirect chain can be exploited with a benign external URL to verify post-auth behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://httpbin.org/redirect-to?url=https://example.com"
+[NEXT] NOTES-RECON: Probe notes.services.box.com for API endpoints and behavior: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api"
+[NEXT] MBOX-RECON: Probe m.box.com for mobile-specific endpoints: curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/" then curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/api"
+[LEARN] ACCEPTED UPLOAD-WILDCARD @ upload.box.com: OPTIONS preflight reflects ANY origin (`evil-box.com`, `test.box.com`) with `ACAC: true` + `Allow-Methods: POST`. Complete wildcard CORS misconfiguration. No GET-accessible endpoints — all return 404.
+[LEARN] ACCEPTED SSO-PRESERVE @ account.box.com/sso: `javascript:alert(1)` preserved in redirect_url. `https://account.box.com.evil.example.com` preserved. `data:text/html,<script>alert(1)</script>` returns 400 (URL parsing, not security validation). Post-auth behavior unverified.
+[LEARN] REJECTED ACCOUNT-DEBUG @ account.box.com: `/debug`, `/status`, `/health`, `/metrics` all 302→login. No exposed debug endpoints.
+[HYP] upload.box.com Wildcard CORS + POST
+class: MISCONFIG
+asset: upload.box.com/api/*
+confidence: 98
+reasoning: Complete wildcard CORS — any origin reflected with ACAC: true. Only POST method allowed; all GET return 404. Enables cross-origin CSRF with response reading on POST endpoints accepting cookie auth. No confirmed exploitable POST endpoint for data exfil.
+verify_steps: Already verified via OPTIONS with evil-box.com and test.box.com.
+impact: Cross-origin CSRF with response reading on POST endpoints (High if token exchange accepts cookies).
+testability: PASSIVE
+[HYP] account.box.com SSO Open Redirect
+class: AUTH
+asset: account.box.com/sso
+confidence: 70
+reasoning: /sso preserves ALL redirect_url values — javascript: URIs, external domains, subdomain tricks. Full chain: /sso → 302→ /login?redirect_url=%2Fsso%3Fredirect_url%3D{payload}. Post-auth behavior unverified.
+verify_steps: HUMAN_ONLY — requires Box account login.
+impact: Full open redirect on account.box.com if post-auth handler follows redirect_url (High).
+testability: HUMAN_ONLY
+[NEXT] SSO-CHAIN-AUTH: Test if the full SSO redirect chain can be traced without authentication by following the redirect to /login and inspecting the form: `curl -sD- -L -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://evil.example.com/path"` (follow redirects to see final form state)
+[NEXT] NOTES-RECON: Probe notes.services.box.com: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/api"`
+[NEXT] MBOX-RECON: Probe m.box.com: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://m.box.com/api"`

