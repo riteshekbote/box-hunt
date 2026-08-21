@@ -1,40 +1,17 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-## Current State Analysis
-
-**Phase:** POC (in progress since 19:56:57 UTC)
-**Last action:** Confirmed cloud.app.box.com whitelist behavior, account.box.com metadata leak
-
-**Completed probes:**
-- cloud.app.box.com: 206/Range layer whitelist confirmed (6 assets only)
-- dl.boxcloud.com: Inert (all 404)
-- upload.box.com: No unauthenticated surface (all 404)
-- account.box.com: Metadata leak in /api/oauth2/authorize (runtimeMetadata, SDK keys)
-
-**Pending hypothesis:** m.box.com mobile web app with separate rendering/session logic
-
-## Proposed Next Action
-
-Execute the m.box.com probe as specified in the [NEXT] instruction:
-
-**Probe:** 3xGET m.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
-1. GET / (root)
-2. GET /robots.txt
-3. GET /login
-
-**Rationale:**
-- m.box.com has "separate rendering/session logic" from app.box.com
-- No probes conducted on this host yet
-- Mobile web apps often implement different session handling
-- Could expose different API surface or bypass opportunities
-
-**Expected outcomes:**
-- 200 with HTML content → analyze for session handling differences
-- 302 to login → note redirect behavior
-- 403/429 → stop probing, log rate limit
-- 404 → continue with additional probes
-
-**Next cycle:** Based on m.box.com response, either deepen hypothesis or pivot to another untested host.
-
-Should I proceed with executing this probe?
+[0m% [0mWebFetch https://m.box.com/
+[0m% [0mWebFetch https://m.box.com/robots.txt
+[0m% [0mWebFetch https://m.box.com/login
+[NEW] m.box.com: Root returns 200 with login page; /robots.txt reveals 18 crawlable paths identical to account.box.com including /app-api/split-proxy, /app-gallery-v2/api
+[HYP] m.box.com mobile web app mirrors account.box.com surface
+class: OTHER
+asset: m.box.com
+confidence: 40
+reasoning: m.box.com robots.txt reveals identical path structure to account.box.com including /app-api/split-proxy and /app-gallery-v2/api. The root and /login both serve the same login page. This suggests m.box.com is either a CNAME alias or thin proxy to account.box.com, not a distinct mobile rendering layer. No unique mobile-specific API surface discovered.
+evidence_needed: Verify if m.box.com and account.box.com resolve to same IP; test if /api/oauth2/authorize on m.box.com leaks same runtimeMetadata
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) m.box.com/api/oauth2/authorize (2) m.box.com/app-api/split-proxy (3) m.box.com/enduser — record status and check for Box.prefetchedData
+impact: Low — if identical to account.box.com, no new attack surface; if different, could reveal mobile-specific auth handling
+testability: PASSIVE
+[NEXT] PROBE: 3xGET m.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/oauth2/authorize (2) /app-api/split-proxy (3) /enduser
