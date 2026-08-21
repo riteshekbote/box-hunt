@@ -884,3 +884,17 @@ verify_steps: N/A
 impact: None — 206 behavior no longer present.
 testability: PASSIVE
 [PARKED] Disproven — 206 behavior absent, ACAO is wildcard not reflection.
+## 2026-08-21 19:57:27 UTC notes.services.box.com (mimo)
+[LEARN] REJECTED SPA catch-all route resolution: executor at 19:48:40 confirmed `/s/<test-token`, `/shared/<test`, `/v/<test`, `/shared/test123`, `/v/test123`, `/folders/0` all return 404. Only `/` and `/login` return 206. The catch-all is not broad — specific routes are pinned.
+[HYP] cloud.app.box.com SPA 206 response body contains embedded sensitive config
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 65
+reasoning: Root consistently returns 206 across all cycles. The SPA shell contains embedded Box.config and Box.prefetchedData with server-side API lookup results. If Box.config contains API keys, tokens, or internal endpoints, this is a data exposure. The 206 status indicates partial content serving — the response may include more data than a 200 would.
+verify_steps: `curl -s "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0" 2>&1 | head -100` — capture first 100 lines of SPA shell
+impact: Embedded API keys or internal config disclosure — MEDIUM
+testability: PASSIVE
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0" 2>&1 | head -100` — capture SPA shell body for config inspection
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/login" -H "User-Agent: box-research/1.0" 2>&1 | head -100` — compare login page SPA shell
+[NEXT] PROBE: `curl -sI "https://cloud.app.box.com/" -H "Range: bytes=0-0"` — test if 206 responds to Range request
+[NEXT] PROBE: `curl -s "https://cloud.app.box.com/%2e%2e/"` — test path traversal encoding
