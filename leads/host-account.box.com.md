@@ -1271,3 +1271,25 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/graphql with User-Agent: box-research/1.0 (research) — compare to notes.services.box.com/graphql response. Record status + Content-Type + body_length. Then OPTIONS https://app.box.com/graphql with Origin: https://evil.com — record all Access-Control-* headers. 1 req/2s, first 4xx/429/403 → stop app.box.com.
 [NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 (research) — re-check if GraphQL service has recovered from 503. Record status. 1 req/2s.
 [NEXT] PROBE: GET https://upload.box.com/.git/config with User-Agent: box-research/1.0 (research) — test whether git metadata is exposed. Record status + headers + body length. Then GET https://upload.box.com/.git/HEAD. 1 req/2s, first 4xx/429/403 → stop upload.box.com.
+## 2026-08-21 22:32:59 UTC account.box.com (mimo)
+class: MISCONFIG
+asset: app.box.com/static/, app.box.com/assets/
+confidence: 30
+reasoning: app.box.com is the primary web app SPA. Known SPAs often expose /static/, /assets/, /build/ paths with default-handler fallback returning 200 with bundled JS/CSS. These may leak internal API routes, feature flags, or configuration. 503 on /graphql suggests the app has multiple backend services.
+verify_steps: GET https://app.box.com/static/ with UA box-research/1.0 — record status. Then GET https://app.box.com/assets/ and GET https://app.box.com/build/. 1 req/2s, first 4xx/429/403 → stop.
+impact: Information disclosure of internal routes, feature flags, API keys. Severity: Low-Medium.
+testability: PASSIVE
+class: MISCONFIG
+asset: api.box.com/developer/, api.box.com/docs/, api.box.com/explorer/
+confidence: 25
+reasoning: API platforms often host developer documentation or API explorer at root-adjacent paths. These may be publicly accessible and reveal endpoint schemas, authentication methods, or internal API surface. api.box.com currently only tested at /api/2.0/* (returns 401).
+verify_steps: GET https://api.box.com/developer/ with UA box-research/1.0 — record status. Then GET https://api.box.com/docs/ and GET https://api.box.com/explorer/. 1 req/2s, first 4xx/429/403 → stop.
+impact: Information disclosure of API surface, internal endpoints. Severity: Low.
+testability: PASSIVE
+class: MISCONFIG
+asset: dl.boxcloud.com
+confidence: 25
+reasoning: dl.boxcloud.com is the file download CDN. All root/robots.txt paths return 404. CDN endpoints may require specific path patterns with signed tokens. If the signing algorithm has weaknesses (e.g., predictable tokens, timing attacks on validation), file access could be possible.
+verify_steps: GET https://dl.boxcloud.com/api/ with UA box-research/1.0 — record status. Then GET https://dl.boxcloud.com/download/ and GET https://dl.boxcloud.com/files/. 1 req/2s, first 4xx/429/403 → stop.
+impact: Potential unauthorized file access. Severity: Critical (if confirmed).
+testability: PASSIVE

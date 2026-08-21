@@ -35,43 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 21:29:42 UTC"
+  "last_advance": "2026-08-21 22:02:49 UTC"
 }=== MY LAST LEADS (tail) ===
-[NEXT] API-GRAPHQL: Check if api.box.com has GraphQL endpoint: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://api.box.com/graphql"` — 1 req.
-[NEXT] UPLOAD-DEBUG-HEADERS: Check upload.box.com error responses for debug headers: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com/nonexistent-path"` — 1 req.
-[HYP] cloud.account.box.com Google OAuth Open Redirect via state parameter
-class: AUTH
-asset: cloud.account.box.com/integrations/googleplus/beginAuthorization
-confidence: 85
-reasoning: Google OAuth endpoint accepts `redirect_url` parameter and embeds it in the OAuth `state` parameter as the `p` field. The redirect_uri points to `account.box.com/integrations/googleplus/oauth2Redirect`. After Google auth, the callback would decode state and potentially redirect to the attacker-controlled URL in `p`. Double-encoded evil.example.com/path confirmed in the state JSON.
-verify_steps: HUMAN_ONLY — requires completing Google OAuth flow and observing callback behavior
-impact: OAuth open redirect — full redirect to attacker-controlled domain after authentication (High)
-testability: HUMAN_ONLY
-[PARKED] api.box.com GraphQL: Returns 503 (Service Unavailable). Not exposed.
-[LEARN] ACCEPTED CLEAN-404 @ upload.box.com: 404 response contains minimal headers (nginx, envoy). No debug info leaked. Server: nginx.
-[NEXT] SSO-CHAIN-AUTH: Verify if Google OAuth callback handler follows state `p` parameter: Requires HUMAN_ONLY — authenticated Google OAuth flow needed to test `account.box.com/integrations/googleplus/oauth2Redirect` callback behavior.
-[NEXT] ACCOUNT-SSO-REDIRECT: Test if account.box.com login page also embeds redirect_url in state or follows it post-auth: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/login?redirect_url=https://evil.example.com/path"` — 1 req.
-[NEXT] CLOUD-COOKIE-DOMAIN: Test cookie scope for cloud.account.box.com — check if cookies are scoped to .box.com (shared with other subdomains): Already observed `domain=.box.com` on some cookies. Cross-subdomain cookie scope confirmed.
-[LEARN] ACCEPTED OAUTH-OPEN-REDIRECT @ cloud.account.box.com: Google OAuth `/integrations/googleplus/beginAuthorization` embeds `redirect_url` in state parameter as `p` field. Attacker-controlled URL (`evil.example.com/path`) double-encoded in state JSON. Callback at `account.box.com/integrations/googleplus/oauth2Redirect` likely follows `p` for post-auth redirect. HUMAN_ONLY — requires authenticated flow to confirm.
-[LEARN] ACCEPTED SAFE-LOGIN-FORM @ account.box.com: Login form action hardcodes `redirect_url=/` in hidden field despite query parameter containing `evil.example.com/path`. Form POST target is `/login?redirect_url=%2F`. Server-side handler likely uses the hidden field value, not the query parameter. Login form is safe against open redirect.
-[HYP] cloud.account.box.com Google OAuth open redirect via state parameter
-class: AUTH
-asset: cloud.account.box.com/integrations/googleplus/beginAuthorization
-confidence: 85
-reasoning: Google OAuth endpoint accepts redirect_url param and embeds it in state JSON as `p` field (e.g. `p: "https://evil.example.com/path"`). After Google auth, callback at account.box.com/integrations/googleplus/oauth2Redirect decodes state. If callback follows `p` for post-auth redirect, attacker gets full redirect after user authenticates with Google. State parameter is opaque to the browser — only Box server decodes it. Classic OAuth open redirect pattern.
-verify_steps: HUMAN_ONLY — requires Google account linked to Box, complete OAuth flow, observe redirect after callback
-impact: Post-authentication redirect to attacker-controlled domain (High) — attacker can chain with phishing for credential harvesting on attacker domain
-testability: HUMAN_ONLY
-[PARKED] cloud.account.box.com Google OAuth open redirect: State parameter contains attacker-controlled `p` field with evil URL confirmed. Post-auth behavior unverified. HUMAN_ONLY.
-[PARKED] upload.box.com CORS + POST: Authorization header NOT required by preflight. Only Content-Type needed. Confirmed at 98%. No exploitable POST endpoint found. AUTH_HELPED.
-[PARKED] api.box.com GraphQL: 503 Service Unavailable. Not exposed.
-[LEARN] ACCEPTED SAFE-LOGIN @ account.box.com: Login form with `redirect_url=https://evil.example.com/path` — form action hardcodes `redirect_url=/` not evil URL. Query parameter `redirect_url` ignored by form. Server-side handler uses hidden field. Safe.
-[NEXT] SSO-DEEP-CHAIN: Trace the full account.box.com/sso redirect chain by following ALL redirects to final destination: `curl -sD- -L -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://evil.example.com/path"` — Follow redirects to see if final page's JavaScript or meta-refresh triggers the evil redirect. 1 req (multi-hop).
-[NEXT] UPLOAD-API-ROUTES: Enumerate upload.box.com POST-capable API paths: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com/api/2.0/folders/0/items"` — 1 req. Then: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com/api/2.0/users/me"` — 1 req.
-[NEXT] CLOUD-OIDC: Check cloud.account.box.com for OIDC metadata: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://cloud.account.box.com/.well-known/openid-configuration"` — 1 req.
-
-## 2026-08-21 21:47:36 UTC account.box.com (mimo)
-[LEARN] ACCEPTED CORS-WILDCARD @ account.box.com/api/oauth2/token: OPTIONS preflight confirmed `Access-Control-Allow-Origin: *` with full method set (DELETE, HEAD, GET, OPTIONS, POST, PUT) and `Access-Control-Allow-Headers: Content-Type,Authorization`. Max-age 1800. Returns 204. This is a confirmed critical CORS misconfiguration allowing any origin to read OAuth token responses.
 [LEARN] ACCEPTED CORS-ENDPOINT-SPECIFIC @ account.box.com: Authenticated API endpoints (/api/2.0/users/me, /api/2.0/folders/0) return 401 with NO CORS headers. /api/oauth2/authorize returns 200 HTML with `Access-Control-Expose-Headers: WWW-Authenticate,Server-Authorization` but NO `Access-Control-Allow-Origin`. The wildcard CORS is isolated to the /api/oauth2/token endpoint only.
 [LEARN] ACCEPTED GRAPHQL-503 @ notes.services.box.com/graphql: Service still returns 503 with real Box error JSON. Parked until status changes.
 [LEARN] ACCEPTED INVITATIONS-404 @ account.box.com/invitations/accept: Returns 404 with no CORS headers. No surface here.
@@ -94,6 +59,41 @@ verify_steps: Already confirmed - /api/2.0/users/me returns 401 with no CORS; /a
 impact: Confirms the attack surface is limited to the token endpoint. Severity: High but scoped.
 testability: PASSIVE
 
+[NEXT] PROBE: GET https://app.box.com/graphql with User-Agent: box-research/1.0 (research) — compare to notes.services.box.com/graphql response. Record status + Content-Type + body_length. Then OPTIONS https://app.box.com/graphql with Origin: https://evil.com — record all Access-Control-* headers. 1 req/2s, first 4xx/429/403 → stop app.box.com.
+[NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 (research) — re-check if GraphQL service has recovered from 503. Record status. 1 req/2s.
+[NEXT] PROBE: GET https://upload.box.com/.git/config with User-Agent: box-research/1.0 (research) — test whether git metadata is exposed. Record status + headers + body length. Then GET https://upload.box.com/.git/HEAD. 1 req/2s, first 4xx/429/403 → stop upload.box.com.
+## 2026-08-21 22:02:49 UTC account.box.com (mimo)
+[LEARN] ACCEPTED CORS-WILDCARD-TOKEN @ account.box.com/api/oauth2/token: OPTIONS preflight confirmed `Access-Control-Allow-Origin: *` with full method set (DELETE, HEAD, GET, OPTIONS, POST, PUT) and `Access-Control-Allow-Headers: Content-Type,Authorization`. Max-age 1800. Returns 204. This is a confirmed CORS misconfiguration allowing any origin to read OAuth token responses. HOWEVER: the token endpoint requires `grant_type`, `client_id`, `client_secret`, and `code` in a POST body — wildcard CORS allows cross-origin reading but does NOT bypass the auth requirements. An attacker page can read the response IF a user initiates a token exchange, but cannot forge one without client_secret.
+[HYP] OAuth token endpoint wildcard CORS enables cross-origin token exfiltration
+class: OATH
+asset: account.box.com/api/oauth2/token
+confidence: 90
+reasoning: OPTIONS preflight returns `Access-Control-Allow-Origin: *` with full method set and allows Authorization header. Any cross-origin page can make requests to this endpoint and read the response. Wildcard CORS is endpoint-specific (/api/oauth2/token only; /api/2.0/* and /api/oauth2/authorize lack CORS headers). Attack scenario: attacker controls a malicious OAuth app, tricks victim into completing OAuth flow on attacker's box.com app, token exchange response readable cross-origin from attacker page. Requires attacker-controlled valid OAuth app client_id + client_secret.
+verify_steps: Already confirmed via OPTIONS preflight. Attack path requires: (1) Attacker registers OAuth app on Box, obtains client_id + client_secret. (2) Attacker lures victim to authorize on attacker's app. (3) Token exchange at account.box.com/api/oauth2/token with attacker's client_id. (4) Attacker page reads response (access_token, refresh_token) via CORS.
+impact: Cross-origin read of OAuth token responses including access tokens, refresh tokens. Severity: High (requires attacker-controlled OAuth app).
+testability: PASSIVE
+[CONFIRMED] cloud.app.box.com/_assets/ GCS bucket metadata leak
+class: MISCONFIG
+asset: cloud.app.box.com/_assets/*
+confidence: 98
+reasoning: 404 XML responses consistently expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. `/_assets/package.json` (3168B) and `/_assets/Makefile.js` (6117B) return 200 with `access-control-allow-origin: *,*` across multiple cycles. Root-level paths go through CDN edge (302→login, no CORS); `/_assets/` bypasses CDN and hits GCS directly.
+verify_steps: Already verified across multiple cycles. No re-probe needed.
+impact: Any origin can read Box internal build config, Git host (`gitenterprise.inside-box.net`), internal packages, server filesystem paths. Severity: Low-Medium.
+testability: PASSIVE
+[CONFIRMED] upload.box.com Wildcard CORS + POST
+class: MISCONFIG
+asset: upload.box.com/api/*
+confidence: 98
+reasoning: Complete wildcard CORS — any attacker-controlled origin reflected with `access-control-allow-origin: {origin}` + `access-control-allow-credentials: true` + `Allow-Methods: POST` + `Allow-Headers: Authorization,Content-Type`. Verified across multiple origins (evil-box.com, test.box.com, bhx-cors-probe.example). Authorization header NOT required by preflight — only Content-Type needed. However, ALL GET paths return 404 nginx — no GET-accepting data endpoint exists on this host.
+verify_steps: Already fully verified via OPTIONS preflight probes. No additional read-only verification possible.
+impact: Enables cross-origin CSRF with response reading on POST endpoints accepting cookie auth. Current limitation: no confirmed exploitable POST endpoint for data exfil from unauthenticated state.
+testability: PASSIVE
+[PARKED] upload.box.com CORS exploitation: Wildcard CORS + POST confirmed at 98%. All GET paths return 404. Requires AUTH_HELPED — authenticated Box account needed to test POST endpoints that return sensitive data.
+[PARKED] cloud.account.box.com Google OAuth open redirect: State parameter contains attacker-controlled `p` field with evil URL confirmed. Post-auth behavior unverified. HUMAN_ONLY.
+[PARKED] account.box.com SSO open redirect: Redirect chain preserves all redirect_url values without validation. Post-authentication behavior unverified. HUMAN_ONLY.
+[PARKED] cloud.app.box.com wildcard CORS: `access-control-allow-origin: *` without ACAC. No cookie-based data theft possible. Safe configuration.
+[PARKED] api.box.com wildcard CORS: `access-control-allow-origin: *` without ACAC. Requires Bearer token. Safe configuration.
+[PARKED] account.box.com GraphQL: `/graphql` returns 503 Service Unavailable. Endpoint exists but is disabled.
 [NEXT] PROBE: GET https://app.box.com/graphql with User-Agent: box-research/1.0 (research) — compare to notes.services.box.com/graphql response. Record status + Content-Type + body_length. Then OPTIONS https://app.box.com/graphql with Origin: https://evil.com — record all Access-Control-* headers. 1 req/2s, first 4xx/429/403 → stop app.box.com.
 [NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 (research) — re-check if GraphQL service has recovered from 503. Record status. 1 req/2s.
 [NEXT] PROBE: GET https://upload.box.com/.git/config with User-Agent: box-research/1.0 (research) — test whether git metadata is exposed. Record status + headers + body length. Then GET https://upload.box.com/.git/HEAD. 1 req/2s, first 4xx/429/403 → stop upload.box.com.
