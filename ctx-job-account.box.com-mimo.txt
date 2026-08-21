@@ -35,42 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 22:32:59 UTC"
+  "last_advance": "2026-08-21 23:14:02 UTC"
 }=== MY LAST LEADS (tail) ===
-[NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 (research) — re-check if GraphQL service has recovered from 503. Record status. 1 req/2s.
-[NEXT] PROBE: GET https://upload.box.com/.git/config with User-Agent: box-research/1.0 (research) — test whether git metadata is exposed. Record status + headers + body length. Then GET https://upload.box.com/.git/HEAD. 1 req/2s, first 4xx/429/403 → stop upload.box.com.
-## 2026-08-21 22:02:49 UTC account.box.com (mimo)
-[LEARN] ACCEPTED CORS-WILDCARD-TOKEN @ account.box.com/api/oauth2/token: OPTIONS preflight confirmed `Access-Control-Allow-Origin: *` with full method set (DELETE, HEAD, GET, OPTIONS, POST, PUT) and `Access-Control-Allow-Headers: Content-Type,Authorization`. Max-age 1800. Returns 204. This is a confirmed CORS misconfiguration allowing any origin to read OAuth token responses. HOWEVER: the token endpoint requires `grant_type`, `client_id`, `client_secret`, and `code` in a POST body — wildcard CORS allows cross-origin reading but does NOT bypass the auth requirements. An attacker page can read the response IF a user initiates a token exchange, but cannot forge one without client_secret.
-[HYP] OAuth token endpoint wildcard CORS enables cross-origin token exfiltration
-class: OATH
-asset: account.box.com/api/oauth2/token
-confidence: 90
-reasoning: OPTIONS preflight returns `Access-Control-Allow-Origin: *` with full method set and allows Authorization header. Any cross-origin page can make requests to this endpoint and read the response. Wildcard CORS is endpoint-specific (/api/oauth2/token only; /api/2.0/* and /api/oauth2/authorize lack CORS headers). Attack scenario: attacker controls a malicious OAuth app, tricks victim into completing OAuth flow on attacker's box.com app, token exchange response readable cross-origin from attacker page. Requires attacker-controlled valid OAuth app client_id + client_secret.
-verify_steps: Already confirmed via OPTIONS preflight. Attack path requires: (1) Attacker registers OAuth app on Box, obtains client_id + client_secret. (2) Attacker lures victim to authorize on attacker's app. (3) Token exchange at account.box.com/api/oauth2/token with attacker's client_id. (4) Attacker page reads response (access_token, refresh_token) via CORS.
-impact: Cross-origin read of OAuth token responses including access tokens, refresh tokens. Severity: High (requires attacker-controlled OAuth app).
-testability: PASSIVE
-[CONFIRMED] cloud.app.box.com/_assets/ GCS bucket metadata leak
-class: MISCONFIG
-asset: cloud.app.box.com/_assets/*
-confidence: 98
-reasoning: 404 XML responses consistently expose bucket name `box-prod-static-assets-assets-us`, key prefix `resources/`, and full `x-goog-*` headers. `/_assets/package.json` (3168B) and `/_assets/Makefile.js` (6117B) return 200 with `access-control-allow-origin: *,*` across multiple cycles. Root-level paths go through CDN edge (302→login, no CORS); `/_assets/` bypasses CDN and hits GCS directly.
-verify_steps: Already verified across multiple cycles. No re-probe needed.
-impact: Any origin can read Box internal build config, Git host (`gitenterprise.inside-box.net`), internal packages, server filesystem paths. Severity: Low-Medium.
-testability: PASSIVE
-[CONFIRMED] upload.box.com Wildcard CORS + POST
-class: MISCONFIG
-asset: upload.box.com/api/*
-confidence: 98
-reasoning: Complete wildcard CORS — any attacker-controlled origin reflected with `access-control-allow-origin: {origin}` + `access-control-allow-credentials: true` + `Allow-Methods: POST` + `Allow-Headers: Authorization,Content-Type`. Verified across multiple origins (evil-box.com, test.box.com, bhx-cors-probe.example). Authorization header NOT required by preflight — only Content-Type needed. However, ALL GET paths return 404 nginx — no GET-accepting data endpoint exists on this host.
-verify_steps: Already fully verified via OPTIONS preflight probes. No additional read-only verification possible.
-impact: Enables cross-origin CSRF with response reading on POST endpoints accepting cookie auth. Current limitation: no confirmed exploitable POST endpoint for data exfil from unauthenticated state.
-testability: PASSIVE
-[PARKED] upload.box.com CORS exploitation: Wildcard CORS + POST confirmed at 98%. All GET paths return 404. Requires AUTH_HELPED — authenticated Box account needed to test POST endpoints that return sensitive data.
-[PARKED] cloud.account.box.com Google OAuth open redirect: State parameter contains attacker-controlled `p` field with evil URL confirmed. Post-auth behavior unverified. HUMAN_ONLY.
-[PARKED] account.box.com SSO open redirect: Redirect chain preserves all redirect_url values without validation. Post-authentication behavior unverified. HUMAN_ONLY.
-[PARKED] cloud.app.box.com wildcard CORS: `access-control-allow-origin: *` without ACAC. No cookie-based data theft possible. Safe configuration.
-[PARKED] api.box.com wildcard CORS: `access-control-allow-origin: *` without ACAC. Requires Bearer token. Safe configuration.
-[PARKED] account.box.com GraphQL: `/graphql` returns 503 Service Unavailable. Endpoint exists but is disabled.
 [NEXT] PROBE: GET https://app.box.com/graphql with User-Agent: box-research/1.0 (research) — compare to notes.services.box.com/graphql response. Record status + Content-Type + body_length. Then OPTIONS https://app.box.com/graphql with Origin: https://evil.com — record all Access-Control-* headers. 1 req/2s, first 4xx/429/403 → stop app.box.com.
 [NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 (research) — re-check if GraphQL service has recovered from 503. Record status. 1 req/2s.
 [NEXT] PROBE: GET https://upload.box.com/.git/config with User-Agent: box-research/1.0 (research) — test whether git metadata is exposed. Record status + headers + body length. Then GET https://upload.box.com/.git/HEAD. 1 req/2s, first 4xx/429/403 → stop upload.box.com.
@@ -97,14 +63,41 @@ verify_steps: GET https://dl.boxcloud.com/api/ with UA box-research/1.0 — reco
 impact: Potential unauthorized file access. Severity: Critical (if confirmed).
 testability: PASSIVE
 ## 2026-08-21 22:53:12 UTC account.box.com (mimo)
+## 2026-08-21 23:13:49 UTC account.box.com (mimo)
+[LEARN] REJECTED upload.box.com/.git exposure: All `.git/*` paths return 403 (WAF-blocked). Expected security behavior, not an information leak.
+[LEARN] REJECTED app.box.com/graphql: Returns 503 with no CORS headers. Service exists but is disabled.
+[LEARN] REJECTED m.box.com separate attack surface: m.box.com 301-redirects all paths to app.box.com. Mobile web has been merged.
+[LEARN] REJECTED dl.app.boxcloud.com: DNS/connection failure (000). Subdomain does not resolve.
+[NEW] account.box.com/api/oauth2/authorize: OAuth authorize page with reflected-origin CORS — `access-control-allow-origin: {attacker}`, allows Authorization header, returns full consent page HTML cross-origin with versioned CDN bundle paths for all Box product modules (canvas, forms, hubs, money, sign, AI, governance, docgen, insights, extract, workflow, preview, markdown-editor, etc.)
+[HYP] OAuth authorize endpoint reflected-origin CORS leaks consent page + CSRF tokens
+class: OATH
+asset: account.box.com/api/oauth2/authorize
+confidence: 75
+reasoning: OPTIONS preflight returns `access-control-allow-origin: https://evil.com` (reflected, not wildcard) + allows Authorization header + allows GET. GET response is 200 with full HTML consent page including CSRF-relevant metadata. If a user is logged in and visits attacker-crafted authorize URL with valid client_id + redirect_uri, the consent page may contain state/CSRF tokens readable cross-origin by attacker page. Versioned CDN paths also leak internal module structure.
+verify_steps: Already confirmed via OPTIONS + GET. Attack path requires: (1) Attacker has valid OAuth client_id. (2) Victim is logged into Box. (3) Victim visits `account.box.com/api/oauth2/authorize?response_type=code&client_id=ATTACKER_APP&redirect_uri=EVIL`. (4) Attacker page reads consent page HTML cross-origin for CSRF tokens or module fingerprinting.
+impact: Cross-origin read of OAuth consent page. Potential CSRF token theft. Internal module version fingerprinting. Severity: Medium (requires attacker-controlled OAuth app + user interaction).
+testability: AUTH_HELPED
+[LEARN] REJECTED api.box.com CORS bypass: api.box.com/2.0/users/me OPTIONS returns `access-control-allow-origin: *` but NO `access-control-allow-methods` or `access-control-allow-headers`. Bearer token cannot be sent cross-origin. Safe configuration.
+[CONFIRMED] dl.boxcloud.com static path → same GCS bucket as cloud.app.box.com/_assets/
+class: MISCONFIG
+asset: dl.boxcloud.com/static/*
+confidence: 98
+reasoning: `dl.boxcloud.com/static/x` returns 404 XML with `NoSuchKey` for bucket `box-prod-static-assets-assets-us` key prefix `resources/static/x`. OPTIONS returns `access-control-allow-origin: *`. Same bucket already confirmed accessible at `cloud.app.box.com/_assets/` with package.json and Makefile.js. WAF blocks `package.json` and `.env` filenames at dl.boxcloud.com but the GCS bucket is the same.
+verify_steps: Already verified across both hosts. No re-probe needed.
+impact: Same as cloud.app.box.com/_assets_ — any origin can read internal build config, Git host, package names. Severity: Low-Medium.
+testability: PASSIVE
+[CONFIRMED] dl.boxcloud.com static path → same GCS bucket as cloud.app.box.com/_assets_ (wildcard CORS)
+class: MISCONFIG
+asset: dl.boxcloud.com/static/*
+confidence: 98
+reasoning: OPTIONS preflight on `dl.boxcloud.com/static/x` returns `access-control-allow-origin: *`. GET returns GCS 404 XML. Same bucket confirmed at cloud.app.box.com/_assets/ with accessible build files.
+verify_steps: Already verified. No re-probe needed.
+impact: Cross-origin read of internal build artifacts from the same GCS bucket via a different origin. Severity: Low-Medium.
+testability: PASSIVE
+[NEXT] PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com with Origin: https://evil.com — check if the response changes when valid OAuth params are provided. Record status + CORS headers + any redirect behavior. 1 req/2s.
+[NEXT] PROBE: GET https://account.box.com/api/oauth2/revoke with Origin: https://evil.com — check if token revocation endpoint also has CORS. Then OPTIONS. 1 req/2s.
+[NEXT] PROBE: GET https://account.box.com/api/v2.0/users/me with Origin: https://evil.com — test if newer API version has different CORS. Then OPTIONS. 1 req/2s, first 4xx/429/403 → stop account.box.com.
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 21:35:17 UTC
-- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 23:34:44 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 21:56:23 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-21 22:56:13 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 23:34:44 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404

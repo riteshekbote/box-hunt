@@ -1328,3 +1328,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com with Origin: https://evil.com — check if the response changes when valid OAuth params are provided. Record status + CORS headers + any redirect behavior. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/revoke with Origin: https://evil.com — check if token revocation endpoint also has CORS. Then OPTIONS. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/api/v2.0/users/me with Origin: https://evil.com — test if newer API version has different CORS. Then OPTIONS. 1 req/2s, first 4xx/429/403 → stop account.box.com.
+## 2026-08-21 23:36:07 UTC account.box.com (mimo)
