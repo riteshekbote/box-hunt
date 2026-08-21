@@ -83,3 +83,12 @@ https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2
 https://cloud.account.box.com/api/2.0/users/me -> HTTP 401
 https://cloud.account.box.com/api/2.0/folders/0 -> HTTP 401
 https://cloud.account.box.com/sso -> 206
+
+## 2026-08-21 21:29:42 UTC account.box.com
+https://cloud.account.box.com/integrations/googleplus/beginAuthorization?redirect_url=https://evil.example.com/path -> 200
+https://account.box.com/login?redirect_url=https://evil.example.com/path -> 206
+https://account.box.com/sso?redirect_url=https://evil.example.com/path -> 206
+https://cloud.account.box.com/.well-known/openid-configuration -> HTTP 404
+https://cloud.account.box.com/login -> 206
+https://account.box.com/login?redirect_url=/ -> 206
+https://accounts.google.com/o/oauth2/v2/auth?response_type=code&access_type=offline&client_id=371608620635-lsbr3prap4hae8kl0netf6r54831t8b4.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Faccount.box.com%2Fintegrations%2Fgoogleplus%2Foauth2Redirect&state=%257B%2522c%2522%253A%25223620c59bdbd8d -> 200
