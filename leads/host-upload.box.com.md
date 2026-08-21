@@ -1164,3 +1164,4 @@ testability: PASSIVE
 [LEARN] EXHAUSTED dl.boxcloud.com: All paths 404 without signed tokens. No public surface.
 [LEARN] EXHAUSTED notes.services.box.com: Express.js backend with frame-ancestors CSP. No CORS headers. Requires authenticated access.
 ## 2026-08-21 23:36:46 UTC upload.box.com (mimo)
+## 2026-08-21 23:54:29 UTC upload.box.com (mimo)
