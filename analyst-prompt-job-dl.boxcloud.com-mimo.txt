@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 20:50:40 UTC"
 }=== MY LAST LEADS (tail) ===
-verify_steps: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1000 chars), content-type header, and any x-amz-* or x-goog-* headers.
 impact: If S3 bucket listing is enabled, attacker can enumerate all objects in the embedded-content bucket, discovering internal file names, folder structure, and potentially sensitive file metadata without authentication. Severity: Medium-High.
 testability: PASSIVE
 [HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/admin — capture response body (first 1500 chars), status, and content-type. Extract currentRm and prefetchedData keys.
 [NEXT] PROBE: GET https://cloud.app.box.com/settings — same capture.
 [NEXT] PROBE: GET https://cloud.app.box.com/debug — same capture.
+## 2026-08-21 23:36:01 UTC dl.boxcloud.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
