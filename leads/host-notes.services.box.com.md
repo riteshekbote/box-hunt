@@ -993,3 +993,15 @@ impact: LOW — informational; may indicate inconsistent method handling
 testability: PASSIVE
 [PARKED] Low impact — 405 is expected behavior for routes that don't support HEAD.
 ## 2026-08-21 21:00:02 UTC notes.services.box.com (mimo)
+## 2026-08-21 21:36:44 UTC notes.services.box.com (mimo)
+[NEW] upload.box.com/api/*: CORS Origin reflection with credentials on OPTIONS preflight allows CSRF file upload
+[HYP] upload.box.com CORS misconfiguration enables CSRF file upload
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 70
+reasoning: OPTIONS preflight reflects any Origin in access-control-allow-origin and sets access-control-allow-credentials: true, allowing POST with Authorization and Content-Type headers. The upload endpoint (POST /api/2.0/files/content) processes requests with victim session cookies. Actual POST responses lack CORS headers, so attacker cannot read the response, but server processes the upload. This is a CORS preflight misconfiguration enabling CSRF.
+verify_steps: OPTIONS probe on upload.box.com/api/2.0/files/content confirms Origin reflection + credentials. POST probe confirms server processes the request (400 with multipart error = live endpoint, not stub).
+impact: An attacker page on evil.com can force a logged-in Box user to upload arbitrary files to their account. Impact: MEDIUM — forced file upload (CSRF), no data exfiltration (attacker cannot read response).
+testability: AUTH_HELPED — requires victim to be logged into Box
+[NEXT] VERIFY: HEAD https://upload.box.com/api/2.0/files/content to confirm 404 vs active endpoint behavior
+[NEXT] VERIFY: OPTIONS on upload.box.com/api/2.0/files (list files) with GET method to check if GET is also reflected with credentials
