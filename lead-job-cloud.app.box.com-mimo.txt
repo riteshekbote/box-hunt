@@ -1,19 +1,49 @@
-[NEW] account.box.com: Auth plane surface mapping — discover endpoints, methods, and information leakage
-[HYP] Auth endpoint discovery on account.box.com
-class: RECON
-asset: account.box.com
-confidence: 30
-reasoning: Root returns 206, login endpoints exist with redirect parameters. No systematic endpoint enumeration performed yet. Auth planes often expose OIDC discovery, SAML, OAuth endpoints via GET.
-verify_steps: |
-impact: Auth endpoint discovery, configuration leakage, method enumeration; severity Low-Medium
+[NEW] account.box.com: `/_assets/` GCS bucket surface mirrored from cloud.app.box.com — same bucket `box-prod-static-assets-assets-us`, same `resources/` prefix, same `package.json` (3168B) and `Makefile.js` (6117B) with `access-control-allow-origin: *,*`. Also: robots.txt exposes internal path map; `/login` and `/api/oauth2/authorize` reflect attacker Origin in CORS but WITHOUT `Access-Control-Allow-Credentials: true`.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/_assets/*: The `/_assets/` GCS bucket surface is not origin-limited — account.box.com serves the identical content from the same bucket. Two independent origins front the same GCS bucket with wildcard CORS. This confirms the finding is not origin-specific but bucket-level.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com: CORS on `/login` and `/api/oauth2/authorize` reflects arbitrary Origin WITHOUT `Access-Control-Allow-Credentials: true`. Browsers will NOT include cookies in cross-origin requests — not exploitable for credential theft as-is. The `/` root OPTIONS returns wildcard `*` with ALL methods including DELETE/POST/PUT (permissive but safe per CORS spec — `*` never allows credentials).
+[CONFIRMED] account.box.com `/_assets/` GCS bucket access with wildcard CORS
+class: MISCONFIG
+asset: account.box.com/_assets/package.json
+confidence: 98
+reasoning: GET `/_assets/package.json` returns 200 with full content (3168B), `access-control-allow-origin: *,*`, and all GCS metadata headers (`x-goog-generation`, `x-goog-hash`, `x-guploader-uploadid`, `x-goog-storage-class: STANDARD`). OPTIONS preflight returns `access-control-allow-methods: GET`, `access-control-allow-origin: *,*`. Same bucket `box-prod-static-assets-assets-us` confirmed by 404 XML errors exposing bucket name. Same content as cloud.app.box.com/_assets/package.json — two origins front the same GCS bucket.
+verify_steps: `curl -sI -H "Origin: https://evil.com" "https://account.box.com/_assets/package.json"` — confirms 200, wildcard CORS, GCS headers.
+impact: Any website can silently read Box internal build configuration (gitenterprise.inside-box.net, internal repos, build paths) cross-origin via fetch(). Severity: Low-Medium (info disclosure via public CDN/GCS bucket with wildcard CORS).
 testability: PASSIVE
-[NEXT] GET https://account.box.com/ — capture status code and any redirect behavior
-[NEXT] GET https://account.box.com/login — capture status code and response body hints
-[NEXT] GET https://account.box.com/api/oauth2/token — capture status code (GET on token endpoint may reveal info)
-[NEXT] OPTIONS https://account.box.com/api/oauth2/token — check allowed methods on auth endpoint
-[NEXT] HEAD https://account.box.com/robots.txt — capture status and any disallowed paths
-[NEXT] GET https://account.box.com/.well-known/openid-configuration — check for OIDC discovery
-[NEXT] HEAD https://account.box.com/saml — check SSO endpoint existence
-[NEXT] GET https://account.box.com/api/oauth2/authorize — check authorization endpoint
-[NEXT] HEAD https://account.box.com/api/v2.0/users/me — check user endpoint without auth
-[NEXT] GET https://account.box.com/mobile — check mobile auth endpoint
+[CONFIRMED] account.box.com `/_assets/` GCS 404 XML bucket name leak
+class: MISCONFIG
+asset: account.box.com/_assets/nonexistent
+confidence: 98
+reasoning: 404 responses on any nonexistent `/_assets/` key return GCS XML error with `<Details>No such object: box-prod-static-assets-assets-us/resources/{path}</Details>`, exposing bucket name, key prefix, and `access-control-allow-origin: *`. Consistent across config.json, VERSION, .env, webpack.config.js probes.
+verify_steps: `curl -s "https://account.box.com/_assets/nonexistent123.txt"` — confirms GCS XML error with bucket name.
+impact: Bucket name and key prefix leakage aids recon. Severity: Low.
+testability: PASSIVE
+[CONFIRMED] account.box.com robots.txt internal path map disclosure
+class: MISCONFIG
+asset: account.box.com/robots.txt
+confidence: 90
+reasoning: Full robots.txt (200, text/plain, 1976 bytes) reveals internal path structure: `/login`, `/services`, `/reset`, `/signup`, `/representation`, `/app-assets`, `/simpleshare`, `/app-api/split-proxy`, `/app-gallery-v2/api`, `/cdn`, `/sites`, `/platform`, `/s/`, `/shared/`, `/v/`, `/app-center`, `/integrations`, `/enduser`, `/fonts`, `/_assets/img/favicons`. Twitterbot gets more access (representation, app-assets) than general crawlers. `/signup/collablink/` explicitly disallowed for all crawlers.
+verify_steps: `curl -s "https://account.box.com/robots.txt"`
+impact: Internal path enumeration for reconnaissance. Severity: Low (informational).
+testability: PASSIVE
+[HYP] account.box.com root OPTIONS wildcard with DELETE/POST/PUT — overly permissive method enumeration
+class: MISCONFIG
+asset: account.box.com/
+confidence: 45
+reasoning: Root `/` OPTIONS preflight returns `access-control-allow-origin: *` with `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT` — all standard methods including write methods. While safe per CORS spec (wildcard never allows credentials), the method enumeration is unnecessarily broad for a root path and could become dangerous if the wildcard is ever tightened to a reflected origin.
+verify_steps: OPTIONS `https://account.box.com/` with Origin header — already confirmed this cycle.
+impact: Defense-in-depth concern only; not currently exploitable. Severity: Informational.
+testability: PASSIVE
+[HYP] CORS origin reflection on account.box.com auth endpoints without credentials — defense-in-depth fragility
+class: MISCONFIG
+asset: account.box.com/login
+confidence: 25
+reasoning: `/login` OPTIONS and GET both reflect attacker Origin in `access-control-allow-origin` without `Access-Control-Allow-Credentials: true`. Response body (login page HTML) is readable cross-origin but contains no session data. If ACAC is ever added, this becomes immediately exploitable for credential theft. The divergence between root (`*` wildcard) and auth endpoints (origin-reflection) suggests different backend configurations.
+verify_steps: Already confirmed this cycle via OPTIONS and GET probes with Origin: https://evil.example.com.
+impact: Currently not exploitable (no ACAC). Defense-in-depth concern. Severity: Informational.
+testability: PASSIVE
+[PARKED] account.box.com OAuth2 `/api/oauth2/authorize` response body: returns 206/200 SPA with embedded config JSON — the SPA contains client-side analytics keys (Amplitude, Split.io, Pendo) which are public-by-design, not a vulnerability.
+[PARKED] account.box.com `_assets/` sibling-object enumeration: config.json, VERSION, .env, webpack.config.js all return 404 (GCS NoSuchKey) — key prefix is `resources/` and no sensitive sibling objects were found under that prefix.
+[NEXT] PROBE: `curl -s "https://account.box.com/_assets/package-lock.json"` — test for dependency lock file with exact versions
+[NEXT] PROBE: `curl -s "https://account.box.com/_assets/conf/"` — test for config directory listing in GCS bucket
+[NEXT] PROBE: `curl -s "https://account.box.com/_assets/assetsGenerated.json"` — build output manifest referenced in Makefile.js
+[NEXT] RECON: `curl -sI "https://account.box.com/app-api/split-proxy/health"` — test split-proxy backend health endpoint
