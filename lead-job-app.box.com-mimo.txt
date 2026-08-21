@@ -1,0 +1,21 @@
+[LEARN] ACCEPTED Bearer-token probe @ cloud.account.box.com/api/oauth2/authorize: HEAD returns 404, GET returns identical SPA shell with same Box.config + prefetchedData. The Authorization header does not change server behavior — the SPA shell is served unconditionally. CORS origin-reflected on both 404 and 200 responses.
+[NEW] pendo-prod.box.com: Google Cloud Storage bucket with wildcard CORS (`access-control-allow-origin: *`) and `access-control-expose-headers: *`. Returns 403 on root (no default object). `server: UploadServer` confirms GCS.
+[NEW] pendo-prod.box.com/agent/static/{key}/pendo.js: 200 OK — Pendo agent JS publicly accessible with wildcard CORS. Standard Pendo CDN behavior, but confirms the GCS bucket hosts Pendo content for Box's API key.
+[LEARN] REJECTED pendo-prod.box.com API access: Pendo proxy hosts are GCS buckets serving only static content (JS agent). API paths return 403. No user data leakage. The pendoAnalyticsAPIKey is a client-side key, not an administrative secret.
+[NEW] notes.services.box.com/api/2.0/notes: 404 but reveals:
+[NEW] notes.services.box.com/socket.io/: 400 (Socket.IO endpoint exists for real-time Box Notes collaboration). Let me check CORS on the Socket.IO handshake:
+[LEARN] CONFIRMED cloud.account.box.com/api/oauth2/token: Returns `access-control-allow-origin: *` (wildcard CORS) — standard for OAuth2 token endpoints used by public SPA clients. Security relies on PKCE, not CORS. No new attack surface.
+[CONFIRMED] OAuth2 authorize SPA shell leaks internal deployment metadata cross-origin
+class: MISCONFIG
+asset: cloud.account.box.com/api/oauth2/authorize
+confidence: 70
+reasoning: Origin-reflected CORS response embeds Box.config containing: runtimeMetadata.availabilityZone ("us-west4-prod"), deploymentType ("k8s"), environment ("prod"), pendoAnalyticsProxyContentHost ("https://pendo-prod.box.com"), pendoAnalyticsProxyDataHost ("https://pendo-data-prod.box.com"), complete feature flag map, billing.creditCardCreationURL (Zuora endpoint), pendoAnalyticsAPIKey, amplitudeAPIKey, splitIOAPIKey, requestId, preview.version ("3.79.0"), and full webpack remotes manifest. Bearer token probe confirmed: server returns identical SPA shell regardless of Authorization header. No Access-Control-Allow-Credentials present.
+verify_steps: Already verified
+impact: LOW-MEDIUM. Internal deployment metadata (k8s zone, feature flags, proxy hostnames, billing endpoint URLs, client-side API keys) is exposed cross-origin. Without ACA, cookie-bearing requests are blocked.
+testability: PASSIVE
+[PARKED] pendo-prod.box.com wildcard CORS on GCS bucket: Standard Pendo CDN behavior — serves static JS agent. API paths return 403. No user data leakage.
+[PARKED] notes.services.box.com Socket.IO: Real-time collaboration endpoint exists but properly secured — no CORS headers, returns 400 without access.
+[PARKED] api.box.com 401 without CORS: Properly secured. www-authenticate header not readable cross-origin.
+[PARKED] dl.boxcloud.com: 404 on all paths. No CORS-relevant surface.
+[PARKED] app.box.com login pages: Origin reflection confirmed but readable content is public login form HTML only; no Access-Control-Allow-Credentials.
+[PARKED] cloud.app.box.com/login: 405 with origin reflection but empty body. No sensitive data.

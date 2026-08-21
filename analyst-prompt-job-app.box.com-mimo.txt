@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 20:44:26 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: All five Box origins return the identical OPTIONS preflight response: access-control-allow-origin: *, methods DELETE/HEAD/GET/OPTIONS/POST/PUT, headers Authorization (and Content-Type on some). This is a shared edge/CDN configuration, not per-service. The wildcard allows any origin to make cross-origin requests with any HTTP method and Authorization header.
 verify_steps: 1) Compare OPTIONS response headers across all five hosts  2) Check if Box developer docs mention CORS policy
 impact: LOW. While the preflight is maximally permissive, the actual GET/HEAD responses on api.box.com and other API endpoints do NOT include CORS headers, blocking cross-origin reads. The only responses with CORS reflection are HTML pages on cloud.account.box.com serving unauthenticated content.
 testability: PASSIVE
@@ -97,6 +96,7 @@ verify_steps: 1) GET from evil.com origin to cloud.account.box.com/api/oauth2/au
 impact: LOW-MEDIUM. Internal deployment metadata (k8s zone, feature flags, proxy hostnames, billing endpoint URLs) is exposed cross-origin. While these are not user credentials, they reveal infrastructure details useful for targeted attacks (e.g., knowing the deployment zone and k8s type aids in crafting environment-specific exploits). The Zuora billing endpoint URL is a third-party service detail. Without ACA, cookie-bearing requests are blocked.
 testability: PASSIVE
 [NEXT] HEAD https://cloud.account.box.com/api/oauth2/authorize with headers: Origin: https://evil.com, Authorization: Bearer test - check if authenticated response leaks user-specific prefetchedData cross-origin (this tests the ACA-absence claim with a real token)
+## 2026-08-21 21:00:07 UTC app.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Download-edge CORS on dl.boxcloud.com API content handler (from host-dl.boxcloud.com.md)

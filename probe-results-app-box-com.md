@@ -182,3 +182,11 @@ https://app.box.com/login -> 206
 https://app.box.com${path -> ERR <urlopen error [Errno -2] Name or service not known>
 https://app.box.com/shared -> HTTP 404
 https://app.box.com/ -> 206
+
+## 2026-08-21 21:29:58 UTC app.box.com
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://services.app.box.com/ -> 206
+https://app.box.com -> 206
+https://app.box.com` -> ERR <urlopen error [Errno -2] Name or service not known>
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
