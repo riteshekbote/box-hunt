@@ -856,3 +856,4 @@ verify_steps: 1) GET from evil.com origin to cloud.account.box.com/api/oauth2/au
 impact: LOW-MEDIUM. Internal deployment metadata (k8s zone, feature flags, proxy hostnames, billing endpoint URLs) is exposed cross-origin. While these are not user credentials, they reveal infrastructure details useful for targeted attacks (e.g., knowing the deployment zone and k8s type aids in crafting environment-specific exploits). The Zuora billing endpoint URL is a third-party service detail. Without ACA, cookie-bearing requests are blocked.
 testability: PASSIVE
 [NEXT] HEAD https://cloud.account.box.com/api/oauth2/authorize with headers: Origin: https://evil.com, Authorization: Bearer test - check if authenticated response leaks user-specific prefetchedData cross-origin (this tests the ACA-absence claim with a real token)
+## 2026-08-21 21:00:07 UTC app.box.com (mimo)
