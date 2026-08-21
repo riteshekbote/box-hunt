@@ -1075,3 +1075,4 @@ testability: AUTH_HELPED
 [LEARN] ACCEPTED upload.box.com auth model: Bearer token ONLY — session cookies are NOT accepted by the upload endpoint
 [LEARN] REJECTED standalone CSRF: Cannot exploit without prior token theft — server requires Bearer token, not session cookies
 [LEARN] ACCEPTED subdomain trick: box.com.evil.com is accepted as a valid Origin — prefix-subdomain confusion in CORS policy
+## 2026-08-21 23:12:46 UTC notes.services.box.com (mimo)
