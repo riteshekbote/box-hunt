@@ -898,3 +898,31 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -s "https://cloud.app.box.com/login" -H "User-Agent: box-research/1.0" 2>&1 | head -100` — compare login page SPA shell
 [NEXT] PROBE: `curl -sI "https://cloud.app.box.com/" -H "Range: bytes=0-0"` — test if 206 responds to Range request
 [NEXT] PROBE: `curl -s "https://cloud.app.box.com/%2e%2e/"` — test path traversal encoding
+## 2026-08-21 20:19:09 UTC notes.services.box.com (mimo)
+class: MISCONFIG
+asset: cloud.account.box.com/login
+confidence: 60
+reasoning: |
+verify_steps: Already completed — see probes at 20:17–20:18 UTC
+impact: LOW — Origin reflected but no credential attachment; cannot steal sessions or tokens. May enable cross-origin reading of unauthenticated error responses only.
+testability: PASSIVE
+[PARKED] Limited impact — no `access-control-allow-credentials` prevents cookie/token exfil. Could be informational report if Box considers Origin reflection alone a misconfiguration.
+class: MISCONFIG
+asset: cloud.app.box.com/api/2.0/*
+confidence: 85
+reasoning: |
+verify_steps: Already completed — OPTIONS and GET probes confirm pattern.
+impact: None — standard wildcard CORS without credentials; API requires valid Bearer tokens.
+testability: PASSIVE
+[PARKED] Not exploitable — standard CDN pattern.
+class: OTHER
+asset: cloud.app.box.com/s/
+confidence: 40
+reasoning: |
+verify_steps: Already captured — response body at 20:18:30 UTC.
+impact: LOW — informational disclosure of Box product modules; no secrets in preload list.
+testability: PASSIVE
+[PARKED] Informational at best — module map is public CDN-served JavaScript.
+[NEXT] PROBE: Test `cloud.account.box.com/api/2.0/folders/0` GET with `Origin: https://evil.com` — check if API endpoints on account subdomain also reflect Origin in response body or headers (not just OPTIONS)
+[NEXT] PROBE: Test `dl.boxcloud.com` OPTIONS preflight — compare CORS policy with cloud.app.box.com
+[NEXT] PROBE: Test `upload.box.com` OPTIONS preflight — compare CORS policy

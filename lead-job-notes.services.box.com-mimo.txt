@@ -1,13 +1,27 @@
-[LEARN] REJECTED SPA catch-all route resolution: executor at 19:48:40 confirmed `/s/<test-token`, `/shared/<test`, `/v/<test`, `/shared/test123`, `/v/test123`, `/folders/0` all return 404. Only `/` and `/login` return 206. The catch-all is not broad — specific routes are pinned.
-[HYP] cloud.app.box.com SPA 206 response body contains embedded sensitive config
 class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 65
-reasoning: Root consistently returns 206 across all cycles. The SPA shell contains embedded Box.config and Box.prefetchedData with server-side API lookup results. If Box.config contains API keys, tokens, or internal endpoints, this is a data exposure. The 206 status indicates partial content serving — the response may include more data than a 200 would.
-verify_steps: `curl -s "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0" 2>&1 | head -100` — capture first 100 lines of SPA shell
-impact: Embedded API keys or internal config disclosure — MEDIUM
+asset: cloud.account.box.com/login
+confidence: 60
+reasoning: |
+verify_steps: Already completed — see probes at 20:17–20:18 UTC
+impact: LOW — Origin reflected but no credential attachment; cannot steal sessions or tokens. May enable cross-origin reading of unauthenticated error responses only.
 testability: PASSIVE
-[NEXT] PROBE: `curl -s "https://cloud.app.box.com/" -H "User-Agent: box-research/1.0" 2>&1 | head -100` — capture SPA shell body for config inspection
-[NEXT] PROBE: `curl -s "https://cloud.app.box.com/login" -H "User-Agent: box-research/1.0" 2>&1 | head -100` — compare login page SPA shell
-[NEXT] PROBE: `curl -sI "https://cloud.app.box.com/" -H "Range: bytes=0-0"` — test if 206 responds to Range request
-[NEXT] PROBE: `curl -s "https://cloud.app.box.com/%2e%2e/"` — test path traversal encoding
+[PARKED] Limited impact — no `access-control-allow-credentials` prevents cookie/token exfil. Could be informational report if Box considers Origin reflection alone a misconfiguration.
+class: MISCONFIG
+asset: cloud.app.box.com/api/2.0/*
+confidence: 85
+reasoning: |
+verify_steps: Already completed — OPTIONS and GET probes confirm pattern.
+impact: None — standard wildcard CORS without credentials; API requires valid Bearer tokens.
+testability: PASSIVE
+[PARKED] Not exploitable — standard CDN pattern.
+class: OTHER
+asset: cloud.app.box.com/s/
+confidence: 40
+reasoning: |
+verify_steps: Already captured — response body at 20:18:30 UTC.
+impact: LOW — informational disclosure of Box product modules; no secrets in preload list.
+testability: PASSIVE
+[PARKED] Informational at best — module map is public CDN-served JavaScript.
+[NEXT] PROBE: Test `cloud.account.box.com/api/2.0/folders/0` GET with `Origin: https://evil.com` — check if API endpoints on account subdomain also reflect Origin in response body or headers (not just OPTIONS)
+[NEXT] PROBE: Test `dl.boxcloud.com` OPTIONS preflight — compare CORS policy with cloud.app.box.com
+[NEXT] PROBE: Test `upload.box.com` OPTIONS preflight — compare CORS policy
