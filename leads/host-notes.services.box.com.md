@@ -797,3 +797,4 @@ impact: Arbitrary-origin reflection with credentials enables cross-origin exfilt
 testability: PASSIVE
 [PARKED] OAuth token endpoint exposure on cloud.app.box.com: zero observed endpoints or doc references; any token exchange violates rule 2 (no credential submission) — AUTH_HELPED/HUMAN_ONLY, parked until explicit new rule.
 [NEXT] GET https://cloud.app.box.com/ with request headers Origin: https://evil.com, Range: bytes=0-100 — full header capture (Access-Control-*, Content-Range, Accept-Ranges, Vary, Server)
+## 2026-08-21 03:37:04 UTC notes.services.box.com (ling3)
