@@ -860,3 +860,26 @@ testability: PASSIVE
 ## 2026-08-21 18:50:45 UTC m.box.com (mimo)
 ## 2026-08-21 18:56:09 UTC m.box.com (mimo)
 ## 2026-08-21 19:22:59 UTC m.box.com (mimo)
+## 2026-08-21 19:46:02 UTC m.box.com (mimo)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com/: the206 Partial Content response that persisted from ~21:02 through 19:33 UTC no longer reproduces — root now returns 302→/login across all header variants (bare, Range, Origin). Previous206 was transient CDN cache state, not a stored-object exposure. Object-store default-handler hypotheses (all four phrasings) are downgraded from 55→15 confidence; require fresh206 evidence to re-activate.
+[LEARN] REJECTED CORS @ cloud.app.box.com/: GET with Origin: https://example.com returns 302→/login with no Access-Control-Allow-Origin, no Access-Control-Allow-Credentials, and no Access-Control-Expose-Headers. Same result from notes.services.box.com (both evil and legitimate origins). CORS misconfiguration hypotheses across all four cloud.app.box.com phrasings are PARKED with negative evidence.
+[NEW] notes.services.box.com/graphql: route exists (503, not404); backend service unavailable but endpoint is live
+[HYP] GraphQL service exposure on notes.services.box.com
+class: MISCONFIG
+asset: notes.services.box.com/graphql
+confidence: 40
+reasoning: /graphql returns 503 with box-request-id and x-envoy-upstream-service-time: 82ms (vs 3-4ms for 404 routes), indicating the request reaches a real GraphQL handler that fails upstream. The endpoint is registered in routing but the backing service is down or unreachable. If the service comes online, the GraphQL endpoint may expose a schema or accept unauthenticated queries.
+verify_steps: (1) GET https://notes.services.box.com/graphql with UA box-research/1.0 +(research) — record status, Content-Type, body. (2) HEAD https://notes.services.box.com/graphql — check Allow header for POST/GET. (3) If status changes from503, POST with minimal introspection {__schema{types{name}}} and record response. All read-only,1 req/2s, first4xx/429/403→stop.
+impact: If GraphQL endpoint comes online with introspection enabled, attacker can enumerate entire API schema including unauthenticated queries, leading to information disclosure or BOLA.
+testability: PASSIVE
+[HYP] Information disclosure via x-powered-by and deprecated frame header on notes.services.box.com
+class: MISCONFIG
+asset: notes.services.box.com/*
+confidence: 70
+reasoning: Every 404 response from notes.services.box.com leaks x-powered-by: Express (identifies backend framework/version family), sets x-frame-options: ALLOW-FROM (deprecated, ignored by modern browsers — only CSP frame-ancestors provides protection), and exposes Server-Timing trace IDs via access-control-expose-headers. The CSRF token dual-cookie pattern (_csrf HttpOnly + csrf-token accessible) confirms Express csrf-sync middleware.
+verify_steps: (1) GET https://notes.services.box.com/ with UA box-research/1.0 +(research) — compare header set to the/api404 responses. (2) HEAD https://notes.services.box.com/api — check if x-powered-by is present on HEAD vs GET.
+impact: Framework identification aids targeted exploitation. Deprecated X-Frame-Options ALLOW-FROM may allow framing from unexpected origins in older browsers.
+testability: PASSIVE
+[NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 +(research) — record status, Content-Type, body_length + first 200 chars. Then HEAD https://notes.services.box.com/graphql — record Allow header.1 req/2s. First4xx/429/403→stop notes.services.box.com this cycle.
+[NEXT] PROBE: GET https://cloud.app.box.com/ with User-Agent: box-research/1.0 +(research) — verify whether 302→/login persists or if206 returns. Record status + Content-Length. If206 returns, capture ALL headers (Content-Range, ETag, Accept-Ranges). Same stop-rule.
+[NEXT] PROBE: GET https://upload.box.com/internal/debug with User-Agent: box-research/1.0 +(research) — test whether debug/admin endpoints exist on the upload pipeline. Record status + body. Then GET https://upload.box.com/upload with same UA — test core upload path.1 req/2s, first4xx→stop upload.box.com.
