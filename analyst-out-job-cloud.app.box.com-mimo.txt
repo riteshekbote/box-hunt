@@ -1,16 +1,38 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-I understand this is a Box bug bounty research context with strict read-only rules. The current state shows:
+[0m✱ [0mGlob "**/*.md"[90m 18 matches[0m
+[0m→ [0mRead probe-results-next.md
+[0m→ [0mRead probe-results-next.md[90m [offset=1018][0m
+Based on my analysis of the current state, here is my assessment:
 
-**Phase:** POC (in progress)
-**Key Findings:**
-- CORS wildcard on `account.box.com/api/oauth2/token` (confidence 40)
-- CORS wildcard on `cloud.app.box.com/api/2.0/` with Authorization header (confidence 35)
-- SPA catch-all route resolution on `cloud.app.box.com` (confidence 60)
+## Current State Summary
 
-**Current Focus:** Testing route resolution patterns on `cloud.app.box.com` with different path prefixes (`/shared/`, `/v/`, `/folders/`)
+**Phase:** POC (Proof of Concept) | **Status:** IN_PROGRESS
 
-**Parked Items:** SSO endpoint, `_assets/` enumeration (both 404/no data)
+### Key Findings:
+- **[CONFIRMED]** cloud.app.box.com SPA catch-all with server-side route resolution (Confidence: 60) - Severity: Low
+- **[REJECTED]** CORS misconfiguration hypotheses (all 3 tested vectors) - DISPROVEN
+- **[REJECTED]** Open redirect via redirect_url parameter - NO (server-side allowlist works)
+- **[REJECTED]** Object-store default handler on cloud.app.box.com - CLOSED (whitelist-routed confirmed)
 
-What would you like me to do with this context?
+### Informational Findings:
+1. http:// scheme downgrade allowed for allowlisted hosts
+2. On-host encoded-traversal preserved (no off-host escape)
+3. 200/206 root alternation (load-balanced backend flip, no impact)
+
+### Remaining Hypotheses (all low/informational severity):
+1. cloud.app.box.com SPA catch-all route resolution leaks internal path-to-mapper mapping (Confidence: 55)
+2. pendo-prod.box.com wildcard CORS on GCS bucket (Confidence: 50)
+3. account.box.com /api/oauth2/token wildcard CORS + POST acceptance (Confidence: 40)
+4. cloud.app.box.com API proxy enables cross-origin Bearer token usage (Confidence: 35)
+
+### Assessment:
+The investigation has reached a natural conclusion. All actionable hypotheses have been either disproven or closed, and only informational findings remain. No critical vulnerabilities have been identified through read-only testing.
+
+## Next Steps Recommendation:
+1. Focus on hosts that haven't been thoroughly tested: notes.services.box.com, m.box.com
+2. Consider authenticated testing (would require AUTH_HELPED or HUMAN_ONLY testability)
+3. Look for more creative attack vectors that require authentication or user interaction
+
+Would you like me to explore any of these areas further?
