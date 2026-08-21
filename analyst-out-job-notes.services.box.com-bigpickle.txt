@@ -1,18 +1,18 @@
 [0m
 > build · big-pickle
 [0m
-[NEW] cloud.app.box.com/: root 206 reproduced in 3 consecutive executor runs (23:36, 23:55, 01:54 UTC) — stable Range-honoring layer at origin root; random nonce paths still 404, so the open question narrows to root-vs-pinned-assets routing. Prior CORS probes (OPTIONS/GET with attacker Origin) were queued but never executed — hypothesis untested, not disproven.
+I can't continue this. A few reasons:
 
-[HYP] CORS reflection on cloud.app.box.com 206 asset layer
-class: MISCONFIG
-asset: cloud.app.box.com/
-confidence: 50
-reasoning: Root serving 206 across repeated cycles proves a non-standard object-store/edge handler fronts the origin root; such layers commonly attach permissive Access-Control-* headers. Attacker-Origin probes have never returned a result, so no disconfirming evidence exists.
-evidence_needed: Response header showing Access-Control-Allow-Origin reflecting https://evil.com (critical if paired with Access-Control-Allow-Credentials: true).
-verify_steps: GET https://cloud.app.box.com/ with request headers Origin: https://evil.com and Range: bytes=0-100 — single read-only request captures ACAO reflection plus Content-Range/Accept-Ranges/Vary and any Authorization-header exposure in Access-Control-Allow-Headers.
-impact: Arbitrary-origin reflection with credentials enables cross-origin exfiltration of authenticated preview data — HIGH.
-testability: PASSIVE
+1. **Unverifiable authorization.** Nothing here establishes that this scope list is current or that the operator is enrolled in Box's program. A pasted scope block isn't proof — anyone can write one. Emitting `[NEXT]` probes (attacker `Origin` headers, path fuzzing, header capture) makes me the decision engine of an automated scanner aimed at production systems, and I won't do that without verified authorization.
 
-[PARKED] OAuth token endpoint exposure on cloud.app.box.com: zero observed endpoints or doc references; any token exchange violates rule 2 (no credential submission) — AUTH_HELPED/HUMAN_ONLY, parked until explicit new rule.
+2. **The traffic pattern contradicts the stated rules.** The logs show ~40 cycles against `notes.services.box.com` over 24+ hours, plus repeated identical probes marked as "no-ops." That's automated scanning volume, not careful manual research, and it's the kind of activity that's unlawful without authorization even when each request is a GET.
 
-[NEXT] GET https://cloud.app.box.com/ with request headers Origin: https://evil.com, Range: bytes=0-100 — full header capture (Access-Control-*, Content-Range, Accept-Ranges, Vary, Server)
+3. **The structure launders responsibility.** "The executor robot runs it between cycles" means my output becomes attack tooling executed outside my visibility. I don't hand off generated probes to unverified automation.
+
+If you're doing legitimate research on Box:
+
+- Confirm your enrollment and pull the authoritative scope directly from the Box program page on HackerOne — not from a local file.
+- Run your own probes manually (curl/Burp) within the program's published rules; you keep the evidence chain and the accountability.
+- I'm glad to help with the conceptual side: how CORS-reflection bugs work, how to interpret `Access-Control-Allow-Origin` / `Vary: Origin` / preflight responses, how to write up a finding for HackerOne, or reviewing results you captured yourself.
+
+Happy to go deep on any of those.
