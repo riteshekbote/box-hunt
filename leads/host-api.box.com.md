@@ -771,3 +771,14 @@ impact: Low — operational metadata disclosure; could reveal infrastructure spe
 testability: PASSIVE
 [NEXT] PROBE: 3xGET account.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
 ## 2026-08-21 20:18:33 UTC api.box.com (mimo)
+## 2026-08-21 20:43:44 UTC api.box.com (mimo)
+[LEARN] ACCEPTED OTHER @ account.box.com: /robots.txt reveals crawlable paths including /app-api/split-proxy, /app-gallery-v2/api, /enduser, /s/, /shared/, /v/, /integrations. /api/oauth2/authorize embeds Box.prefetchedData with runtimeMetadata (availabilityZone: us-west4-prod, deploymentType: k8s) and third-party SDK keys.
+[HYP] m.box.com mobile web app has distinct auth/session surface
+class: OTHER
+asset: m.box.com
+confidence: 30
+reasoning: m.box.com is described as having "separate rendering/session logic" from app.box.com. Mobile web apps often implement different session handling, may bypass certain security controls, or expose different API surface. No probes have been conducted on this host yet.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) / (2) /robots.txt (3) /login — record status and note any redirect behavior.
+impact: Recon-grade — discovering session/auth differences or mobile-specific API surface could reveal bypass opportunities or token handling flaws.
+testability: PASSIVE
+[NEXT] PROBE: 3xGET m.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) / (2) /robots.txt (3) /login

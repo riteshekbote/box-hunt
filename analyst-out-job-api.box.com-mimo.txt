@@ -1,83 +1,15 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m# [0mTodos
-[•] Execute 3xGET probe to account.box.com endpoints to check for runtimeMetadata leak
-[ ] Analyze responses from /login, /enduser, and /integrations endpoints
-[ ] Update hypothesis confidence based on findings
-[ ] Determine next phase or pivot to new surface
-[0m
-[0m$ [0mcurl -s -o /tmp/account_login_response.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/login
-200
-[0m
-[0m$ [0msleep 2 && curl -s -o /tmp/account_enduser_response.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/enduser
-302
-[0m
-[0m$ [0msleep 2 && curl -s -I -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/enduser | grep -i location
-(no output)
-[0m
-[0m$ [0mgrep -o "runtimeMetadata" /tmp/account_login_response.html || echo "runtimeMetadata not found"
-runtimeMetadata not found
-[0m
-[0m$ [0mwc -c /tmp/account_login_response.html
-20466 /tmp/account_login_response.html
-[0m
-[0m$ [0mgrep -o "prefetchedData\|Box\.prefetched\|amplitudeAPIKey\|splitIOAPIKey\|pendoAnalyticsAPIKey\|availabilityZone\|deploymentType\|datacenterTag" /tmp/account_login_response.html || echo "none found"
-none found
-[0m
-[0m$ [0msleep 2 && curl -s -I -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/enduser
-HTTP/2 405 
-date: Fri, 21 Aug 2026 20:17:25 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 16
-strict-transport-security: max-age=31536000
-box-request-id: 0207a5d62ba2e655ab9bee08982861d41
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0msleep 4 && curl -s -o /tmp/account_integrations_response.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/integrations
-302
-[0m
-[0m$ [0mcurl -s -o /tmp/account_integrations_redir.html -w "%{http_code}\n%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" -L --max-redirs 1 https://account.box.com/integrations
-200
-[0m
-[0m$ [0mgrep -o "runtimeMetadata\|prefetchedData\|Box\.prefetched\|amplitudeAPIKey\|splitIOAPIKey\|pendoAnalyticsAPIKey" /tmp/account_integrations_redir.html || echo "none found in /integrations"
-none found in /integrations
-[0m
-[0m$ [0msleep 2 && curl -s -o /tmp/account_enduser_get.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/enduser
-302
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" -D /tmp/enduser_headers.txt https://account.box.com/enduser
-https://account.box.com/login?redirect_url=%2Fenduser
-[0m
-[0m# [0mTodos
-[✓] Execute 3xGET probe to account.box.com endpoints to check for runtimeMetadata leak
-[✓] Analyze responses from /login, /enduser, and /integrations endpoints
-[•] Update hypothesis confidence based on findings
-[ ] Determine next phase or pivot to new surface
-[0m
-[0m$ [0msleep 2 && curl -s -o /tmp/account_v_response.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/v/
-302
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "%{redirect_url}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/v/
-https://account.box.com/login?redirect_url=%2Fv%2F
-[0m
-[0m$ [0msleep 2 && curl -s -o /tmp/account_shared.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/shared/
-302
-[0m
-[0m$ [0msleep 2 && curl -s -o /tmp/account_split_proxy.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/app-api/split-proxy
-404
-[0m
-[0m$ [0msleep 2 && curl -s -o /tmp/account_app_center.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/app-center
-302
-[0m
-[0m$ [0msleep 2 && curl -s -o /tmp/account_oauth_token.html -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" https://account.box.com/api/oauth2/token
-400
-[0m
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcat /tmp/account_oauth_token.html failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[0m
-[0m$ [0mgrep -o "runtimeMetadata\|prefetchedData\|Box\.prefetched\|amplitudeAPIKey\|splitIOAPIKey\|pendoAnalyticsAPIKey" /tmp/account_enduser_get.html || echo "none found in /enduser GET"
-none found in /enduser GET
-[0m
+[LEARN] ACCEPTED OTHER @ account.box.com: /robots.txt reveals crawlable paths including /app-api/split-proxy, /app-gallery-v2/api, /enduser, /s/, /shared/, /v/, /integrations. /api/oauth2/authorize embeds Box.prefetchedData with runtimeMetadata (availabilityZone: us-west4-prod, deploymentType: k8s) and third-party SDK keys.
+
+[HYP] m.box.com mobile web app has distinct auth/session surface
+class: OTHER
+asset: m.box.com
+confidence: 30
+reasoning: m.box.com is described as having "separate rendering/session logic" from app.box.com. Mobile web apps often implement different session handling, may bypass certain security controls, or expose different API surface. No probes have been conducted on this host yet.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on first 403/429: (1) / (2) /robots.txt (3) /login — record status and note any redirect behavior.
+impact: Recon-grade — discovering session/auth differences or mobile-specific API surface could reveal bypass opportunities or token handling flaws.
+testability: PASSIVE
+
+[NEXT] PROBE: 3xGET m.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) / (2) /robots.txt (3) /login
