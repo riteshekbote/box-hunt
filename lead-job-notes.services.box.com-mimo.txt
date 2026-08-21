@@ -1,7 +1,19 @@
+[CONFIRMED] upload.box.com/api/2.0/* — Systematic CORS Origin Reflection with Credentials on ALL Write Endpoints
 class: MISCONFIG
-asset: upload.box.com/api/2.0/*
-confidence: 95
+asset: upload.box.com/api/2.0/{files/content,files/upload_session,folders,collaborations,comments,tasks,shared_items,groups,events}
+confidence: 98
 reasoning: |
-verify_steps: OPTIONS with null, evil.com, box.com.evil.com origins — all reflected with credentials
+verify_steps: |
 impact: |
 testability: AUTH_HELPED
+[NEXT] VERIFY: POST https://upload.box.com/api/2.0/collaborations with Origin: null and Content-Type: application/json to determine if 415 response includes CORS headers (confirms the POST response itself is also CORS-aware, not just OPTIONS)
+[PARKED] dl.boxcloud.com CORS misconfiguration: Returns 404 on ALL paths including OPTIONS — no CORS headers, dead CDN surface. All ranked hypotheses involving dl.boxcloud.com are INVALID.
+[PARKED] cloud.app.box.com CORS misconfiguration: OPTIONS returns 204 with wildcard * (no credentials) — standard secure CORS configuration. All ranked hypotheses about cloud.app.box.com CORS are INVALID.
+[PARKED] api.box.com CORS misconfiguration: OPTIONS returns 204 with wildcard * (no credentials) on all endpoints including POST — standard secure configuration.
+[PARKED] account.box.com OAuth token endpoint: /api/oauth2/token returns 400 with JSON error, OPTIONS returns wildcard * (no credentials) — standard.
+[PARKED] m.box.com mobile web: 301 redirects to app.box.com — no separate surface.
+[PARKED] cloud.app.box.com HEAD method 405 on /login: Low impact, standard behavior for routes that don't support HEAD.
+[LEARN] REJECTED CORS @ dl.boxcloud.com: Returns 404 on all paths including OPTIONS — no CORS layer exists
+[LEARN] REJECTED CORS @ cloud.app.box.com: Standard wildcard * without credentials — not exploitable
+[LEARN] REJECTED CORS @ api.box.com: Standard wildcard * without credentials — not exploitable
+[LEARN] ACCEPTED CORS misconfiguration scope: upload.box.com/api/2.0/* POST endpoints only — nginx backend returns 200 with Origin reflection + credentials for POST methods on collection paths. GET/PUT/DELETE do not have CORS headers.
