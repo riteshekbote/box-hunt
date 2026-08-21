@@ -1033,3 +1033,18 @@ testability: HUMAN_ONLY
 [NEXT] SSO-VALIDATE: Test if account.box.com/sso has any redirect_url validation by checking if `javascript:` or `data:` URIs are rejected: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=javascript:alert(1)"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=data:text/html,<script>alert(1)</script>"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/sso?redirect_url=https://account.box.com.evil.example.com"`
 [NEXT] UPLOAD-WILDCARD: Test if upload.box.com CORS accepts POST from any subdomain or if there's a wildcard validation: `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil-box.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" "https://upload.box.com/api/2.0/files/content"` then test with subdomain `curl -sD- -o /dev/null -X OPTIONS -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://test.box.com" -H "Access-Control-Request-Method: POST" "https://upload.box.com/api/2.0/files/content"`
 [NEXT] ACCOUNT-DEBUG: Probe account.box.com for debug/metrics/status endpoints: `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/debug"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/status"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/health"` then `curl -sD- -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/metrics"`
+## 2026-08-21 19:49:09 UTC account.box.com (mimo)
+class: MISCONFIG
+asset: upload.box.com (all /api/* paths)
+confidence: 95
+reasoning: OPTIONS preflight reflects ANY attacker-controlled Origin with `ACAC: true` + `Allow-Methods: POST` + `Allow-Headers: Authorization,Content-Type`. Verified with two arbitrary origins. However, preflight does NOT allow GET, and all GET paths return 404 nginx. The CORS misconfiguration enables cross-origin credentialed POST but NOT cross-origin reads (GET). No unauthenticated data exfiltration path exists.
+verify_steps: Already fully verified via OPTIONS preflight probes.
+impact: Misconfiguration confirmed. Enables cross-origin CSRF on any POST endpoint using cookies. If any POST endpoint returns sensitive data (e.g., token exchange) and accepts cookie auth, attacker can read response. Current surface: no confirmed exploitable POST endpoint for data exfil.
+testability: PASSIVE
+class: AUTH
+asset: account.box.com/sso
+confidence: 60
+reasoning: The `/sso` endpoint preserves ALL redirect_url values without validation — including javascript:, data:, and external domains. The full redirect chain is: /sso → 302→ /login?redirect_url=%2Fsso%3Fredirect_url%3D{payload}. The login form stores this as a hidden field. Post-authentication redirect behavior is unverified. This is a confirmed precursor to a full open redirect on account.box.com.
+verify_steps: HUMAN_ONLY — requires authentic Box account login.
+impact: If post-auth SSO handler follows the redirect_url → full open redirect on account.box.com (High). If validated post-auth → no impact.
+testability: HUMAN_ONLY

