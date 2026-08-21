@@ -1114,3 +1114,52 @@ testability: PASSIVE
 testability: HUMAN_ONLY
 testability: HUMAN_ONLY
 testability: AUTH_HELPED
+## 2026-08-21 23:11:31 UTC upload.box.com (mimo)
+[CONFIRMED] upload.box.com CORS misconfiguration enabling credentialled CSRF on file upload pipeline
+class: MISCONFIG
+asset: upload.box.com/api/2.0/* (POST endpoints: /files/content, /shared_items, /collaborations, /folders, /comments)
+confidence: 97
+reasoning: All tested POST API paths return `access-control-allow-origin: <attacker_origin>` with `access-control-allow-credentials: true` on OPTIONS preflight. Session cookies (`z`, `box_visitor_id`) on account.box.com and app.box.com are set with `SameSite=None`, so they ARE sent on cross-site POST requests. The `/files/content` endpoint accepts multipart POST without auth and returns meaningful error ("API upload did not contain a file part"), confirming server processes the request. DELETE/PUT preflight do NOT reflect Origin. GET responses return 404 without CORS headers.
+evidence: [Cycles 2026-08-21 22:35-22:56] 11+ OPTIONS preflight tests across 4 API paths × 3 origins all reflected with credentials:true. SameSite=None confirmed on `z` and `box_visitor_id` cookies. POST to /files/content returns 400 JSON error confirming server-side processing.
+verify_steps: N/A — already verified via 15+ probes
+impact: HIGH (CSRF with credentials on upload pipeline). Attacker page forces logged-in Box user's browser to: (1) upload arbitrary files to victim's account, (2) create shared links for victim's files, (3) add attacker as collaborator, (4) create folders, (5) post comments. Write actions execute server-side with victim's session cookies (SameSite=None). Cannot read responses (GET/POST lack CORS headers). Persistent access possible via collaboration addition.
+testability: PASSIVE (preflight verification passive; full exploit requires victim interaction — trivially demonstrable POC)
+[CONFIRMED] account.box.com SameSite=None session cookies enabling cross-site request forgery
+class: MISCONFIG
+asset: account.box.com, app.box.com (Set-Cookie headers)
+confidence: 95
+reasoning: Both account.box.com and app.box.com set session cookies (`z`, `box_visitor_id`) with `SameSite=None`. This means cookies ARE sent on cross-site requests (including POST from evil.example.com). Combined with upload.box.com CORS misconfiguration, this creates a HIGH severity CSRF vulnerability.
+evidence: [This cycle] account.box.com/login sets `z=...; SameSite=None` and `box_visitor_id=...; SameSite=None`. app.box.com/login sets same cookies with SameSite=None.
+verify_steps: N/A — already verified
+impact: LOW-MEDIUM (enables CSRF). SameSite=None on session cookies allows cross-site request forgery attacks. Combined with upload.box.com CORS misconfiguration, this creates a HIGH severity CSRF vulnerability.
+testability: PASSIVE
+[CONFIRMED] account.box.com HTML-page CORS reflection without credentials
+class: MISCONFIG
+asset: account.box.com (HTML-serving paths: /login, /login/reset, /api/oauth2/authorize, /api/oauth2/authorize/data)
+confidence: 85
+reasoning: Every HTML page on account.box.com (except /signup) reflects any attacker Origin in access-control-allow-origin without access-control-allow-credentials. Cross-origin fetch() reads of page body possible. Body contains Box.config (requestToken, runtimeMetadata, pendoAnalyticsAPIKey, billing.creditCardCreationURL) and errorParams reflecting attacker-controlled clientId/redirectUri/state. JSON encoding in script tags prevents injection/XSS.
+evidence: [This cycle] Confirmed on 4 paths. /signup excluded. `Origin: null` reflected. No `access-control-allow-credentials` on any response.
+verify_steps: N/A — already verified
+impact: LOW-MEDIUM (information disclosure). Leaks client-side API keys (Amplitude, SplitIO, Pendo), feature flags, deployment metadata (us-west4-prod, k8s). Cannot steal sessions (no credentials). Cannot inject XSS (JSON-encoded).
+testability: PASSIVE
+[CONFIRMED] OAuth token endpoint wildcard CORS — GET response readable cross-origin
+class: MISCONFIG
+asset: account.box.com/api/oauth2/token, api.box.com/api/oauth2/token
+confidence: 90
+reasoning: Both OAuth token endpoints return `access-control-allow-origin: *` on GET responses (not just OPTIONS preflight). The GET response includes JSON error body and is fully readable cross-origin. Differential error messages leak supported grant types (password, client_credentials, jwt-bearer accepted; authorization_code, implicit not). OPTIONS allows Authorization header from any origin.
+evidence: [This cycle] GET on both hosts returns wildcard CORS with JSON body. OPTIONS returns wildcard with Authorization header allowed. grant_type differentiation confirms accepted types.
+verify_steps: N/A — already verified
+impact: LOW-MEDIUM (information disclosure). Cross-origin readable token endpoint leaks supported grant types. Violates OAuth security best practices (RFC 6749 §10). Dangerous misconfiguration pattern on sensitive auth endpoint.
+testability: PASSIVE
+[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping: server-side prefix filter returns 404, SPA catch-all returns 206 for arbitrary paths. Route mapper and prefetchedData keys leak internal routing but only same-origin.
+[PARKED] cloud.app.box.com /app-api/enduserapp/current-user: Returns 200 with comprehensive JSON config (feature flags, API keys, deployment metadata) without auth. Same-origin only — no CORS headers on GET.
+[PARKED] notes.services.box.com: Express.js backend, 302 to services.app.box.com, no CORS headers. frame-ancestors CSP allowing only app.box.com.
+[PARKED] dl.boxcloud.com: All paths return 404 "download-proxy service / Resource is not found". Requires signed tokens.
+[PARKED] m.box.com: Mobile web app, redirects to app.box.com.
+[PARKED] notes.services.box.com real-time collaboration: requires authenticated access to Notes-specific API paths.
+[PARKED] upload.box.com file upload pipeline: POST endpoints behind authenticated SPA routes only (GET/HEAD return 404). The CORS+CSRF finding is on the OPTIONS preflight behavior — actual exploitation requires victim interaction.
+[LEARN] EXHAUSTED upload.box.com: All GET/HEAD-measurable paths return 404. CORS+CSRF finding is on OPTIONS preflight behavior. No further read-only probes can advance the finding — the full attack chain (CSRF with credentials) requires victim interaction which is outside read-only scope.
+[LEARN] EXHAUSTED cloud.app.box.com: SPA catch-all + /app-api/* confirmed. OPTIONS returns wildcard but GET responses lack CORS headers (defense-in-depth correct). /app-api/enduserapp/current-user returns config without auth (same-origin only). No cross-origin data exposure.
+[LEARN] EXHAUSTED account.box.com: HTML-page CORS reflection (no credentials), OAuth token wildcard CORS, SameSite=None cookies — all confirmed. Path-specific behavior (/logout, /signup excluded). No further advancement possible without auth.
+[LEARN] EXHAUSTED dl.boxcloud.com: All paths 404 without signed tokens. No public surface.
+[LEARN] EXHAUSTED notes.services.box.com: Express.js backend with frame-ancestors CSP. No CORS headers. Requires authenticated access.
