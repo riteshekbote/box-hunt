@@ -845,3 +845,22 @@ testability: PASSIVE
 ## 2026-08-21 18:13:54 UTC upload.box.com (ling3)
 ## 2026-08-21 18:45:15 UTC upload.box.com (mimo)
 ## 2026-08-21 18:56:08 UTC upload.box.com (mimo)
+## 2026-08-21 19:20:07 UTC upload.box.com (mimo)
+[LEARN] REJECTED MISCONFIG @ cloud.app.box.com (arbitrary-path via Range): Random nonce paths consistently 404. The 206 layer is not a catch-all. Only the root is served.
+[LEARN] ACCEPTED MISCONFIG @ dl.boxcloud.com: All probed paths return 404 — CDN edge returns nothing without a signed token in the path or query.
+[HYP] cloud.app.box.com 206 asset-layer content disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/
+confidence: 55
+reasoning: Root consistently returns 206 but body content and full headers remain uncaptured across 3 cycles. A 206 at web application root with Content-Range present could reveal an internal asset key, redirect URL, or error detail. The unknown body length ("len ?") suggests the executor is not capturing body bytes — this is a gap.
+verify_steps: [NEXT] PROBE (cloud.app.box.com — full 206 inspection): `curl -sS -D /tmp/cab-headers.txt -o /tmp/cab-body.txt https://cloud.app.box.com/ -H "User-Agent: box-research/1.0 +(research)" && cat /tmp/cab-headers.txt && echo "---BODY---" && wc -c /tmp/cab-body.txt && head -c 500 /tmp/cab-body.txt` — Capture full response headers and body with size check. 1 req.
+impact: If body contains asset key or internal URL → HIGH (enables targeted object access). If body is HTML/redirect → MEDIUM (reveals routing logic). If empty/minimal → LOW but confirms behavior.
+testability: PASSIVE
+[HYP] dl.boxcloud.com signed-URL token leakage via error response headers
+class: MISCONFIG
+asset: dl.boxcloud.com
+confidence: 35
+reasoning: dl.boxcloud.com is the file download CDN. All paths without tokens return 404, confirming token-gated routing. CDN edges sometimes leak debug information in response headers (X-Debug, X-Request-Id, X-Error) that reveals token structure or internal routing logic. No header inspection has been performed yet.
+verify_steps: [NEXT] PROBE (dl.boxcloud.com — 404 header inspection): `curl -sS -D- https://dl.boxcloud.com/nonexistent-path -H "User-Agent: box-research/1.0 +(research)" -H "Referer: https://evil.com"` — Capture all response headers from 404. 1 req.
+impact: If debug headers leak token structure → MEDIUM (aids token forgery). If nothing → LOW/parked.
+testability: PASSIVE
