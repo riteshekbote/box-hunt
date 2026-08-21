@@ -125,3 +125,10 @@ https://cloud.app.box.com/bhx-t7z9k-m2f3q/ -> HTTP 404
 
 ## 2026-08-20 20:22:06 UTC app.box.com
 https://cloud.app.box.com/ -> 206
+
+## 2026-08-21 18:48:19 UTC app.box.com
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/api -> 200
+https://cloud.app.box.com/static -> HTTP 404
+https://cloud.app.box.com/api/2.0/users/me -> HTTP 401

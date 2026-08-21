@@ -1,0 +1,18 @@
+[LEARN] REJECTED 206-as-default-handler @ cloud.app.box.com/: Root now returns 302 to /login (not 206). Previous "206 asset layer" observations were either transient or from a different request profile. The Range header does NOT trigger 206.
+[CONFIRMED] CORS wildcard preflight on cloud.app.box.com API surface
+class: MISCONFIG
+asset: cloud.app.box.com (root + /api/*)
+confidence: 75
+reasoning: OPTIONS preflight on cloud.app.box.com/ and /api/2.0/* returns access-control-allow-origin: * with full method list (DELETE, HEAD, GET, OPTIONS, POST, PUT) and access-control-allow-headers: Authorization. This means any origin can successfully preflight any API method through this origin. However, the actual GET/HEAD responses on /api/* do NOT include Access-Control-Allow-Origin headers, so response bodies are not readable cross-origin. The wildcard is overly permissive on preflight but mitigated by missing CORS on actual responses.
+verify_steps: 1) OPTIONS with Origin: https://evil.com and Authorization header request on any /api/* path  2) GET with valid bearer token cross-origin to check if response includes CORS headers
+impact: LOW-MEDIUM. The wildcard preflight allows any method cross-origin, but without CORS in actual responses, data exfiltration via cross-origin reads is blocked. Could be chained if any endpoint leaks CORS in response body.
+testability: PASSIVE
+[CONFIRMED] Origin reflection on cloud.app.box.com/login
+class: MISCONFIG
+asset: cloud.app.box.com/login
+confidence: 80
+reasoning: Both GET and OPTIONS responses on /login reflect the attacker-controlled Origin (https://evil.com) in Access-Control-Allow-Origin. The OPTIONS response also allows Authorization header. However, /login is a 301 redirect to cloud.account.box.com/login with empty body, so there's no sensitive data to exfiltrate via cross-origin reads.
+verify_steps: 1) Check if /login ever returns 200 (not redirect) with CORS headers  2) Check response body for any embedded tokens or session data
+impact: LOW. Origin reflection is a misconfiguration, but the endpoint only serves redirects with empty bodies. No data exfiltration possible via cross-origin reads on this specific path.
+testability: PASSIVE
+[LEARN] ACCEPTED CORS wildcard preflight @ cloud.app.box.com: Confirmed via OPTIONS on root and /api/* paths returning access-control-allow-origin: * with full method list including DELETE/POST/PUT and Authorization header allowance. However, the impact is limited because actual GET responses lack CORS headers.
