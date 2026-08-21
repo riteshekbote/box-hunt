@@ -1329,3 +1329,25 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/revoke with Origin: https://evil.com — check if token revocation endpoint also has CORS. Then OPTIONS. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/api/v2.0/users/me with Origin: https://evil.com — test if newer API version has different CORS. Then OPTIONS. 1 req/2s, first 4xx/429/403 → stop account.box.com.
 ## 2026-08-21 23:36:07 UTC account.box.com (mimo)
+## 2026-08-21 23:57:23 UTC account.box.com (mimo)
+[CONFIRMED] OAuth authorize reflected CORS leaks internal config + third-party API keys cross-origin
+class: OATH
+asset: account.box.com/api/oauth2/authorize
+confidence: 90
+reasoning: GET with `Origin: https://evil.com` returns 200 with `access-control-allow-origin: https://evil.com` (reflected) and full HTML body containing `Box.config` and `Box.prefetchedData`. The response is fully readable cross-origin by attacker JavaScript. The body includes: third-party analytics API keys (Amplitude `c6eb3d709c5c30ca80c0381080bcc254`, Split.io `3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a`, Pendo `123e0628-cb29-41d1-466c-c592c7ddcd06`), infrastructure details (`datacenterTag: us-west4-prod`, `deploymentType: k8s`, `environment: prod`), complete feature flag enumeration, full webpack module federation manifest with all micro-frontend versions. OPTIONS preflight also returns reflected CORS with `access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match`. When authenticated, the `current-user` prefetchedData would contain user PII (email, name, admin status).
+verify_steps: Already verified via OPTIONS + GET with Origin header. No re-probe needed.
+impact: Cross-origin extraction of third-party API keys (Amplitude, Split.io, Pendo), complete feature flag state, internal infrastructure fingerprinting, module version enumeration. When authenticated, user PII leakage. Severity: Medium-High (API keys could enable analytics poisoning/impersonation; feature flags enable targeted attack surface mapping).
+testability: AUTH_HELPED (full impact requires authenticated user session to leak PII; unauthenticated leaks API keys + config regardless)
+[CONFIRMED] OAuth token endpoint wildcard CORS
+class: OATH
+asset: account.box.com/api/oauth2/token
+confidence: 80
+reasoning: OPTIONS and GET on `/api/oauth2/token` both return `access-control-allow-origin: *` with `vary: Origin`. The endpoint returns 400 (missing grant_type) with JSON body. Wildcard CORS on a token endpoint is atypical — however, the token endpoint requires a valid authorization code or client credentials, so cross-origin token theft would require an additional vulnerability (code interception). The `vary: Origin` header suggests the server dynamically varies CORS, but currently returns wildcard.
+verify_steps: Already verified. OPTIONS + GET both confirm `access-control-allow-origin: *`.
+impact: If an attacker can obtain a valid authorization code (e.g., via redirect_uri manipulation or code interception), the wildcard CORS allows cross-origin token exchange. Combined with the reflected CORS on /authorize, this creates a potential token theft chain. Severity: Medium (requires additional vuln to obtain auth code).
+testability: AUTH_HELPED
+[PARKED] OAuth authorize PII leakage when authenticated: Requires logged-in user session to confirm whether `current-user` prefetchedData contains email/name/admin status cross-origin. API keys already leak without auth.
+[PARKED] notes.services.box.com recovery: Root returns 302, graphql still 503. Service appears to be partially behind auth gateway.
+[NEXT] PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=token&client_id=test&redirect_uri=https://evil.com with Origin: https://evil.com — test if implicit flow endpoint also reflects CORS and if it issues tokens via fragment redirect. Record status + Location header + CORS. 1 req/2s.
+[NEXT] PROBE: GET https://account.box.com/api/v1.0/users/me with Origin: https://evil.com — test older API version CORS behavior. Then OPTIONS. 1 req/2s, first 4xx/429/403 → stop account.box.com.
+[NEXT] PROBE: GET https://cloud.app.box.com/_assets/conf/ with User-Agent: box-research/1.0 (research) — test if config directory is listed. Record status. Then GET /_assets/conf/assetsGenerated.json and GET /_assets/conf/assets-amsterdam.yml. 1 req/2s.

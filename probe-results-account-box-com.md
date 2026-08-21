@@ -104,3 +104,13 @@ https://account.box.com/api/oauth2/authorize -> 206
 ## 2026-08-21 23:36:11 UTC account.box.com
 https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com -> 206
 https://account.box.com/api/oauth2/authorize -> 206
+
+## 2026-08-21 23:57:40 UTC account.box.com
+https://account.box.com/api/oauth2/authorize?response_type=token&client_id=test&redirect_uri=https://evil.com -> 206
+https://account.box.com/api/v1.0/users/me -> HTTP 404
+https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com -> 206
+https://account.box.com/api/oauth2/revoke -> 206
+https://account.box.com/login? -> 206
+https://account.box.com/api/v2.0/users/me -> HTTP 404
+https://account.box.com/api/oauth2/authorize -> 206
+https://account.box.com/api/oauth2/token -> HTTP 400

@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 23:14:02 UTC"
 }=== MY LAST LEADS (tail) ===
-[NEXT] PROBE: GET https://app.box.com/graphql with User-Agent: box-research/1.0 (research) — compare to notes.services.box.com/graphql response. Record status + Content-Type + body_length. Then OPTIONS https://app.box.com/graphql with Origin: https://evil.com — record all Access-Control-* headers. 1 req/2s, first 4xx/429/403 → stop app.box.com.
 [NEXT] PROBE: GET https://notes.services.box.com/graphql with User-Agent: box-research/1.0 (research) — re-check if GraphQL service has recovered from 503. Record status. 1 req/2s.
 [NEXT] PROBE: GET https://upload.box.com/.git/config with User-Agent: box-research/1.0 (research) — test whether git metadata is exposed. Record status + headers + body length. Then GET https://upload.box.com/.git/HEAD. 1 req/2s, first 4xx/429/403 → stop upload.box.com.
 ## 2026-08-21 22:32:59 UTC account.box.com (mimo)
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com with Origin: https://evil.com — check if the response changes when valid OAuth params are provided. Record status + CORS headers + any redirect behavior. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/revoke with Origin: https://evil.com — check if token revocation endpoint also has CORS. Then OPTIONS. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/api/v2.0/users/me with Origin: https://evil.com — test if newer API version has different CORS. Then OPTIONS. 1 req/2s, first 4xx/429/403 → stop account.box.com.
+## 2026-08-21 23:36:07 UTC account.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
