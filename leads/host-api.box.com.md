@@ -782,3 +782,11 @@ verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart, stop on fi
 impact: Recon-grade — discovering session/auth differences or mobile-specific API surface could reveal bypass opportunities or token handling flaws.
 testability: PASSIVE
 [NEXT] PROBE: 3xGET m.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) / (2) /robots.txt (3) /login
+## 2026-08-21 21:01:03 UTC api.box.com (mimo)
+class: MISCONFIG
+asset: account.box.com/api/oauth2/authorize
+confidence: 20
+reasoning: The `runtimeMetadata` (availabilityZone, deploymentType, datacenterTag) leak is confined to `/api/oauth2/authorize`. `/login` and `/enduser` do not embed this data. The metadata is operational detail but not credential-bearing. SDK keys are client-side by design.
+verify_steps: Confirmed in prior cycles — no further probing needed
+impact: Low — operational metadata disclosure only; no auth bypass or data exfiltration path
+testability: PASSIVE
