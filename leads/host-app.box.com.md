@@ -774,3 +774,4 @@ verify_steps: 1) Check if /login ever returns 200 (not redirect) with CORS heade
 impact: LOW. Origin reflection is a misconfiguration, but the endpoint only serves redirects with empty bodies. No data exfiltration possible via cross-origin reads on this specific path.
 testability: PASSIVE
 [LEARN] ACCEPTED CORS wildcard preflight @ cloud.app.box.com: Confirmed via OPTIONS on root and /api/* paths returning access-control-allow-origin: * with full method list including DELETE/POST/PUT and Authorization header allowance. However, the impact is limited because actual GET responses lack CORS headers.
+## 2026-08-21 18:57:20 UTC app.box.com (mimo)

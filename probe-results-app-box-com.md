@@ -132,3 +132,12 @@ https://cloud.app.box.com/login -> 206
 https://cloud.app.box.com/api -> 200
 https://cloud.app.box.com/static -> HTTP 404
 https://cloud.app.box.com/api/2.0/users/me -> HTTP 401
+
+## 2026-08-21 18:57:36 UTC app.box.com
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/api/2.0/users/me -> HTTP 401
+https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
+https://cloud.app.box.com/api/2.0/events -> HTTP 401
+https://cloud.app.box.com/api/2.0/metadata_templates -> HTTP 401
+https://services.app.box.com/ -> 206
