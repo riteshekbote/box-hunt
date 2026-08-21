@@ -173,3 +173,9 @@ https://cloud.app.box.com/s/test123 -> HTTP 404
 
 ## 2026-08-21 21:47:14 UTC cloud.app.box.com
 https://cloud.app.box.com/s/test123 -> HTTP 404
+
+## 2026-08-21 22:07:00 UTC cloud.app.box.com
+https://cloud.app.box.com/s/test123 -> HTTP 404
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
+https://cloud.app.box.com/v/test123 -> HTTP 404

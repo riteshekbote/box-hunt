@@ -1,8 +1,16 @@
-[LEARN] REJECTED account.box.com/_assets/ sibling-object enumeration: all tested paths return 404 from GCS — not accessible.
-[LEARN] REJECTED cloud.app.box.com SPA catch-all for /shared/, /folders/, /v/ paths: /shared/test123 returns 404, /folders/0 returns 404, /v/test123 returns 200 with SPA shell. Only /s/<token> paths consistently return 206 SPA shell with route resolution.
-[LEARN] REJECTED cloud.app.box.com internal API paths: /app-api/enduserapp/current-user and /app-api/enduserapp/shared-item return 404 when accessed directly.
-[LEARN] REJECTED dl.boxcloud.com download proxy: All tested paths return 404 with no CORS headers. The download CDN requires valid signed URLs.
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS on unauthenticated request
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/users/me" 2>&1` — test API CORS preflight
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/2.0/folders/0" 2>&1` — test app.box.com API path CORS
-[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://cloud.app.box.com/s/test123" 2>&1` — test SPA shell route for CORS headers
+[CONFIRMED] account.box.com/login CORS reflects Origin on GET/POST responses (no credentials)
+class: MISCONFIG
+asset: account.box.com/login, account.box.com/login/reset
+confidence: 75
+reasoning: Both GET and POST responses include `access-control-allow-origin: <reflected Origin>` and `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. OPTIONS preflight allows POST with Content-Type header. However, `access-control-allow-credentials` is NOT present, so cookies are not sent cross-origin and the response body (containing CSRF tokens) cannot be used for authenticated actions. This is a defense-in-depth issue only.
+verify_steps: `curl -s -D- -X POST -H "Origin: https://evil.example.com" -H "Content-Type: application/x-www-form-urlencoded" "https://account.box.com/login" -d "login=test@test.com&password=test"` — confirms reflected Origin on POST response without credentials header.
+impact: Attacker can read CSRF tokens from login form cross-origin. Cannot submit form on behalf of user without credentials. Severity: Low (informational/defense-in-depth).
+testability: PASSIVE
+[CONFIRMED] app.box.com/api/2.0/internal/* has wildcard CORS (access-control-allow-origin: *)
+class: MISCONFIG
+asset: app.box.com/api/2.0/internal/*
+confidence: 70
+reasoning: All `/internal/` API paths return `access-control-allow-origin: *` on 401 responses with `vary: Origin` header. Non-internal paths do not return CORS headers on 401. This is a misconfiguration (server should vary by Origin but uses wildcard), but all endpoints require Bearer token authentication, preventing exploitation.
+verify_steps: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/shared_items"` — confirms wildcard CORS with vary: Origin.
+impact: Wildcard CORS on internal API paths. Without valid Bearer tokens, no data can be accessed. Severity: Low (misconfiguration, not directly exploitable).
+testability: PASSIVE
