@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 19:48:41 UTC"
 }=== MY LAST LEADS (tail) ===
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/api/2.0/*: full Box API proxy with `access-control-allow-origin: *`, `access-control-allow-headers: Authorization`, and ALL methods (DELETE, HEAD, GET, OPTIONS, POST, PUT). Same pattern on app.box.com and api.box.com. Requires Bearer auth (401 without token). This is by design for the Box JS SDK — `*` prevents cookie theft but allows explicit Authorization header from any origin.
 [LEARN] REJECTED MISCONFIG @ cloud.app.box.com root with Origin header: 302 redirect to /login — no CORS headers on the redirect response. The API proxy layer at `/api/2.0/` is a separate backend with distinct CORS config.
 [HYP] account.box.com `/api/oauth2/token` wildcard CORS + POST acceptance enables cross-origin token grant attempts
 class: MISCONFIG
@@ -97,6 +96,7 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -s "https://cloud.app.box.com/v/test123" -H "User-Agent: box-research/1.0"` — test if /v/ path triggers different route mapper
 [NEXT] PROBE: `curl -s "https://cloud.app.box.com/folders/0" -H "User-Agent: box-research/1.0"` — test if /folders/ path triggers folder route
 [NEXT] PROBE: `curl -s -I "https://cloud.app.box.com/" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET"` — test CORS preflight on SPA catch-all root
+## 2026-08-21 19:57:34 UTC cloud.app.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin — preflight/GET with attacker Origin reflects Access-Control-* or exposes Authorization (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: CORS misconfiguration on cloud.app.box.com preview origin (preflight/GET reflects attacker Origin / exposes Authorization) (from host-dl.boxcloud.com.md)
