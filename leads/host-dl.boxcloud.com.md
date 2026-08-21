@@ -606,3 +606,11 @@ testability: PASSIVE
 ## 2026-08-21 17:47:13 UTC dl.boxcloud.com (ling3)
 ## 2026-08-21 18:14:26 UTC dl.boxcloud.com (ling3)
 ## 2026-08-21 18:45:33 UTC dl.boxcloud.com (mimo)
+## 2026-08-21 18:56:14 UTC dl.boxcloud.com (mimo)
+class: OTHER
+asset: cloud.app.box.com/embed
+confidence: 50
+reasoning: Previous cycle confirmed `/embed` returns 200 (distinct from 206 asset layer), suggesting a dedicated handler. This route has not been probed for CORS/Origin reflection. If the embed handler allows cross-origin framing or reflects Origin, it could be a vector for token leakage or clickjacking.
+verify_steps: (1) GET cloud.app.box.com/embed with `Origin: https://evil.example.com` — capture all headers. (2) GET cloud.app.box.com/embed without Origin for baseline. (3) OPTIONS cloud.app.box.com/embed with preflight headers.
+impact: If embed endpoint reflects CORS or allows framing without proper X-Frame-Options, could enable cross-origin token theft or UI redress. Severity: Medium.
+testability: PASSIVE
