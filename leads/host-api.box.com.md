@@ -856,3 +856,39 @@ verify_steps: Already confirmed — no further probing needed
 impact: Low — version disclosure aids targeted attacks but is informational only
 testability: PASSIVE
 [NEXT] PROBE: 3xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429: (1) /api/2.0/users/me (2) /api/2.0/folders/0 (3) / — check if the 206 on root is a CDN range-request layer that fronts the origin, or purely static asset serving
+## 2026-08-21 23:15:15 UTC api.box.com (mimo)
+[NEW] cloud.app.box.com/graphql: GraphQL endpoint exists (returns Box API error JSON, 503 Service Unavailable without auth) on both cloud.app.box.com and api.box.com — same backend
+[NEW] cloud.app.box.com/embed/config: Unauthenticated endpoint returns full feature flag map, embed context, partnerId field, and 20+ micro-frontend version strings (1.4.4 embed-widget)
+[NEW] cloud.app.box.com/config: Unauthenticated full SPA with Box.prefetchedData including requestToken (per-session, not reusable as Bearer), realtimeSubscriberID, Amplitude/Split.io/Pendo API keys, preview version 3.79.0, Zuora billing URL, GraphQL feature flags
+[NEW] dl.boxcloud.com/api/2.0/files/{id}/content: File download proxy returns `Access-Control-Allow-Origin: *` with `Access-Control-Expose-Headers: Content-Range` on 401 responses — wildcard CORS on file CDN endpoint
+[HYP] dl.boxcloud.com wildcard CORS on file download proxy — fragile auth/CORS posture
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/*/content
+confidence: 50
+reasoning: dl.boxcloud.com returns Access-Control-Allow-Origin: * with Access-Control-Expose-Headers: Content-Range on unauthenticated 401 responses. The OPTIONS preflight returns 204 with Access-Control-Allow-Origin: * but does NOT include Access-Control-Allow-Headers: Authorization — so browsers currently cannot send Bearer tokens cross-origin. However, this is a fragile posture: the wildcard CORS on a file download proxy means if Box ever adds cookie-based auth or if a subdomain XSS allows token theft, any website could read file content via JavaScript. The Content-Range exposure enables byte-range enumeration attacks.
+verify_steps: Already confirmed via curl. To fully test: (1) curl -D- -H "Origin: https://evil.com" dl.boxcloud.com/api/2.0/files/1/content — confirm ACAO:* on 401; (2) curl -D- -X OPTIONS -H "Origin: https://evil.com" dl.boxcloud.com/api/2.0/files/1/content — confirm 204 without Allow-Headers; (3) Compare with cloud.app.box.com/api/2.0/files/1/content which has NO CORS headers
+impact: Low-Medium — currently not exploitable because Authorization header is not in Allow-Headers on preflight, so browsers block cross-origin credentialed requests. But the wildcard CORS on a file download proxy is a misconfiguration waiting to become critical if auth mechanism changes. Severity upgradeable if any subdomain XSS or cookie injection is found.
+testability: PASSIVE
+[HYP] cloud.app.box.com/embed/config feature flag + version enumeration
+class: OTHER
+asset: cloud.app.box.com/embed/config
+confidence: 90
+reasoning: /embed/config is an unauthenticated endpoint that returns the complete feature flag configuration for anonymous embed contexts (embed:true, canvas:false, sign:false, shield:false, etc.), plus all 20+ micro-frontend version strings from Box.webpackRemotesManifest. This allows attackers to fingerprint the exact deployment version of every component and identify known vulnerabilities in specific versions. The partnerId field in the response is server-controlled (not reflected from user input).
+verify_steps: Already confirmed — /embed/config returns 200 with full JSON config including version strings
+impact: Low — version enumeration aids targeted exploitation but is informational only
+testability: PASSIVE
+[HYP] cloud.app.box.com GraphQL introspection/auth bypass
+class: AUTH
+asset: cloud.app.box.com/graphql
+confidence: 25
+reasoning: The /graphql endpoint exists and returns a proper Box API error JSON (not 404) on both cloud.app.box.com and api.box.com. It returns 503 Service Unavailable without auth, suggesting the GraphQL service requires authentication to route requests. The SPA feature flags reference euaRootFolderGraphql, euaSubfolderGraphql, and euaFolderPreflightScript — indicating a GraphQL API for folder operations. If authentication can be bypassed, GraphQL introspection could expose the entire data schema.
+verify_steps: Requires AUTH_HELPED — cannot test further without valid Bearer token
+impact: High (if auth bypass possible) — full schema disclosure and potentially unauthorized data access via GraphQL
+testability: AUTH_HELPED
+[PARKED] m.box.com unique surface: All paths 301 redirect to app.box.com — confirmed as pure redirect layer with no unique rendering/session logic
+[PARKED] upload.box.com API surface: All paths return404 with nginx "Not found" — internal upload service with no unauthenticated surface
+[LEARN] CONFIRMED OTHER @ dl.boxcloud.com: Download proxy has wildcard CORS (ACAO:*) but preflight does NOT allow Authorization header — fragile but not currently exploitable
+[LEARN] CONFIRMED OTHER @ cloud.app.box.com: Full SPA + API proxy mirrors api.box.com behavior; no CORS headers on API; requestToken is per-session and not valid as Bearer
+[LEARN] CONFIRMED OTHER @ m.box.com: Pure redirect layer to app.box.com — no unique surface
+[LEARN] CONFIRMED OTHER @ upload.box.com: Internal service, no unauthenticated surface
+[NEXT] PROBE: Focus on cloud.app.box.com — test additional SPA catch-all paths that might expose different data than app.box.com. 3xGET with UA "box-research/1.0 +(research)", 2s pause: (1) cloud.app.box.com/shared/{test-token} (2) cloud.app.box.com/preview/{test-token} (3) cloud.app.box.com/embed/{test-token} — check if these catch-all SPA routes embed different Box.prefetchedData or expose shared-link metadata
