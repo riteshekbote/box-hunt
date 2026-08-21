@@ -736,3 +736,23 @@ impact: Recon-grade — new routes become candidates for content review; _debug/
 testability: PASSIVE
 [NEXT] PROBE: 7xGET cloud.app.box.com with UA "box-research/1.0 +(research)", 2s pause between, stop on 403/429:
 ## 2026-08-21 19:19:58 UTC api.box.com (mimo)
+## 2026-08-21 19:45:43 UTC api.box.com (mimo)
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com: The 206/Range layer is strictly whitelist-routed. Only 6 assets respond: root, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed. Everything else returns 404. Random paths, Box-specific filenames, and config files are all rejected.
+[NEXT] PROBE: PIVOT to account.box.com — test auth-plane surface with 7 probes (2s apart, stop on 403/429):
+[NEW] account.box.com: /robots.txt returned 200 with detailed path map — /app-api/split-proxy, /app-gallery-v2/api, /enduser, /s/, /shared/, /v/, /integrations, /app-center all crawlable
+[NEW] account.box.com: /api/oauth2/authorize returned 200 with prefetched config embedded in HTML — leaks amplitudeAPIKey, splitIOAPIKey, pendoAnalyticsAPIKey, preview version 3.79.0, runtimeMetadata (availabilityZone: us-west4-prod, deploymentType: k8s), CDN bundle manifest with 20+ micro-frontend versions
+[NEW] account.box.com: /sso → 302 → /login?redirect_url=%2Fsso (SSO passthrough to login)
+class: MISCONFIG
+asset: account.box.com/api/oauth2/authorize
+confidence: 25
+reasoning: The unauthenticated OAuth2 authorize page embeds `runtimeMetadata` (availabilityZone: us-west4-prod, deploymentType: k8s, environment: prod), `datacenterTag`, and three third-party analytics SDK keys in a `Box.prefetchedData` JSON block within the HTML. While SDK keys are client-side by design, the exact datacenter/deployment metadata is operational detail not required by the frontend. The /api/oauth2/token endpoint (400) and /api/oauth2/revoke (302) also exist but are gated.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) /api/oauth2/authorize (compare requestId with prior cycle) (2) /login (check for same prefetchedData structure) (3) /enduser (check for same prefetchedData structure).
+impact: Low — operational metadata disclosure (datacenter, k8s deployment) could aid targeted infrastructure attacks but is marginal. SDK keys are designed for public embedding. No authentication bypass or data exfiltration path.
+testability: PASSIVE
+class: MISCONFIG
+asset: account.box.com/api/oauth2/authorize
+confidence: 15
+reasoning: The endpoint returns 200 with `error: "invalid_client"` regardless of query parameters (no client_id, invalid client_id, with redirect_uri). No differentiation in error messages. The /api/oauth2/token returns 400 without body inspection. If valid client_id values produce different error messages (e.g., "unauthorized_client" vs "invalid_client"), this could enumerate valid OAuth app IDs.
+verify_steps: 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) /api/oauth2/authorize?response_type=code&client_id=known_valid_from_docs (2) /api/oauth2/token with POST-like GET (no body) to observe error (3) /api/oauth2/revoke to observe redirect target.
+impact: Low — OAuth error messages typically don't enumerate valid client IDs, but if they do, it could reveal registered OAuth applications.
+testability: PASSIVE
