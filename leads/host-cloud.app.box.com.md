@@ -1236,3 +1236,4 @@ testability: AUTH_HELPED
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/search?query=test"` — test if /internal/search exists and has wildcard CORS
 [NEXT] PROBE: `curl -sI -H "Origin: https://null" "https://app.box.com/api/2.0/internal/folders/0"` — test null origin on /internal/ (sandboxed iframe vector)
 ## 2026-08-22 05:00:24 UTC cloud.app.box.com (mimo)
+## 2026-08-22 05:04:28 UTC cloud.app.box.com (mimo)
