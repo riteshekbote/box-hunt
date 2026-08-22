@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 02:51:03 UTC"
 }=== MY LAST LEADS (tail) ===
-verify_steps: GET https://cloud.app.box.com/api/oauth2/authorize?response_type=code with Origin: https://evil.com — confirms access-control-allow-origin: https://evil.com and Box.config JSON. OPTIONS preflight confirms Authorization header allowed.
 impact: LOW-MEDIUM. Infrastructure metadata (k8s zone, deployment type, feature flags, proxy hostnames, billing endpoints, client-side API keys, webpack manifest) readable cross-origin from any evil.com page. Without ACA, cookie-bearing requests blocked. RuntimeMetadata (us-west4-prod, k8s) NOT in public bundles — reveals infrastructure details useful for targeted attacks. Client-side API keys (pendoAnalyticsAPIKey, amplitudeAPIKey, splitIOAPIKey) already present in public JS bundles but accessible as structured JSON without JS parsing from unauthenticated context.
 testability: PASSIVE
 [PARKED] cloud.app.box.com current-user endpoint: Returns HTTP 200 with anonymous user data (isLoggedIn: false, empty name/email, id:2) but NO CORS headers — cross-origin JS cannot read the response. Same data already leaked via OAuth2 endpoint's Box.prefetchedData. Not independently exploitable.
@@ -97,6 +96,7 @@ testability: PASSIVE
 [PARKED] Cache poisoning on SPA shell: `cache-control: no-store, no-cache, must-revalidate, proxy-revalidate` + `surrogate-control: max-age=0` properly prevents all caching. No poisoning vector.
 [NEXT] The research surface for read-only probes on app.box.com is EXHAUSTED. Further exploitation would require AUTH_HELPED probes (valid OAuth token) to test if authenticated endpoints with wildcard CORS leak user data, or HUMAN_ONLY testing (clickjacking, social engineering). Recommend parking this host or requesting authorization for authenticated testing.
 ## 2026-08-22 03:28:56 UTC app.box.com (mimo)
+## 2026-08-22 04:13:59 UTC app.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)

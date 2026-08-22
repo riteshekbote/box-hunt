@@ -302,3 +302,17 @@ https://cloud.app.box.com/admin -> HTTP 403
 https://cloud.app.box.com/debug -> 206
 https://cloud.app.box.com/metrics -> 206
 https://cloud.app.box.com/info -> 200
+
+## 2026-08-22 04:49:21 UTC app.box.com
+https://app.box.com/api/2.0/events -> HTTP 401
+https://app.box.com/api/2.0/search -> HTTP 401
+https://app.box.com/api/2.0/collaborations -> HTTP 401
+https://app.box.com/api/2.0/shared_items -> HTTP 401
+https://app.box.com/api/2.0/metadata_templates -> HTTP 401
+https://app.box.com/api/2.0/tasks -> HTTP 401
+https://app.box.com/api/2.0/webhooks -> HTTP 401
+https://app.box.com/api/2.0/device_pin -> HTTP 401
+https://app.box.com/api/2.0/collections -> HTTP 401
+https://app.box.com/api/2.0/recent_items -> HTTP 401
+https://app.box.com/api/2.0/comments -> HTTP 401
+https://app.box.com/api/2.0/retention_policies -> HTTP 401
