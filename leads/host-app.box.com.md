@@ -995,3 +995,4 @@ testability: PASSIVE
 [PARKED] app.box.com OPTIONS preflight on `/api/oauth2/authorize`: Returns 404 with no CORS headers. The SPA catch-all route does not handle OPTIONS properly — only GET responses get CORS headers. However, GET requests without custom headers don't trigger preflight, so the reflected CORS on GET is still effective.
 [PARKED] Cache poisoning on SPA shell: `cache-control: no-store, no-cache, must-revalidate, proxy-revalidate` + `surrogate-control: max-age=0` properly prevents all caching. No poisoning vector.
 [NEXT] The research surface for read-only probes on app.box.com is EXHAUSTED. Further exploitation would require AUTH_HELPED probes (valid OAuth token) to test if authenticated endpoints with wildcard CORS leak user data, or HUMAN_ONLY testing (clickjacking, social engineering). Recommend parking this host or requesting authorization for authenticated testing.
+## 2026-08-22 03:28:56 UTC app.box.com (mimo)
