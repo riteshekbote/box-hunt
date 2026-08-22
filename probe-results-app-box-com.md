@@ -253,3 +253,17 @@ https://app.box.com/sp/boxberry/v1/saml2/acs -> HTTP 404
 https://app.box.com/graphql -> HTTP 503
 https://app.box.com/unified -> HTTP 404
 https://app.box.com/api/2.0/device_pinners -> HTTP 401
+
+## 2026-08-22 00:30:05 UTC app.box.com
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
+https://cloud.app.box.com/api/2.0/me -> HTTP 401
+https://app.box.com -> 206
+https://app.box.com/api/oauth2/authorize?response_type=code&redirect_uri=https://evil.com/callback&client_id=test -> 206
+https://cloud.app.box.com/api/oauth2/authorize?response_type=code&redirect_uri=https://evil.com/callback&client_id=test -> 206
+https://cloud.app.box.com/app-api/enduserapp/shared-item -> HTTP 400
+https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link=test&shared_link_password=test -> HTTP 400
+https://cloud.app.box.com/app-api/enduserapp/validate -> HTTP 404
+https://cloud.app.box.com/app-api/enduserapp/config -> HTTP 404
+https://accounts.app.box.com/ -> 206
+https://app.box.com/api/oauth2/authorize?response_type=code&client_id=invalid&redirect_uri=https://evil.com/callback -> 206
+https://app.box.com/api/oauth2/authorize?response_type=token&redirect_uri=https://evil.com/callback&client_id=test -> 206
