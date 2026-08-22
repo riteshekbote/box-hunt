@@ -1,47 +1,22 @@
-[CONFIRMED] cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure
+[NEW] cloud.app.box.com `/embed/shared/{token}` returns 200 with full prefetchedData for ANY token value — reflected query params (including redirect_uri) in url/displayedURL/originalURL fields
 class: MISCONFIG
-asset: cloud.app.box.com/app-api/enduserapp/current-user
-confidence: 95
-reasoning: 200 returns full JSON without auth. Contains: user object (id:2, isLoggedIn:false), 60+ feature flags (adminConsole, boxAI*, shield, canvas, notes, sign), API keys (amplitudeAPIKey: c6eb3d709c5c30ca80c0381080bcc254, splitIOAPIKey: 3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a), infrastructure (accountHost, apiHost, preview config with tokenTimeout:3600), account tier status. Confirmed across multiple cycles.
-verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/current-user
-impact: Information disclosure of internal feature flags, API keys, infrastructure config. Severity: Low (client-side config but reveals internal structure).
-testability: PASSIVE
-[NEW] cloud.app.box.com `/app-api/enduserapp/app-version` unauthenticated version/remote disclosure
-class: MISCONFIG
-asset: cloud.app.box.com/app-api/enduserapp/app-version
+asset: cloud.app.box.com/embed/shared/{token}
 confidence: 90
-reasoning: 200 returns full JSON with: app version "23.692.0+hotfix.1", confVersion "21.293.0", isDeveloper:false, cdnHostname "cdn01.boxcdn.net", and complete manifest of 24 micro-frontend remotes with exact CDN URLs, remotePath, remoteVersion, and remoteEntryFileName for each (box_canvas, box_hubs_client, box_sign_client, box_ai_client, box_extract_client, box_workflow_client, box_boxapps_client, etc.).
-verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/app-version
-impact: Exact version enumeration of 24 internal micro-frontend modules, CDN paths, and deployment versions. Aids targeted exploitation of specific module versions. Severity: Low-Medium.
-testability: PASSIVE
-[NEW] cloud.app.box.com `/embed/file/{id}` server-side prefetchedData with feature flags and embed context
+reasoning: The embed endpoint reflects ALL query parameters into prefetchedData. `redirect_uri=https://evil.com` appears verbatim in `url`, `displayedURL`, and `originalURL` fields. `url` is used as iframe src after challenge completion. `originalURL` is used in window.location.assign() during MS Teams auth. Server-side /shared/{token} returns 404 for invalid tokens (no server redirect observed), but valid shared link tokens may cause the embedded iframe to navigate to the redirect_uri target.
+verify_steps: 1) GET https://cloud.app.box.com/embed/shared/VALID_SHARED_TOKEN?redirect_uri=https://attacker.com 2) Observe if the iframe navigates to attacker.com after challenge completion 3) Observe if the server-side /shared/VALID_SHARED_TOKEN?redirect_uri=... causes a 302 to the redirect_uri
+impact: If a valid shared link token is combined with redirect_uri and the server/iframe follows it, this is an open redirect on cloud.app.box.com domain — usable for OAuth token theft, phishing, or session hijacking. Severity: Medium-High (requires valid shared link token as prerequisite).
+testability: HUMAN_ONLY
+[NEW] cloud.app.box.com `/embed/file/{id}?redirect_uri=` same parameter reflection — `originalURL` used in window.location.assign()
 class: MISCONFIG
 asset: cloud.app.box.com/embed/file/{id}
 confidence: 85
-reasoning: 200 returns HTML with Box.prefetchedData containing: full feature flags (embed:true, showProfileAndAccount:false, boxEdit:true, collapseSidebars:true, etc.), embed context (originalLocation, partnerId:"", rootFolderId:0), linkedRequestId. Embed widget loads from cdn01.boxcdn.net/embed-widget/1.4.4/. Different feature flag set than current-user (embed-specific defaults).
-verify_steps: GET https://cloud.app.box.com/embed/file/123456
-impact: Unauthenticated access to embed-specific feature flags and internal embed context. Severity: Low.
+reasoning: The /embed/file/{id} endpoint also reflects redirect_uri into prefetchedData. The originalURL field containing the attacker's redirect_uri is passed to window.location.assign(o) in the MS Teams auth success/failure callbacks. This only triggers when runningInMSTeams is true, but the reflection is confirmed.
+verify_steps: GET https://cloud.app.box.com/embed/file/123?redirect_uri=https://evil.com — observe prefetchedData.url, prefetchedData.originalURL contain the reflected redirect_uri
+impact: URL parameter reflection into window.location.assign() context — medium severity if MS Teams integration is active.
 testability: PASSIVE
-[HYP] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration
-class: BUSLOGIC
-asset: cloud.app.box.com/app-api/enduserapp/shared-item
-confidence: 55
-reasoning: Endpoint returns 400 with `{"status":400,"errorCode":"expectedParamError"}` for all tested params (shared_link, token, shared_link_token, item_id, shared_link_format_test). The structured error confirms it is live. JS bundle shows X-Box-EndUser-API header pattern for app-api calls. The correct parameter name may require the X-Box-EndUser-API header with specific serialized data, not a query parameter.
-verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with X-Box-EndUser-API header containing serialized shared link token
-impact: If unauthenticated shared item access possible, severity Medium.
-testability: AUTH_HELPED
-[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping enumeration: Confirmed route-specific behaviors: `/admin`→403, `/settings`→302+cookie `box_user_settings`, `/debug`→302→`/v/debug`, `/embed/file/{id}`→200+prefetchedData, `/v/*`→SPA shell. Different paths trigger different server-side route handlers with different prefetchedData payloads. Low direct impact.
-[PARKED] cloud.app.box.com S3-compatible bucket-listing parameter acceptance: `?list-type=2` returned 302 to login this cycle. No evidence of S3 ListBucketResult XML. Rejected.
-[PARKED] cloud.app.box.com `/sitemap.xml` cross-origin redirect: 302 to `https://www.box.com/sitemap.xml`. Target is Box's own domain — not exploitable as open redirect.
-[PARKED] cloud.app.box.com `/crossdomain.xml` Flash policy: Allows `*.box.net`, `*.box.com`, etc. Flash is EOL — informational only.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/current-user`: Unauthenticated 200 with full config JSON containing feature flags, API keys (amplitude, splitIO), infrastructure config. Severity: Low.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/app-version`: Unauthenticated 200 with full version manifest of 24 micro-frontend remotes. Severity: Low-Medium.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/embed/file/{id}`: Server-side prefetchedData with embed-specific feature flags. Severity: Low.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/admin`: 403 explicit route protection.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/settings`: 302 with `box_redirect_rm=box_user_settings` cookie — route mapper name leaked.
-[LEARN] REJECTED cloud.app.box.com shared-item query params: All tested parameter names return 400.
-[LEARN] REJECTED cloud.app.box.com S3 bucket listing: No S3 XML response observed.
-[NEXT] RECON: Search box_canvas, box_hubs_client, box_sign_client remote bundles for `shared-item` or `sharedItem` API call patterns — GET https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js
-[NEXT] RECON: Search box_ai_client for `shared-item` — GET https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js
-[NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with header X-Box-EndUser-API: {"sharedName":"abc1234567"} — test header-based param delivery
-[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/ abc1234567 — test shared link embed variant
+[PARKED] cloud.app.box.com path traversal via embed shared tokens: Both URL-encoded (%2e%2e%2f) and double-encoded (..%252f..) path traversal attempts return 403 Forbidden. Server has traversal protection on embed routes.
+[PARKED] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration: Still returns 400 for all tested params. The canvas and AI client bundles contain only Module Federation runtime code — no application-level API patterns. The correct parameter name remains unknown.
+[NEXT] PROBE: GET https://app.box.com/embed/shared/VALID_TOKEN?redirect_uri=https://evil.com — test if app.box.com has same reflection behavior
+[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?callback=alert(1) — test for XSS via callback parameter reflection in prefetchedData
+[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?state=malicious_value — test state parameter reflection (OAuth state vector)
+[NEXT] RECON: GET https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — search for "postMessage" patterns to map all message actions the child iframe can trigger on the parent

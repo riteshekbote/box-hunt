@@ -35,56 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 23:56:33 UTC"
+  "last_advance": "2026-08-22 01:57:38 UTC"
 }=== MY LAST LEADS (tail) ===
-testability: PASSIVE
-## 2026-08-21 23:10:36 UTC dl.boxcloud.com (mimo)
-[HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
-class: MISCONFIG
-asset: cloud.app.box.com/<path>
-confidence: 60
-reasoning: Confirmed 206 catch-all. Different paths trigger different route mappers (currentRm). prefetchedData includes server-side API lookups. If privileged paths trigger sensitive prefetchedData, attacker extracts data from 206.
-verify_steps: GET https://cloud.app.box.com/admin, GET /settings, GET /debug
-impact: Sensitive data disclosure from server-side prefetchedData. Severity: Low-Medium.
-testability: PASSIVE
-[HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
-class: BUSLOGIC
-asset: cloud.app.box.com/?list-type=2
-confidence: 55
-reasoning: S3 ListObjects-v2 query parameter accepted with 200 across multiple cycles. Body content never captured. If XML ListBucketResult returned, public bucket listing. If HTML SPA shell, 200 is benign catch-all.
-verify_steps: GET https://cloud.app.box.com/?list-type=2
-impact: Object enumeration without auth. Severity: Medium-High.
-testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/admin — capture response body (first 1500 chars), status, and content-type. Extract currentRm and prefetchedData keys.
-[NEXT] PROBE: GET https://cloud.app.box.com/settings — same capture.
-[NEXT] PROBE: GET https://cloud.app.box.com/debug — same capture.
-## 2026-08-21 23:36:01 UTC dl.boxcloud.com (mimo)
-## 2026-08-21 23:56:33 UTC dl.boxcloud.com (mimo)
-[NEW] cloud.app.box.com `/admin`: Explicit 403 route protection — server recognizes `/admin` as privileged route
-[NEW] cloud.app.box.com `/settings`: 302 to `cloud.account.box.com/login` with cookie `box_redirect_rm=box_user_settings` — reveals internal route mapper name
-[NEW] cloud.app.box.com `/debug` → `/v/debug`: 302 redirect chain revealing internal route
-[NEW] cloud.app.box.com `/sitemap.xml`: 302 to `https://www.box.com/sitemap.xml` — cross-origin redirect to different domain
-[NEW] cloud.app.box.com `/crossdomain.xml`: 200 with Flash cross-domain policy allowing `*.box.net`, `*.box.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`
-[NEW] cloud.app.box.com `/robots.txt`: 200 with real content — allowed paths include `/representation`, `/app-assets`, `/login`, `/simpleshare`, `/services`, `/reset`, `/signup`, `/cdn`, `/sites`, `/platform`, `/s/`, `/shared/`, `/v/`, `/app-center`
-[HYP] cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure
-class: MISCONFIG
-asset: cloud.app.box.com/app-api/enduserapp/current-user
-confidence: 75
-reasoning: Endpoint returns 200 with full JSON blob without authentication. Response includes: user object (id, name, email, locale, timezone, countryCode), feature flags (60+ boolean flags including adminConsole, boxAI*, shield, canvas, notes, sign, etc.), API keys (amplitudeAPIKey, splitIOAPIKey), infrastructure config (accountHost, apiHost, appHost, staticHost, preview config with tokenTimeout), relay/experiment configuration, account tier/status, and CDN URLs. The `isLoggedIn: false` confirms unauthenticated access. This is client-side configuration but exposes internal feature flag structure and infrastructure details.
-verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/current-user — confirms 200 with JSON. Compare response with authenticated session to identify additional fields.
-impact: Information disclosure of internal feature flags, infrastructure config, API keys. Severity: Low (all client-side public data, but reveals internal structure).
-testability: PASSIVE
-[HYP] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration
-class: BUSLOGIC
-asset: cloud.app.box.com/app-api/enduserapp/shared-item
-confidence: 65
-reasoning: Endpoint returns 400 with `{"status":400,"errorCode":"expectedParamError"}` for all tested parameter combinations (shared_link, file_id, folder_id). The structured error confirms the endpoint is live and processes parameters. If the correct parameter format (likely a Box shared link token) is discovered, the endpoint could potentially serve shared item metadata without authentication.
-verify_steps: GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js — search for `shared-item` or `sharedItem` to find parameter names. GET https://cloud.app.box.com/app-api/enduserapp/shared-item?{discovered_param}={test_value}
-impact: If correct parameter format allows unauthenticated shared item access, severity Medium. Currently only 400 errors.
-testability: PASSIVE
-[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping enumeration: Confirmed `/admin` returns 403, `/settings` redirects with route mapper cookie (`box_user_settings`), `/debug` redirects to `/v/debug`, `/v/*` returns SPA shell. Different paths trigger different backend behaviors (403, 302 with route cookies, SPA catch-all). The route mapper is real but the data it exposes (route names in cookies) is low-impact.
-[PARKED] cloud.app.box.com S3-compatible bucket-listing parameter acceptance: `?list-type=2` returned 302 redirect to `/login` this cycle — inconsistent with prior 200 results. The 200 responses previously observed were likely the SPA catch-all. The 302 confirms the server recognizes the URL but requires auth. No evidence of S3 ListBucketResult XML.
-[PARKED] cloud.app.box.com `/sitemap.xml` cross-origin redirect: 302 to `https://www.box.com/sitemap.xml`. Not exploitable as open redirect since target is Box's own domain.
 [PARKED] cloud.app.box.com `/crossdomain.xml` Flash policy: Allows `*.box.net`, `*.box.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`. Flash is EOL — informational only.
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/current-user`: Unauthenticated 200 with full config JSON. Contains feature flags, API keys, infrastructure config. Severity: Low.
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/admin`: 403 explicit route protection. Not SPA catch-all.
@@ -97,6 +49,54 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/current-user — capture full response body for comparison with authenticated session
 [NEXT] RECON: GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js — search for `shared-item` or `sharedItem` to identify parameter names
 ## 2026-08-22 00:28:16 UTC dl.boxcloud.com (mimo)
+## 2026-08-22 01:57:38 UTC dl.boxcloud.com (mimo)
+[CONFIRMED] cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 95
+reasoning: 200 returns full JSON without auth. Contains: user object (id:2, isLoggedIn:false), 60+ feature flags (adminConsole, boxAI*, shield, canvas, notes, sign), API keys (amplitudeAPIKey: c6eb3d709c5c30ca80c0381080bcc254, splitIOAPIKey: 3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a), infrastructure (accountHost, apiHost, preview config with tokenTimeout:3600), account tier status. Confirmed across multiple cycles.
+verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/current-user
+impact: Information disclosure of internal feature flags, API keys, infrastructure config. Severity: Low (client-side config but reveals internal structure).
+testability: PASSIVE
+[NEW] cloud.app.box.com `/app-api/enduserapp/app-version` unauthenticated version/remote disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/app-version
+confidence: 90
+reasoning: 200 returns full JSON with: app version "23.692.0+hotfix.1", confVersion "21.293.0", isDeveloper:false, cdnHostname "cdn01.boxcdn.net", and complete manifest of 24 micro-frontend remotes with exact CDN URLs, remotePath, remoteVersion, and remoteEntryFileName for each (box_canvas, box_hubs_client, box_sign_client, box_ai_client, box_extract_client, box_workflow_client, box_boxapps_client, etc.).
+verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/app-version
+impact: Exact version enumeration of 24 internal micro-frontend modules, CDN paths, and deployment versions. Aids targeted exploitation of specific module versions. Severity: Low-Medium.
+testability: PASSIVE
+[NEW] cloud.app.box.com `/embed/file/{id}` server-side prefetchedData with feature flags and embed context
+class: MISCONFIG
+asset: cloud.app.box.com/embed/file/{id}
+confidence: 85
+reasoning: 200 returns HTML with Box.prefetchedData containing: full feature flags (embed:true, showProfileAndAccount:false, boxEdit:true, collapseSidebars:true, etc.), embed context (originalLocation, partnerId:"", rootFolderId:0), linkedRequestId. Embed widget loads from cdn01.boxcdn.net/embed-widget/1.4.4/. Different feature flag set than current-user (embed-specific defaults).
+verify_steps: GET https://cloud.app.box.com/embed/file/123456
+impact: Unauthenticated access to embed-specific feature flags and internal embed context. Severity: Low.
+testability: PASSIVE
+[HYP] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration
+class: BUSLOGIC
+asset: cloud.app.box.com/app-api/enduserapp/shared-item
+confidence: 55
+reasoning: Endpoint returns 400 with `{"status":400,"errorCode":"expectedParamError"}` for all tested params (shared_link, token, shared_link_token, item_id, shared_link_format_test). The structured error confirms it is live. JS bundle shows X-Box-EndUser-API header pattern for app-api calls. The correct parameter name may require the X-Box-EndUser-API header with specific serialized data, not a query parameter.
+verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with X-Box-EndUser-API header containing serialized shared link token
+impact: If unauthenticated shared item access possible, severity Medium.
+testability: AUTH_HELPED
+[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping enumeration: Confirmed route-specific behaviors: `/admin`→403, `/settings`→302+cookie `box_user_settings`, `/debug`→302→`/v/debug`, `/embed/file/{id}`→200+prefetchedData, `/v/*`→SPA shell. Different paths trigger different server-side route handlers with different prefetchedData payloads. Low direct impact.
+[PARKED] cloud.app.box.com S3-compatible bucket-listing parameter acceptance: `?list-type=2` returned 302 to login this cycle. No evidence of S3 ListBucketResult XML. Rejected.
+[PARKED] cloud.app.box.com `/sitemap.xml` cross-origin redirect: 302 to `https://www.box.com/sitemap.xml`. Target is Box's own domain — not exploitable as open redirect.
+[PARKED] cloud.app.box.com `/crossdomain.xml` Flash policy: Allows `*.box.net`, `*.box.com`, etc. Flash is EOL — informational only.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/current-user`: Unauthenticated 200 with full config JSON containing feature flags, API keys (amplitude, splitIO), infrastructure config. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/app-version`: Unauthenticated 200 with full version manifest of 24 micro-frontend remotes. Severity: Low-Medium.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/embed/file/{id}`: Server-side prefetchedData with embed-specific feature flags. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/admin`: 403 explicit route protection.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/settings`: 302 with `box_redirect_rm=box_user_settings` cookie — route mapper name leaked.
+[LEARN] REJECTED cloud.app.box.com shared-item query params: All tested parameter names return 400.
+[LEARN] REJECTED cloud.app.box.com S3 bucket listing: No S3 XML response observed.
+[NEXT] RECON: Search box_canvas, box_hubs_client, box_sign_client remote bundles for `shared-item` or `sharedItem` API call patterns — GET https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js
+[NEXT] RECON: Search box_ai_client for `shared-item` — GET https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js
+[NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with header X-Box-EndUser-API: {"sharedName":"abc1234567"} — test header-based param delivery
+[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/ abc1234567 — test shared link embed variant
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 
