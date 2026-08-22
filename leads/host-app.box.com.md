@@ -984,3 +984,4 @@ testability: PASSIVE
 [PARKED] notes.services.box.com: Express app with CSRF, no CORS on any endpoint. Properly secured.
 [PARKED] upload.box.com: nginx, all paths 404. No CORS headers.
 [NEXT] Attempt to find `accounts.account.box.com` unique paths that may serve the login SPA (potentially with different Box.config than the enduserapp SPA) — e.g., GET https://accounts.account.box.com/account/recover with Origin: https://evil.com — check if new login-origin SPA has different embedded data than the standard enduserapp SPA.
+## 2026-08-22 01:57:13 UTC app.box.com (mimo)

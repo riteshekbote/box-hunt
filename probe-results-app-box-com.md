@@ -267,3 +267,10 @@ https://cloud.app.box.com/app-api/enduserapp/config -> HTTP 404
 https://accounts.app.box.com/ -> 206
 https://app.box.com/api/oauth2/authorize?response_type=code&client_id=invalid&redirect_uri=https://evil.com/callback -> 206
 https://app.box.com/api/oauth2/authorize?response_type=token&redirect_uri=https://evil.com/callback&client_id=test -> 206
+
+## 2026-08-22 01:57:25 UTC app.box.com
+https://accounts.app.box.com/auth -> HTTP 404
+https://accounts.app.box.com/sso -> HTTP 404
+https://accounts.app.box.com/ -> 206
+https://accounts.app.box.com/login -> 206
+https://accounts.app.box.com/api/oauth2/authorize?response_type=code -> 206
