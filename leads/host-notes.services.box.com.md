@@ -1220,3 +1220,25 @@ testability: PASSIVE
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/oauth2/token with Origin: null — confirm null-origin is reflected on token endpoint (already confirmed evil.com gets 200 with no CORS)
 [NEXT] VERIFY: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with additional query params (limit, fields, offset) — enumerate parameter acceptance
 [NEXT] VERIFY: OPTIONS https://cloud.app.box.com/app-api/enduserapp/shared-item with Origin: evil.com — check if this endpoint has CORS headers on OPTIONS
+## 2026-08-22 04:08:47 UTC notes.services.box.com (mimo)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/* (all POST collection endpoints)
+confidence: 70
+reasoning: |
+verify_steps: |
+impact: If cookie-auth: attacker can create collaborations (share victim's files with attacker),
+testability: AUTH_HELPED
+class: OTHER
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 80
+reasoning: |
+verify_steps: |
+impact: Information disclosure. SDK keys are client-side by design, but internal hosts,
+testability: PASSIVE
+class: AUTH
+asset: cloud.app.box.com/app-api/enduserapp/shared-item
+confidence: 30
+reasoning: |
+verify_steps: |
+impact: If parameter format is guessable/brute-forceable: unauthenticated access to shared
+testability: PASSIVE

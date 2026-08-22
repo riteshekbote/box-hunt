@@ -35,42 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 02:51:34 UTC"
+  "last_advance": "2026-08-22 03:34:03 UTC"
 }=== MY LAST LEADS (tail) ===
-[LEARN] ACCEPTED notes.services.box.com rate-limiting: None observed — 5 rapid-fire handshakes all returned 200 within 1s
-[LEARN] ACCEPTED notes.services.box.com Express CSRF: csrf-token cookie is NOT HttpOnly (JS-readable), Path=/, NO Domain attribute → scoped to notes.services.box.com only. _csrf is HttpOnly. Neither is exploitable cross-origin.
-[LEARN] ACCEPTED notes.services.box.com x-frame-options: ALLOW-FROM https://app.box.com on all Express responses — confirms embedded-iframe history, but with only 404s there's nothing to frame
-[LEARN] ACCEPTED upload.box.com CORS events/search: Confirmed POST-only CORS with Origin reflection + credentials on /api/2.0/events and /api/2.0/search. GET/PUT/DELETE return no CORS headers.
-[LEARN] ACCEPTED upload.box.com POST response CORS: The actual POST response body does NOT carry CORS headers — JS can trigger the upload but cannot read the response
-[LEARN] ACCEPTED upload.box.com standalone CSRF: Server rejects without Bearer token (no cookie fallback). Cross-origin attacker page can trigger uploads but cannot authenticate them without prior token theft.
-[LEARN] ACCEPTED cloud.app.box.com current-user disclosure: Unauthenticated GET returns full config JSON including Amplitude API key (c6eb3d709c5c30ca80c0381080bcc254), Split.io SDK key (3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a), feature flags (100+), internal endpoints, SDK config. Both keys are client-side SDK keys — designed to be public, not exploitable.
-[LEARN] ACCEPTED cloud.app.box.com CORS on current-user: Wildcard `*` without credentials — cross-origin JS can read the response, but no cookies are sent. Information disclosure only, no auth escalation.
-[LEARN] ACCEPTED notes.app.box.com: Valid subdomain, 302 → app.box.com. Shares `.app.box.com` session cookie domain with cloud.app.box.com.
-[LEARN] REJECTED Split.io key exploit: The leaked SDK key returns 400/403 from Split.io APIs — it's a client-side key, not an admin key
-[LEARN] REJECTED notes.services.box.com Socket.IO path-namespaces: Both `/socket.io/` and `/socket.io/notes/` return identical handshakes — no namespace isolation
-[PARKED] notes.services.box.com — Socket.IO session hijacking: Dead endpoint. Sessions aren't sticky behind envoy LB. No client can ever complete handshake+connect cycle. Not exploitable.
-[PARKED] notes.services.box.com — All Express routes: Every path returns 404. Only the Socket.IO endpoint is alive. Service has been consolidated to services.app.box.com/app.box.com.
-[PARKED] cloud.app.box.com — current-user SDK key disclosure: Keys are client-side by design (Amplitude ingest, Split.io browser SDK). No admin/data access possible. Information disclosure only — not a security vulnerability.
-[HYP] upload.box.com — CORS Origin Reflection + Credentials on POST Collection Endpoints (Full Scope Confirmation)
-class: MISCONFIG
-asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, search, shared_items}
-confidence: 95
-reasoning: |
-[HYP] upload.box.com — CORS Origin Reflection + Credentials on POST Collection Endpoints (Full Scope Confirmation)
-class: MISCONFIG
-asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, search, shared_items, oauth2/token}
-confidence: 95
-reasoning: |
-verify_steps: |
-impact: |
-testability: AUTH_HELPED
-[PARKED] upload.box.com — oauth2/token endpoint real handler: Returns 415 on all POST content types tested. May be a catch-all route without real OAuth handler. Needs AUTH_HELPED test with valid authorization code to confirm.
-[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/zip-downloads with Origin: evil.com, Method: POST — test if batch/download endpoints also have CORS
-[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST — test nested resource endpoints
-[NEXT] VERIFY: GET https://upload.box.com/api/2.0/users/me with Origin: evil.com — confirm GET requests to user endpoints also lack CORS headers (defense-in-depth)
-## 2026-08-22 02:51:34 UTC notes.services.box.com (mimo)
-class: MISCONFIG
-asset: upload.box.com/api/2.0/*
 confidence: 95
 reasoning: |
 evidence: |
@@ -97,14 +63,41 @@ testability: AUTH_HELPED
 [NEXT] VERIFY: GET https://upload.box.com/api/2.0/files/upload_session with Origin: evil.com -> confirm GET still returns no CORS even on upload-specific endpoints
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/users/me with Origin: evil.com, Method: POST -> test if user-specific endpoints also get POST CORS (even though GET doesn't)
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST -> test nested resource endpoints
+## 2026-08-22 03:34:03 UTC notes.services.box.com (mimo)
+[LEARN] ACCEPTED upload.box.com CORS full-scope: OPTIONS preflight reflects arbitrary Origin + credentials + Authorization on ALL tested POST collection endpoints (24+ endpoints including folders, files, events, search, collaborations, tasks, comments, groups, shared_items, webhooks, collections, memberships, skills, ai, retention_policies, metadata, watermarking, legal_holds, shield, integrations, zip-downloads, tasks/{id}/assignments, users, files/content, upload_session). CRITICAL NUANCE: actual GET/POST responses carry NO CORS headers. Only OPTIONS preflight does.
+[LEARN] REJECTED cloud.app.box.com CORS data-exfil: `api/2.0/*` OPTIONS returns `Access-Control-Allow-Origin: *` (wildcard, no credentials) but actual GET/POST responses carry ZERO CORS headers. Cross-origin JS cannot read any API response body.
+[LEARN] REJECTED cloud.app.box.com current-user CORS upgrade: GET with `Origin: evil.com` returns 200 with JSON but NO `access-control-allow-origin` header. Earlier cycle's assessment that "cross-origin JS can read the response" was based on OPTIONS headers only, not actual response headers. This was an incorrect prior assessment.
+[NEW] cloud.app.box.com/app-api/enduserapp/shared-item: Alive endpoint, returns `{"status":400,"errorCode":"expectedParamError"}` for all tested `shared_link` param variants. Needs valid shared-link token format.
+[NEW] cloud.app.box.com/app-api/enduserapp/favorites: Alive endpoint, returns 401 sessionExpired with session cookie setup (z= cookie on .app.box.com, HttpOnly+Secure+SameSite=None).
+[NEW] cloud.app.box.com/app-api/enduserapp/trash: Alive endpoint, same 401 behavior as favorites.
+[NEW] cloud.app.box.com/graphql: Real GraphQL endpoint, currently returning 503 Service Unavailable with Box-format error JSON.
+[NEW] cloud.app.box.com/internal/api: Returns HTTP 512 (non-standard) with empty body. Likely reverse-proxy error for an internal service.
+[HYP] upload.box.com — CORS Origin Reflection on ALL POST Collection Endpoints (revised impact)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/* (all POST collection endpoints)
+confidence: 95
+reasoning: |
+verify_steps: |
+impact: If attacker has stolen Bearer token: blind CSRF on any Box API write endpoint (create files, collaborations, tasks, delete resources). Cannot read responses. Severity: MEDIUM (requires prior token theft + no data exfiltration).
+testability: AUTH_HELPED
+[HYP] cloud.app.box.com — shared-item Parameter Enumeration / Access Control Bypass
+class: AUTH
+asset: cloud.app.box.com/app-api/enduserapp/shared-item
+confidence: 40
+reasoning: |
+verify_steps: |
+impact: If parameter format is guessable/brute-forceable: unauthenticated access to shared file metadata or content. Severity: HIGH if exploitable, LOW if tokens are long/unguessable.
+testability: PASSIVE
+[PARKED] upload.box.com — oauth2/token CORS: OPTIONS returns 200 but NO CORS headers (no ACAO header). Endpoint is clean — not affected by the CORS misconfiguration.
+[PARKED] cloud.app.box.com/api/2.0/* wildcard CORS: OPTIONS returns `ACAO: *` without credentials. But actual responses carry NO CORS headers. Same limitation as upload.box.com — cross-origin JS cannot read response bodies. Not exploitable for data theft.
+[PARKED] cloud.app.box.com/current-user SDK key disclosure: Keys are client-side by design (Amplitude ingest, Split.io browser SDK). No admin/data access. Information disclosure only.
+[PARKED] cloud.app.box.com/graphql: Returns 503 Service Unavailable. Temporarily down — cannot test further.
+[PARKED] cloud.app.box.com/internal/api: Returns 512 (non-standard). Empty body. Likely reverse-proxy error for decommissioned or internal-only service.
+[NEXT] VERIFY: GET https://upload.box.com/api/2.0/events?stream_type=admin with Origin: evil.com — test if event-stream endpoints have different CORS behavior on GET responses
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/oauth2/token with Origin: null — confirm null-origin is reflected on token endpoint (already confirmed evil.com gets 200 with no CORS)
+[NEXT] VERIFY: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with additional query params (limit, fields, offset) — enumerate parameter acceptance
+[NEXT] VERIFY: OPTIONS https://cloud.app.box.com/app-api/enduserapp/shared-item with Origin: evil.com — check if this endpoint has CORS headers on OPTIONS
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 22:56:13 UTC
-- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: AUTH_HELPED
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 03:52:20 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 23:55:24 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-22 03:04:04 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 03:52:20 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
