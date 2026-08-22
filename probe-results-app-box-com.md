@@ -274,3 +274,17 @@ https://accounts.app.box.com/sso -> HTTP 404
 https://accounts.app.box.com/ -> 206
 https://accounts.app.box.com/login -> 206
 https://accounts.app.box.com/api/oauth2/authorize?response_type=code -> 206
+
+## 2026-08-22 02:51:03 UTC app.box.com
+https://app.box.com/logout -> 206
+https://app.box.com/ -> 206
+https://app.box.com/api/oauth2/authorize?response_type=code&client_id=test -> 206
+https://app.box.com/api/2.0/events -> HTTP 401
+https://app.box.com/api/oauth2/authorize -> 206
+https://app.box.com/api/2.0/collections -> HTTP 401
+https://app.box.com/api/oauth2/revoke -> HTTP 400
+https://app.box.com/api/2.0/users/me -> HTTP 401
+https://app.box.com/api/2.0/enterprise/audit_logs -> HTTP 401
+https://app.box.com/api/2.0/metadata_templates -> HTTP 401
+https://app.box.com/login?redirect_url=https://evil.com -> 206
+https://app.box.com/api/2.0/skills -> HTTP 401
