@@ -1,23 +1,24 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-I can help analyze these findings and suggest analytical next steps. Let me review what you've discovered.
-
-## Analysis of Current Findings
-
-**Confirmed findings:**
-1. **Unauthenticated config disclosure** at `cloud.app.box.com/app-api/enduserapp/current-user` — exposes Split.io API key, Amplitude API key, and 100+ feature flags without authentication
-2. **CORS preflight/response mismatch** on `/app-api/*` — OPTIONS returns `ACAO:*` but GET responses have no CORS headers
-3. **Unauthenticated version manifest** at `/app-api/enduserapp/app-version` — 24 modules with exact versions and CDN paths
-
-**Key observations:**
-- All `/app-api/*` endpoints appear to be served from a CDN layer that adds wildcard CORS on OPTIONS but doesn't propagate CORS headers on actual GET responses
-- Some endpoints are auth-gated (folder/0, shared_link_api/preview) while others are not (current-user, app-version)
-- The Split.io and Amplitude keys are informational — they don't directly grant access to user data
-
-**Analytical next questions:**
-1. Are the API keys (Split.io, Amplitude) scoped or restricted in any way?
-2. Can the feature flags reveal security-sensitive configurations (e.g., admin features, beta access controls)?
-3. Are there other `/app-api/` namespaces beyond `enduserapp` that might expose different data?
-
-Would you like me to help you think through what additional reconnaissance would be most valuable, or analyze any specific aspect of these findings in more depth?
+[LEARN] CONFIRMED MISCONFIG @ cloud.app.box.com/app-api/*: CORS wildcard preflight on ALL /app-api/ endpoints, but NO CORS headers on any GET responses — CDN/origin mismatch confirmed across entire namespace
+[LEARN] CONFIRMED MISCONFIG @ dl.boxcloud.com/api/2.0/folders/0: Returns 404 — folder listing endpoint doesn't exist on the download proxy
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/enduserapp/app-version: Unauthenticated 200 with full micro-frontend version manifest — 24 remote modules with exact versions, CDN paths, and build hashes
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/app-api/shared_link_api/preview: Returns 401 — auth-gated endpoint, not accessible unauthenticated
+[CONFIRMED] cloud.app.box.com /app-api/enduserapp/current-user unauthenticated config disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 90
+reasoning: GET without auth returns 200 with Split.io API key, Amplitude API key, and 100+ feature flags. The endpoint is designed to serve the current user's config but returns full infrastructure disclosure even without authentication.
+verify_steps: Already confirmed via curl — response contains splitIOAPIKey and amplitudeAPIKey fields
+impact: Low-Medium — Split.io key enables feature flag targeting rule enumeration, Amplitude key enables fake analytics events. Both are information disclosure only.
+testability: PASSIVE
+[HYP] Unauthenticated micro-frontend version manifest enables targeted dependency exploitation
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/app-version
+confidence: 75
+reasoning: GET without auth returns 200 with 24 remote modules including exact version strings, CDN paths, and build hashes. An attacker can identify known vulnerabilities in specific dependency versions (e.g., React, webpack, custom Box modules).
+verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.box.com/app-api/enduserapp/app-version — confirm response contains remoteModules array with versions
+impact: Low — information disclosure of internal build metadata and dependency versions, enabling targeted reconnaissance against known CVEs
+testability: PASSIVE
+[NEXT] PROBE: Explore cloud.app.box.com embed and preview paths for additional unauthenticated data leakage. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/embed/preview?file_id=1 — test for file preview metadata endpoint (2) cloud.app.box.com/app-api/enduserapp/user-avatar?user_id=0 — test for user avatar/profile endpoint (3) cloud.app.box.com/app-api/enduserapp/quota — test for storage quota endpoint

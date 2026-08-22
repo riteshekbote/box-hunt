@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 02:47:52 UTC"
 }=== MY LAST LEADS (tail) ===
-[LEARN] CONFIRMED OTHER @ cloud.app.box.com: /embed/* response includes server-constructed message JSON with `action: "retrieveEmbedStateResult"` containing 80+ feature flags and embed context. User input only in url/displayedURL/originalURL fields, all URL-encoded.
 [LEARN] CONFIRMED OTHER @ cloud.account.box.com/login: Strong security headers (X-Frame-Options: SAMEORIGIN, referrer-policy: no-referrer, x-xss-protection: 0). No open redirect on redirect_url parameter.
 [NEXT] PROBE: Test if dl.boxcloud.com returns ACAO:* on successful (token-bearing) file download responses, and explore cloud.app.box.com /app-api/ for additional version/header leaks. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) dl.boxcloud.com/api/2.0/folders/0 — test folder listing CORS (2) cloud.app.box.com/app-api/enduserapp/app-version — test for version endpoint (3) cloud.app.box.com/webapp/_rightsidebar — test for sidebar API endpoint with different response format
 ## 2026-08-22 00:27:45 UTC api.box.com (mimo)
@@ -97,14 +96,8 @@ verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.bo
 impact: Low — information disclosure of internal build metadata and dependency versions, enabling targeted reconnaissance against known CVEs
 testability: PASSIVE
 [NEXT] PROBE: Explore cloud.app.box.com embed and preview paths for additional unauthenticated data leakage. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/embed/preview?file_id=1 — test for file preview metadata endpoint (2) cloud.app.box.com/app-api/enduserapp/user-avatar?user_id=0 — test for user avatar/profile endpoint (3) cloud.app.box.com/app-api/enduserapp/quota — test for storage quota endpoint
+## 2026-08-22 03:27:52 UTC api.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 22:56:13 UTC
-- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 03:52:20 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 23:55:24 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-22 03:04:04 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 03:52:20 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
