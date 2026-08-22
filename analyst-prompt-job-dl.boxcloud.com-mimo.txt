@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 04:48:21 UTC"
 }=== MY LAST LEADS (tail) ===
-[PARKED] cloud.app.box.com embed `callback` parameter reflection: `callback=alert(1)` reflects into `prefetchedData.url` as `https://cloud.app.box.com/shared/abc?callback=alert(1)&is_embed_widget=true`. Not executed as JavaScript (loaded as iframe src, not eval'd). LOW impact — no XSS via this vector.
 [PARKED] cloud.app.box.com embed `state` parameter reflection: `state=malicious_value_123` reflects into `prefetchedData.url` and `embed.originalLocation`. Could be used for OAuth state manipulation if embedded in auth flow. LOW impact — requires valid shared link token + auth flow trigger.
 [PARKED] cloud.app.box.com embed external URL injection: Tested `redirect_uri=javascript:alert(1)` — returns 200 but the URL field shows `https://cloud.app.box.com/shared/abc?redirect_uri=javascript:alert(1)&is_embed_widget=true`. The server prepends `https://` base URL, so `javascript:` protocol is not directly injectable into the URL field. However, the `redirect_uri` value itself is still reflected as a query parameter value.
 [NEXT] PROBE: GET https://app.box.com/embed/shared/abc?redirect_uri=javascript:alert(1) — test if app.box.com also prepends https:// base URL
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-22 11:09:54 UTC dl.boxcloud.com (mimo)
 ## 2026-08-22 11:32:32 UTC dl.boxcloud.com (mimo)
 ## 2026-08-22 11:49:38 UTC dl.boxcloud.com (mimo)
+## 2026-08-22 12:01:09 UTC dl.boxcloud.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 
 ## RANKED 2026-08-22 09:55:15 UTC
