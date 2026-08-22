@@ -23,7 +23,7 @@ jobs:
       matrix:
         host: [api.box.com, app.box.com, account.box.com, upload.box.com, dl.boxcloud.com, notes.services.box.com, m.box.com, cloud.app.box.com]
         model:
-          - { id: opencode/mimo-v2.5-free, name: mimo }
+          - { id: opencode-go/ox-alpha-free, name: mimo }
 
     env:
       HOST: ${{ matrix.host }}
@@ -93,6 +93,12 @@ jobs:
           cat "ctx-${J}.txt" > "analyst-prompt-${J}.txt"
           cat >> "analyst-prompt-${J}.txt" << 'PROMPT_EOF'
           You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
+          MAX MODE (ox-alpha-free 1M ctx): dig DEEPER + FASTER. Directives:
+          - Hunt HIGH-VALUE classes first: broken auth/session handling, IDOR/BOLA, SSRF-to-cloud-metadata (169.254.169.254), mass assignment, JWT alg/key confusion, OAuth redirect_uri/state flaws, business logic on money/auth flows, file upload, GraphQL introspection+mutations.
+          - CHAIN primitives aggressively: open redirect -> OAuth code theft -> ATO; XSS -> session theft -> ATO; IDOR -> cross-tenant PII dump; SSRF -> metadata -> keys. One chained lead beats ten weak ones.
+          - Request-level reasoning only: exact METHOD path + params + headers + body, expected vs actual status codes. No prose filler, no restating context.
+          - Breadth pass over the FULL inventory for anomalies (odd status codes, interesting param names like id/uid/email/user_id, versioned APIs /api/v1|v2|beta|internal, debug/test flags, swagger/openapi/json exposure), then depth on top-3 anomalies this cycle.
+          - If a hypothesis needs live confirmation you cannot do passively, emit [NEXT] PROBE with the EXACT read-only request so the next cycle executes it immediately.
           (mapped from APP_ORIGIN). Session rules:
           1. ONLY read-only HTTP (GET/HEAD/OPTIONS); never any write.
           2. NEVER touch signrequest/sr-staging-1 or any host outside scope.txt (honeypot warning in scope.txt).
