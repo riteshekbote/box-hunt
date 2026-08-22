@@ -59,3 +59,9 @@ https://upload.box.com/api/2.0/tasks -> HTTP 404
 
 ## 2026-08-21 23:54:31 UTC upload.box.com
 https://upload.box.com/api/2.0/files/content -> HTTP 404
+
+## 2026-08-22 00:28:18 UTC upload.box.com
+https://upload.box.com/api/2.0/files -> HTTP 404
+https://upload.box.com${path -> ERR <urlopen error [Errno -2] Name or service not known>
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com${ver -> ERR <urlopen error [Errno -2] Name or service not known>
