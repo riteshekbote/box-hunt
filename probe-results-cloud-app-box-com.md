@@ -219,3 +219,17 @@ https://cloud.app.box.com/api/2.0/internal/events -> HTTP 401
 https://cloud.app.box.com/api/2.0/internal/search -> HTTP 401
 https://cloud.app.box.com/api/2.0/internal/webhooks -> HTTP 401
 https://cloud.app.box.com/api/2.0/internal/collaborations -> HTTP 401
+
+## 2026-08-22 01:57:39 UTC cloud.app.box.com
+https://cloud.app.box.com/app-api/enduserapp/current-user -> 200
+https://cloud.app.box.com/app-api/enduserapp/shared-item -> HTTP 400
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/app-api/ -> HTTP 401
+https://cloud.app.box.com/app-api/enduserapp/ -> HTTP 404
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/app-api/2.0/ -> HTTP 401
+https://cloud.app.box.com/app-api/internal/ -> HTTP 401
+https://cloud.app.box.com/app-api/2.0/files -> HTTP 401
+https://cloud.app.box.com/app-api/internal/folders/0 -> HTTP 401
+https://cloud.app.box.com/app-api/2.0/users/me -> HTTP 401
+https://cloud.app.box.com/app-api/2.0/files/content -> HTTP 401

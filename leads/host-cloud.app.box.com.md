@@ -1121,3 +1121,22 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ account.box.com/login: Origin reflection without credentials flag. Severity: Low.
 [LEARN] ATTACK CHAIN: app.box.com XSS (any subdomain) → steal Bearer token from Authorization header → app.box.com/api/2.0/internal/* wildcard CORS → full cross-origin API access with response reading → complete account compromise including file access, sharing, admin functions. Severity chain: Medium (requires XSS).
 ## 2026-08-22 00:27:56 UTC cloud.app.box.com (mimo)
+## 2026-08-22 01:57:14 UTC cloud.app.box.com (mimo)
+[CONFIRMED] app.box.com/api/2.0/internal/* — universal wildcard CORS BFF
+class: MISCONFIG
+asset: app.box.com/api/2.0/internal/*
+confidence: 95
+reasoning: All tested endpoints (folders/0, users/me, events, groups, devices, 
+verify_steps: curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0"
+impact: XSS on any *.box.com domain → steal Bearer token → full cross-origin API 
+testability: AUTH_HELPED
+[NEW] cloud.app.box.com/app-api/* — wildcard CORS preflight but no actual CORS
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/*
+confidence: 60
+reasoning: OPTIONS returns access-control-allow-origin: * with all methods and 
+verify_steps: curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H 
+impact: Defense-in-depth gap. Attacker can send cross-origin credentialed requests 
+testability: PASSIVE
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: Wildcard CORS preflight 
+[LEARN] ATTACK CHAIN CONFIRMED: app.box.com XSS → Bearer token theft → 
