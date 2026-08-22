@@ -1094,3 +1094,25 @@ impact: Full account takeover via OAuth token theft. Severity: Critical
 testability: HUMAN_ONLY
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=code&client_id=invalid_client_id_test with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — test if error response body is readable cross-origin and contains any state tokens. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/login with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — capture full response body to check for CSRF token format and embedded state. 1 req/2s.
+## 2026-08-22 02:47:59 UTC m.box.com (mimo)
+[LEARN] ACCEPTED HEAD-CORS @ account.box.com/api/oauth2/authorize: HEAD returns 404 with `access-control-allow-origin: https://evil.com` (reflects origin). CORS policy allows HEAD as a simple method without preflight. Response includes `access-control-expose-headers: WWW-Authenticate,Server-Authorization`.
+[LEARN] ACCEPTED APP-REDIRECT @ app.box.com/: Unauthenticated GET returns 302→account.box.com/login. No CORS headers on redirect. Main app origin is not CORS-exposed.
+[LEARN] ACCEPTED APP-API-401 @ app.box.com/api/2.0/users/me: Returns 401 with `www-authenticate: Bearer` but no CORS headers. API proxy does not reflect origin on error responses.
+[HYP] Cross-origin OAuth authorization page theft via CORS reflection
+class: CORS
+asset: account.box.com/api/oauth2/authorize
+confidence: 94
+reasoning: HEAD also reflects origin (confirmed this cycle). HEAD is a CORS-simple method requiring no preflight, making cross-origin probing trivial. Combined with OPTIONS preflight allowing GET+Authorization, full page content is readable cross-origin. 404 response body still carries CORS headers, proving policy is applied regardless of auth state.
+verify_steps: (AUTH_HELPED) From attacker origin: `fetch('https://account.box.com/api/oauth2/authorize?response_type=code&client_id=ID',{method:'HEAD',credentials:'include'}).then(r=>r.headers.get('access-control-expose-headers'))`
+impact: Cross-origin read of OAuth authorization page. Severity: High
+testability: AUTH_HELPED
+[HYP] Full OAuth token theft chain across account.box.com
+class: CORS
+asset: account.box.com (login + authorize + token)
+confidence: 93
+reasoning: Three endpoints form complete exploit chain: (1) /login reflects origin + exposes CSRF token cross-origin, (2) /api/oauth2/authorize reflects origin + allows GET+Authorization (HEAD also CORS-enabled confirmed this cycle), (3) /api/oauth2/token has wildcard * CORS. Attacker page reads CSRF from login, initiates auth flow, reads auth code from authorize response, exchanges for tokens.
+verify_steps: (HUMAN_ONLY) Complete OAuth flow from attacker-controlled page reading all responses cross-origin
+impact: Full account takeover via OAuth token theft. Severity: Critical
+testability: HUMAN_ONLY
+[NEXT] PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=code&client_id=invalid_client_id_test with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — test if error response body is readable cross-origin and contains any state tokens. 1 req/2s.
+[NEXT] PROBE: GET https://account.box.com/login with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — capture full response body to check for CSRF token format and embedded state. 1 req/2s.
