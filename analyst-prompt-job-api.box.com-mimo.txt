@@ -35,18 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 00:27:45 UTC"
+  "last_advance": "2026-08-22 01:57:09 UTC"
 }=== MY LAST LEADS (tail) ===
-impact: Medium — if client-side decoding enables XSS, attacker could execute JS in embed context (limited by CSP/same-origin)
-testability: PASSIVE
-[PARKED] cloud.app.box.com /representation path: 404 with x-robots-tag: noindex — listed in robots.txt Allow but returns empty; likely requires query params or specific file IDs
-[PARKED] cloud.app.box.com /simpleshare HTTP downgrade: 301 to http://sites.box.com — HTTP downgrade is a low-severity finding on an external subdomain not in scope
-[PARKED] cloud.account.box.com login redirect: redirect_url parameter is server-controlled (not reflected from user input) — no open redirect vector found in read-only testing
-[LEARN] CONFIRMED MISCONFIG @ cloud.app.box.com: OPTIONS returns ACAO:* with all methods on all paths, but GET responses never include CORS headers — CDN/origin mismatch confirmed
-[LEARN] CONFIRMED OTHER @ cloud.app.box.com /embed/*: User input is URL-encoded in JSON context, not raw — no direct XSS via HTML injection; DOM XSS depends on client-side handling
-[LEARN] ACCEPTED OTHER @ cloud.app.box.com /folder/0, /file/1, /collections: 302 redirect to cloud.account.box.com/login — redirect_url is server-controlled, no user input reflection
-[NEXT] PROBE: Read embed.js client-side code to test DOM XSS hypothesis. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — check for URL decoding and DOM insertion of prefetchedData (2) cloud.app.box.com/embed/test-token — re-confirm linkedRequestId uniqueness (3) cloud.app.box.com/representation/0 — test if /representation is a file preview path that needs a file ID
-## 2026-08-21 23:57:01 UTC api.box.com (mimo)
 [CONFIRMED] cloud.app.box.com CORS preflight/response mismatch
 class: MISCONFIG
 asset: cloud.app.box.com (all paths)
@@ -97,6 +87,16 @@ testability: PASSIVE
 [LEARN] ACCEPTED OTHER @ cloud.app.box.com /app-api/enduserapp/folder/0: Returns 401 — auth-gated endpoint, different from current-user/app-version which are unauthenticated
 [LEARN] CONFIRMED OTHER @ cloud.app.box.com /app-api/enduserapp/config,features,experiments,search,notifications,preferences,metadata,enterprise,split-proxy: All return 404 — only app-version and current-user are live unauthenticated endpoints in this namespace
 [NEXT] PROBE: Explore additional /app-api/ sub-namespaces and cloud.app.box.com edge paths for more unauthenticated data. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/app-api/enduserapp/branding — test for white-label theme config (2) cloud.app.box.com/app-api/enduserapp/available-locales — test for i18n config (3) cloud.app.box.com/app-api/shared_link_api/preview — test if shared-link preview API is accessible unauthenticated
+## 2026-08-22 01:57:07 UTC api.box.com (mimo)
+[NEW] cloud.app.box.com/app-api/shared_link_api/preview: 401 (auth required) — path exists but is auth-gated
+[HYP] Unauthenticated Split.io API key enables feature flag targeting rule enumeration
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 85
+reasoning: GET without auth returns 200 with full Split.io API key and 70+ feature flags. Split.io SDK keys can query targeting rules server-side to enumerate A/B test configurations and user segments.
+verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.box.com/app-api/enduserapp/current-user — confirm splitIOAPIKey field
+impact: Low-Medium — information disclosure of internal experiment configurations and feature flag targeting rules
+testability: PASSIVE
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
 

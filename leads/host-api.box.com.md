@@ -984,3 +984,25 @@ reasoning: GET without auth returns 200 with full Split.io API key and 70+ featu
 verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.box.com/app-api/enduserapp/current-user — confirm splitIOAPIKey field
 impact: Low-Medium — information disclosure of internal experiment configurations and feature flag targeting rules
 testability: PASSIVE
+## 2026-08-22 02:47:52 UTC api.box.com (mimo)
+[LEARN] CONFIRMED MISCONFIG @ cloud.app.box.com/app-api/*: CORS wildcard preflight on ALL /app-api/ endpoints, but NO CORS headers on any GET responses — CDN/origin mismatch confirmed across entire namespace
+[LEARN] CONFIRMED MISCONFIG @ dl.boxcloud.com/api/2.0/folders/0: Returns 404 — folder listing endpoint doesn't exist on the download proxy
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/enduserapp/app-version: Unauthenticated 200 with full micro-frontend version manifest — 24 remote modules with exact versions, CDN paths, and build hashes
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com/app-api/shared_link_api/preview: Returns 401 — auth-gated endpoint, not accessible unauthenticated
+[CONFIRMED] cloud.app.box.com /app-api/enduserapp/current-user unauthenticated config disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 90
+reasoning: GET without auth returns 200 with Split.io API key, Amplitude API key, and 100+ feature flags. The endpoint is designed to serve the current user's config but returns full infrastructure disclosure even without authentication.
+verify_steps: Already confirmed via curl — response contains splitIOAPIKey and amplitudeAPIKey fields
+impact: Low-Medium — Split.io key enables feature flag targeting rule enumeration, Amplitude key enables fake analytics events. Both are information disclosure only.
+testability: PASSIVE
+[HYP] Unauthenticated micro-frontend version manifest enables targeted dependency exploitation
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/app-version
+confidence: 75
+reasoning: GET without auth returns 200 with 24 remote modules including exact version strings, CDN paths, and build hashes. An attacker can identify known vulnerabilities in specific dependency versions (e.g., React, webpack, custom Box modules).
+verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.box.com/app-api/enduserapp/app-version — confirm response contains remoteModules array with versions
+impact: Low — information disclosure of internal build metadata and dependency versions, enabling targeted reconnaissance against known CVEs
+testability: PASSIVE
+[NEXT] PROBE: Explore cloud.app.box.com embed and preview paths for additional unauthenticated data leakage. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/embed/preview?file_id=1 — test for file preview metadata endpoint (2) cloud.app.box.com/app-api/enduserapp/user-avatar?user_id=0 — test for user avatar/profile endpoint (3) cloud.app.box.com/app-api/enduserapp/quota — test for storage quota endpoint
