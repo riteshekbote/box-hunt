@@ -1351,3 +1351,24 @@ testability: AUTH_HELPED
 [NEXT] PROBE: GET https://account.box.com/api/oauth2/authorize?response_type=token&client_id=test&redirect_uri=https://evil.com with Origin: https://evil.com — test if implicit flow endpoint also reflects CORS and if it issues tokens via fragment redirect. Record status + Location header + CORS. 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/api/v1.0/users/me with Origin: https://evil.com — test older API version CORS behavior. Then OPTIONS. 1 req/2s, first 4xx/429/403 → stop account.box.com.
 [NEXT] PROBE: GET https://cloud.app.box.com/_assets/conf/ with User-Agent: box-research/1.0 (research) — test if config directory is listed. Record status. Then GET /_assets/conf/assetsGenerated.json and GET /_assets/conf/assets-amsterdam.yml. 1 req/2s.
+## 2026-08-22 00:28:55 UTC account.box.com (mimo)
+class: OATH
+asset: account.box.com/api/oauth2/authorize
+confidence: 92
+reasoning: >
+verify_steps: >
+impact: >
+testability: AUTH_HELPED (full PII impact requires authenticated session; API keys + config leak without auth)
+class: OATH
+asset: account.box.com/api/oauth2/token
+confidence: 80
+reasoning: OPTIONS + GET both return access-control-allow-origin: * with vary: Origin.
+verify_steps: Already verified. No re-probe needed.
+impact: Token theft if auth code obtainable. Combined with reflected CORS on /authorize,
+testability: AUTH_HELPED
+class: OATH
+asset: app.box.com/api/oauth2/authorize, account.box.com/api/oauth2/authorize
+confidence: 92
+reasoning: >
+impact: >
+testability: AUTH_HELPED
