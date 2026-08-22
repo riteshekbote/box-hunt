@@ -1,4 +1,3 @@
-[LEARN] ACCEPTED WAF-GIT @ upload.box.com: `.git/config` and `.git/HEAD` both return 403. WAF blocks git metadata access. upload.box.com surface is fully exhausted (all paths 403/404).
 [CONFIRMED] CORS-PREFLIGHT-AUTH @ account.box.com/api/oauth2/authorize: OPTIONS preflight returns `access-control-allow-origin: https://evil.com` (reflects origin), `access-control-allow-methods: GET`, `access-control-allow-headers: Accept,Authorization,Content-Type,If-None-Match`. Cross-origin JS is authorized by preflight to send GET requests with Authorization header to this endpoint.
 [LEARN] ACCEPTED TOKEN-400 @ account.box.com/api/oauth2/token: GET without parameters returns 400 JSON `{"error":"invalid_request"}`. Endpoint expects POST with grant_type. No CORS headers on error response (POST-only).
 [LEARN] ACCEPTED DL-PROXY @ dl.boxcloud.com: Self-identifies as "download-proxy service". No API surface at `/api/2.0/files/content`. Returns 404 HTML.
@@ -18,5 +17,5 @@ reasoning: Three endpoints form complete exploit chain: (1) /login reflects orig
 verify_steps: (HUMAN_ONLY) Complete OAuth flow from attacker-controlled page reading all responses cross-origin
 impact: Full account takeover via OAuth token theft. Severity: Critical
 testability: HUMAN_ONLY
-[NEXT] PROBE: GET https://app.box.com/ with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — check if the main app origin has any CORS headers on unauthenticated pages. 1 req/2s.
 [NEXT] PROBE: HEAD https://account.box.com/api/oauth2/authorize with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — test if HEAD method is also allowed by CORS policy. Record all headers. 1 req/2s.
+[NEXT] PROBE: GET https://app.box.com/ with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — check if the main app origin has any CORS headers on unauthenticated pages. 1 req/2s.
