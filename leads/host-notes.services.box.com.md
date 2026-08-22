@@ -1274,3 +1274,4 @@ testability: PASSIVE
 [NEXT] VERIFY: GET https://upload.box.com/api/2.0/files/upload_session with Origin: evil.com -> confirm GET still returns no CORS even on upload-specific endpoints
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/users/me with Origin: evil.com, Method: POST -> test if user-specific endpoints also get POST CORS (even though GET doesn't)
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST -> test nested resource endpoints
+## 2026-08-22 05:00:26 UTC notes.services.box.com (mimo)
