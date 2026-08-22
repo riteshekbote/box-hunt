@@ -1164,3 +1164,4 @@ impact: Cross-origin POST to login endpoint enables session fixation / CSRF bypa
 testability: PASSIVE
 ## 2026-08-22 05:00:24 UTC m.box.com (mimo)
 ## 2026-08-22 05:04:28 UTC m.box.com (mimo)
+## 2026-08-22 05:35:58 UTC m.box.com (mimo)
