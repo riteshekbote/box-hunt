@@ -239,3 +239,17 @@ https://cloud.app.box.com/api/oauth2/authorize?response_type=code&redirect_uri=h
 
 ## 2026-08-21 23:36:07 UTC app.box.com
 https://app.box.com/api/2.0/me -> HTTP 401
+
+## 2026-08-22 00:02:14 UTC app.box.com
+https://app.box.com/api/2.0/folders/0 -> HTTP 401
+https://app.box.com/api/2.0/me -> HTTP 401
+https://app.box.com/api/2.0/events -> HTTP 401
+https://app.box.com/api/2.0/events?stream_type=admin_logs -> HTTP 401
+https://app.box.com/api/2.0/collaborations -> HTTP 401
+https://app.box.com/api/2.0/tasks -> HTTP 401
+https://app.box.com/api/2.0/metadata_templates -> HTTP 401
+https://app.box.com/app-api/enduserapp/current-user -> 200
+https://app.box.com/sp/boxberry/v1/saml2/acs -> HTTP 404
+https://app.box.com/graphql -> HTTP 503
+https://app.box.com/unified -> HTTP 404
+https://app.box.com/api/2.0/device_pinners -> HTTP 401

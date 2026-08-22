@@ -37,9 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-21 23:14:04 UTC"
 }=== MY LAST LEADS (tail) ===
-[LEARN] ACCEPTED app.box.com/api/2.0/me wildcard CORS: Returns `access-control-allow-origin: *` with `vary: Origin`. No `access-control-allow-credentials`. Standard public API pattern — the endpoint is designed for third-party apps using Bearer tokens, not cookies. Without credentials, any page can read the401 error response but it contains no sensitive data. **Not exploitable** for user data exfiltration.
-[LEARN] ACCEPTED cloud.app.box.com/ now consistently returns 302→/login (not 206). The earlier 206 reports from the executor were likely following redirects and interpreting the SPA shell as a 206 response. Root properly redirects unauthenticated users.
-[LEARN] ACCEPTED notes.services.box.com Socket.IO EIO=4 handshake succeeds: `{"sid":"WIY9nzGHijkFbxaWAHCz","upgrades":["websocket"],"pingInterval":7000,"pingTimeout":15000}`. **No CORS headers** on the response — cross-origin JavaScript cannot read the session ID. Properly secured against browser-based attacks. Subsequent polling with the returned sid fails (400), indicating the sid alone is insufficient without proper session context.
 [LEARN] ACCEPTED cloud.account.box.com/api/oauth2/authorize error echo: When `redirect_uri=https://evil.com/callback&client_id=test` is passed, the server embeds the attacker's values in `Box.prefetchedData["/api/oauth2/authorize/data"]["errorParams"]` — but these are values the attacker supplied, not server secrets. The CORS-reflected SPA shell still exposes `Box.config` deployment metadata.
 [CONFIRMED] OAuth2 authorize SPA shell leaks internal deployment metadata cross-origin via CORS origin reflection
 class: MISCONFIG
@@ -97,6 +94,9 @@ testability: PASSIVE
 [PARKED] notes.services.box.com Socket.IO: EIO=4 handshake issues session IDs without authentication but returns no CORS headers. Cross-origin JS cannot read the session ID. Properly secured.
 [PARKED] cloud.app.box.com /api/oauth2/authorize/* subpaths: All subpaths under /api/oauth2/authorize/ (callback, device, decision, consent, accept, reject, confirm, error, deny, success, failure, redirect) reflect Origin in CORS. All return 404 with CORS headers. Same SPA catch-all route behavior as the parent path. No unique data beyond what's already leaked on the parent path.
 [NEXT] Explore app.box.com for additional CORS surface areas or auth-related endpoints that might have misconfigurations — specifically /api/2.0 endpoints with Authorization header probes to check if CORS behavior changes with authentication context.
+## 2026-08-21 23:36:05 UTC app.box.com (mimo)
+[LEARN] ACCEPTED cloud.app.box.com OAuth2 SPA shell CORS: Confirmed 4th subdomain with identical origin reflection. `access-control-allow-origin` reflects arbitrary Origin, `access-control-expose-headers` leaks auth headers, but NO `access-control-allow-credentials`. Metadata leak is LOW-MEDIUM severity — client-side keys already in public JS bundles, runtimeMetadata (us-west4-prod, k8s) is new info but not directly exploitable for user data exfiltration.
+[NEXT] GET https://app.box.com/api/2.0/me with headers: `Origin: https://evil.com, User-Agent: box-research/1.0+(research), Authorization: Bearer test-token` — check if adding Authorization header triggers CORS headers or changes response behavior
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
