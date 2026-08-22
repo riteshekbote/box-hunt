@@ -1064,3 +1064,4 @@ testability: PASSIVE
 [NEXT] PROBE: Explore CDN and static asset paths revealed by current-user response. The endpoint reveals cdn01.boxcdn.net and platform/preview static paths. Test cloud.app.box.com paths that reference these CDN assets. Also test new /app-api/ sub-namespaces not under enduserapp. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/app-api/shared_link_api/config — test for shared link API config endpoint (2) cloud.app.box.com/app-api/admin/app-config — test for admin config endpoint (3) cloud.app.box.com/app-api/search-api/config — test for search API config endpoint
 ## 2026-08-22 05:00:25 UTC api.box.com (mimo)
 ## 2026-08-22 05:04:28 UTC api.box.com (mimo)
+## 2026-08-22 05:35:55 UTC api.box.com (mimo)
