@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 03:30:48 UTC"
 }=== MY LAST LEADS (tail) ===
-[NEXT] PROBE: GET https://account.box.com/login with User-Agent: box-research/1.0 (research) and Origin: https://evil.com — capture full response body to check for CSRF token format and embedded state. 1 req/2s.
 ## 2026-08-22 02:47:59 UTC m.box.com (mimo)
 [LEARN] ACCEPTED HEAD-CORS @ account.box.com/api/oauth2/authorize: HEAD returns 404 with `access-control-allow-origin: https://evil.com` (reflects origin). CORS policy allows HEAD as a simple method without preflight. Response includes `access-control-expose-headers: WWW-Authenticate,Server-Authorization`.
 [LEARN] ACCEPTED APP-REDIRECT @ app.box.com/: Unauthenticated GET returns 302→account.box.com/login. No CORS headers on redirect. Main app origin is not CORS-exposed.
@@ -97,6 +96,7 @@ testability: HUMAN_ONLY
 [NEXT] PROBE: OPTIONS https://account.box.com/login with Origin: https://evil.com and Access-Control-Request-Method: POST — test if login endpoint allows cross-origin POST (needed for CSRF token usage in login form). 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/login/reset?redirect_url=https://evil.com with Origin: https://evil.com — test if password reset redirect_url parameter is reflected (potential open redirect chain). 1 req/2s.
 [NEXT] PROBE: GET https://api.box.com/2.0/users/me with Origin: https://evil.com — check if API endpoint reflects origin on 401 responses (extends attack surface to main API). 1 req/2s.
+## 2026-08-22 04:05:13 UTC m.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)

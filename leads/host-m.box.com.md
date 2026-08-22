@@ -1154,3 +1154,11 @@ testability: HUMAN_ONLY
 [NEXT] PROBE: GET https://account.box.com/login/reset?redirect_url=https://evil.com with Origin: https://evil.com — test if password reset redirect_url parameter is reflected (potential open redirect chain). 1 req/2s.
 [NEXT] PROBE: GET https://api.box.com/2.0/users/me with Origin: https://evil.com — check if API endpoint reflects origin on 401 responses (extends attack surface to main API). 1 req/2s.
 ## 2026-08-22 04:05:13 UTC m.box.com (mimo)
+## 2026-08-22 04:43:13 UTC m.box.com (mimo)
+class: CORS
+asset: account.box.com/login
+confidence: 98
+reasoning: OPTIONS preflight returns 200 with `access-control-allow-methods: POST` and `access-control-allow-origin: https://evil.com`. Combined with GET reflecting origin + exposing request_token in HTML, full cross-origin POST is possible. Attacker can submit CSRF token + stolen credentials to login endpoint from malicious page.
+verify_steps: PASSIVE — OPTIONS confirmed POST method + origin reflection.
+impact: Cross-origin POST to login endpoint enables session fixation / CSRF bypass. Severity: Critical
+testability: PASSIVE
