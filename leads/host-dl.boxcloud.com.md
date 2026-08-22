@@ -856,3 +856,4 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/embed/abc123 — capture response body (first 1500 chars) and currentRm/prefetchedData keys
 [NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/current-user — capture full response body for comparison with authenticated session
 [NEXT] RECON: GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js — search for `shared-item` or `sharedItem` to identify parameter names
+## 2026-08-22 00:28:16 UTC dl.boxcloud.com (mimo)

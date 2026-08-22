@@ -35,45 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 20:50:40 UTC"
+  "last_advance": "2026-08-21 23:56:33 UTC"
 }=== MY LAST LEADS (tail) ===
-impact: If S3 bucket listing is enabled, attacker can enumerate all objects in the embedded-content bucket, discovering internal file names, folder structure, and potentially sensitive file metadata without authentication. Severity: Medium-High.
-testability: PASSIVE
-[HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
-class: MISCONFIG
-asset: cloud.app.box.com/<path>
-confidence: 60
-reasoning: Confirmed SPA catch-all returns 206 with currentRm and prefetchedData for any path. Different paths trigger different route mappers: /s/ → enduserapp_shared_item_page, arbitrary → shared_page_vanity_name. The prefetchedData includes server-side API lookups (/app-api/enduserapp/shared-item, /app-api/enduserapp/current-user). If other path patterns trigger privileged API lookups (e.g., admin, settings, internal), more sensitive data could be prefetched.
-verify_steps: GET https://cloud.app.box.com/admin — observe currentRm and prefetchedData keys. GET https://cloud.app.box.com/settings — same. GET https://cloud.app.box.com/debug — same.
-impact: If certain paths trigger privileged server-side API lookups that return sensitive data in prefetchedData, an attacker can extract that data from the 206 response without authentication. Severity: Low-Medium.
-testability: PASSIVE
-[NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1000 chars), content-type, and any x-amz-*/x-goog-* headers. This is the critical evidence to confirm or reject the S3 bucket-listing hypothesis.
-[NEXT] PROBE: GET https://cloud.app.box.com/admin — observe currentRm and prefetchedData keys for route mapper enumeration.
-[NEXT] PROBE: GET https://cloud.app.box.com/settings — observe currentRm and prefetchedData keys.
-[NEXT] PROBE: GET https://cloud.app.box.com/debug — observe currentRm and prefetchedData keys.
-## 2026-08-21 21:47:34 UTC dl.boxcloud.com (mimo)
-## 2026-08-21 22:02:52 UTC dl.boxcloud.com (mimo)
-## 2026-08-21 22:32:30 UTC dl.boxcloud.com (mimo)
-## 2026-08-21 22:53:22 UTC dl.boxcloud.com (mimo)
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com: SPA catch-all confirmed — root `/` returns 206. Route mapper and prefetchedData consistently present. This is stable infrastructure behavior, not a vulnerability in itself.
-[NEXT] PROBE: GET https://cloud.app.box.com/?list-type=2 — capture response body (first 1500 chars), content-type, and any x-amz-*/x-goog-*/server headers. **CRITICAL: This is the highest-priority evidence gap.**
-[NEXT] PROBE: GET https://cloud.app.box.com/admin — capture currentRm and prefetchedData keys for route mapper enumeration.
-[NEXT] PROBE: GET https://cloud.app.box.com/settings — same capture.
-[NEXT] PROBE: GET https://cloud.app.box.com/debug — same capture.
-[HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
-class: BUSLOGIC
-asset: cloud.app.box.com/?list-type=2
-confidence: 55
-reasoning: S3 ListObjects-v2 query parameter accepted with 200 across multiple cycles. Body content never captured. If XML ListBucketResult returned, public bucket listing. If HTML SPA shell, 200 is benign catch-all.
-verify_steps: GET https://cloud.app.box.com/?list-type=2
-impact: Object enumeration without auth. Severity: Medium-High.
-testability: PASSIVE
-[HYP] cloud.app.box.com SPA catch-all route-to-API mapping enumeration
-class: MISCONFIG
-asset: cloud.app.box.com/<path>
-confidence: 60
-reasoning: Confirmed 206 catch-all. Different paths trigger different route mappers (currentRm). prefetchedData includes server-side API lookups. If privileged paths trigger sensitive prefetchedData, attacker extracts data from 206.
-verify_steps: GET https://cloud.app.box.com/admin, GET /settings, GET /debug
 impact: Sensitive data disclosure from server-side prefetchedData. Severity: Low-Medium.
 testability: PASSIVE
 ## 2026-08-21 23:10:36 UTC dl.boxcloud.com (mimo)
@@ -97,14 +60,44 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/settings — same capture.
 [NEXT] PROBE: GET https://cloud.app.box.com/debug — same capture.
 ## 2026-08-21 23:36:01 UTC dl.boxcloud.com (mimo)
+## 2026-08-21 23:56:33 UTC dl.boxcloud.com (mimo)
+[NEW] cloud.app.box.com `/admin`: Explicit 403 route protection — server recognizes `/admin` as privileged route
+[NEW] cloud.app.box.com `/settings`: 302 to `cloud.account.box.com/login` with cookie `box_redirect_rm=box_user_settings` — reveals internal route mapper name
+[NEW] cloud.app.box.com `/debug` → `/v/debug`: 302 redirect chain revealing internal route
+[NEW] cloud.app.box.com `/sitemap.xml`: 302 to `https://www.box.com/sitemap.xml` — cross-origin redirect to different domain
+[NEW] cloud.app.box.com `/crossdomain.xml`: 200 with Flash cross-domain policy allowing `*.box.net`, `*.box.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`
+[NEW] cloud.app.box.com `/robots.txt`: 200 with real content — allowed paths include `/representation`, `/app-assets`, `/login`, `/simpleshare`, `/services`, `/reset`, `/signup`, `/cdn`, `/sites`, `/platform`, `/s/`, `/shared/`, `/v/`, `/app-center`
+[HYP] cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 75
+reasoning: Endpoint returns 200 with full JSON blob without authentication. Response includes: user object (id, name, email, locale, timezone, countryCode), feature flags (60+ boolean flags including adminConsole, boxAI*, shield, canvas, notes, sign, etc.), API keys (amplitudeAPIKey, splitIOAPIKey), infrastructure config (accountHost, apiHost, appHost, staticHost, preview config with tokenTimeout), relay/experiment configuration, account tier/status, and CDN URLs. The `isLoggedIn: false` confirms unauthenticated access. This is client-side configuration but exposes internal feature flag structure and infrastructure details.
+verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/current-user — confirms 200 with JSON. Compare response with authenticated session to identify additional fields.
+impact: Information disclosure of internal feature flags, infrastructure config, API keys. Severity: Low (all client-side public data, but reveals internal structure).
+testability: PASSIVE
+[HYP] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration
+class: BUSLOGIC
+asset: cloud.app.box.com/app-api/enduserapp/shared-item
+confidence: 65
+reasoning: Endpoint returns 400 with `{"status":400,"errorCode":"expectedParamError"}` for all tested parameter combinations (shared_link, file_id, folder_id). The structured error confirms the endpoint is live and processes parameters. If the correct parameter format (likely a Box shared link token) is discovered, the endpoint could potentially serve shared item metadata without authentication.
+verify_steps: GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js — search for `shared-item` or `sharedItem` to find parameter names. GET https://cloud.app.box.com/app-api/enduserapp/shared-item?{discovered_param}={test_value}
+impact: If correct parameter format allows unauthenticated shared item access, severity Medium. Currently only 400 errors.
+testability: PASSIVE
+[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping enumeration: Confirmed `/admin` returns 403, `/settings` redirects with route mapper cookie (`box_user_settings`), `/debug` redirects to `/v/debug`, `/v/*` returns SPA shell. Different paths trigger different backend behaviors (403, 302 with route cookies, SPA catch-all). The route mapper is real but the data it exposes (route names in cookies) is low-impact.
+[PARKED] cloud.app.box.com S3-compatible bucket-listing parameter acceptance: `?list-type=2` returned 302 redirect to `/login` this cycle — inconsistent with prior 200 results. The 200 responses previously observed were likely the SPA catch-all. The 302 confirms the server recognizes the URL but requires auth. No evidence of S3 ListBucketResult XML.
+[PARKED] cloud.app.box.com `/sitemap.xml` cross-origin redirect: 302 to `https://www.box.com/sitemap.xml`. Not exploitable as open redirect since target is Box's own domain.
+[PARKED] cloud.app.box.com `/crossdomain.xml` Flash policy: Allows `*.box.net`, `*.box.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`. Flash is EOL — informational only.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/current-user`: Unauthenticated 200 with full config JSON. Contains feature flags, API keys, infrastructure config. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/admin`: 403 explicit route protection. Not SPA catch-all.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/settings`: 302 with `box_redirect_rm=box_user_settings` cookie — route mapper name leaked.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/debug` → `/v/debug`: Internal route chain. `/v/debug` requires auth (302 to login).
+[LEARN] REJECTED cloud.app.box.com S3 bucket listing: `?list-type=2` returns 302 to login. No S3 XML response.
+[LEARN] REJECTED cloud.app.box.com `/sitemap.xml` open redirect: Target is `www.box.com` — not attacker-controlled.
+[NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link_format_test=abc — test if parameter name is `shared_link_format_test` or similar
+[NEXT] PROBE: GET https://cloud.app.box.com/embed/abc123 — capture response body (first 1500 chars) and currentRm/prefetchedData keys
+[NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/current-user — capture full response body for comparison with authenticated session
+[NEXT] RECON: GET https://cdn01.boxcdn.net/enduser/app.50c208b371.js — search for `shared-item` or `sharedItem` to identify parameter names
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 21:56:23 UTC
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 23:55:24 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 22:36:36 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-21 23:34:44 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 23:55:24 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
