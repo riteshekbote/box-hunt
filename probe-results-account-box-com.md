@@ -125,3 +125,9 @@ https://account.box.com/api/oauth2/token -> HTTP 400
 https://account.box.com/api/oauth2/authorize?response_type=code&client_id=boxAppClient&redirect_uri=https://attacker-controlled-domain.com/callback -> 206
 https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com -> 206
 https://account.box.com/api/oauth2/authorize?response_type=code&client_id=boxAppClient&redirect_uri=https://evil.com&state=CSRF_TEST_123 -> 206
+
+## 2026-08-22 02:53:25 UTC account.box.com
+https://account.box.com/api/oauth2/authorize?response_type=token&client_id=test&redirect_uri=https://evil.com -> 206
+https://account.box.com/api/v1.0/users/me -> HTTP 404
+https://account.box.com/api/oauth2/authorize -> 206
+https://account.box.com/api/v2.0/users/me -> HTTP 404

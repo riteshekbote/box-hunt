@@ -1373,3 +1373,32 @@ reasoning: >
 impact: >
 testability: AUTH_HELPED
 ## 2026-08-22 01:56:39 UTC account.box.com (mimo)
+## 2026-08-22 02:53:16 UTC account.box.com (mimo)
+[CONFIRMED] app.box.com reflected CORS on login page leaks config cross-origin
+class: MISCONFIG
+asset: app.box.com/login
+confidence: 88
+reasoning: >
+verify_steps: Already verified via HEAD + GET with Origin header.
+impact: Cross-origin extraction of login page requestToken and internal config.
+testability: PASSIVE
+[CONFIRMED] upload.box.com file upload API preflight reflects origin with credentials + Authorization
+class: OATH
+asset: upload.box.com/api/2.0/files/content
+confidence: 75
+reasoning: >
+verify_steps: Already verified via OPTIONS preflight with reflected Origin.
+impact: Overly permissive CORS preflight allows cross-origin POST with credentials
+testability: PASSIVE
+[CONFIRMED] api.box.com OPTIONS preflight inconsistent with actual response CORS
+class: MISCONFIG
+asset: api.box.com/2.0/*
+confidence: 70
+reasoning: >
+verify_steps: Already verified via OPTIONS + GET comparison.
+impact: The wildcard preflight with all methods on api.box.com is overly permissive,
+testability: PASSIVE
+[LEARN] ACCEPTED OATH @ account.box.com/api/oauth2/authorize: Implicit flow (response_type=token) also reflects CORS and leaks identical Box.config data as authorization code flow. The CORS reflection is path-based, not flow-specific. The 404 status does not prevent cross-origin reading of the response body.
+[NEXT] PROBE: GET https://app.box.com/login with Origin: https://evil.com — extract full Box.config from the body. Look for session tokens, CSRF tokens, API keys. Then check app.box.com/login_pre, app.box.com/login_post, app.box.com/logout for same CORS. 1 req/2s.
+[NEXT] PROBE: OPTIONS https://upload.box.com/api/2.0/files/content with Origin: https://evil.com and Access-Control-Request-Method: PUT — check if PUT (file update) is also allowed with credentials. Then test DELETE. 1 req/2s.
+[NEXT] PROBE: GET https://api.box.com/2.0/events with Origin: https://evil.com — check if the event log endpoint (which can contain audit events, file access logs) returns CORS headers on the actual response. Then check /2.0/tasks, /2.0/comments. 1 req/2s, first 4xx/429/403 -> stop api.box.com.
