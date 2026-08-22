@@ -1507,3 +1507,38 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://app.box.com/api/oauth2/token with Origin: https://evil.com — test if token endpoint also gets CORS on app.box.com. Then GET https://app.box.com/start and https://app.box.com/forgot_password. 1 req/2s.
 [NEXT] PROBE: GET https://app.box.com/api/2.0/folders/0 with Origin: https://evil.com — test if the main app serves API proxy routes that inherit the CORS policy. Then GET https://app.box.com/api/2.0/users/me. 1 req/2s.
 [NEXT] PROBE: GET https://notes.services.box.com/ with Origin: https://evil.com — retry Box Notes service. If 302/503, try GET https://notes.services.box.com/api/notes with Origin. 1 req/2s.
+## 2026-08-22 04:05:21 UTC account.box.com (mimo)
+[CONFIRMED] app.box.com login page reflects CORS — dual-subdomain CORS on OAuth  
+class: MISCONFIG  
+asset: app.box.com/login  
+confidence: 88  
+reasoning: GET with Origin returns 200 HTML with Box.config.requestToken, currentRm, debug, locale, isSandbox, etc. all accessible cross-origin.  
+verify_steps: Already verified.  
+impact: Cross-origin extraction of login page config tokens. Severity: Low-Medium.  
+testability: PASSIVE  
+[CONFIRMED] app.box.com OAuth authorize reflects CORS — dual-subdomain CORS on OAuth  
+class: OATH  
+asset: app.box.com/api/oauth2/authorize, account.box.com/api/oauth2/authorize  
+confidence: 95  
+reasoning: Both subdomains return 404 with reflected access-control-allow-origin. Response bodies contain Box.config with requestToken cross-origin readable. Implicit flow identical.  
+verify_steps: HEAD + GET with Origin confirmed on both.  
+impact: Cross-origin extraction of Box.config from OAuth authorize. Severity: Low-Medium.  
+testability: PASSIVE  
+[HYP] app.box.com token endpoint inherits CORS policy  
+class: MISCONFIG  
+asset: app.box.com/api/oauth2/token  
+confidence: 72  
+reasoning: Auth backend routes (/login, /login_pre, /login_post, /api/oauth2/authorize) consistently reflect CORS. Token endpoint is part of the same OAuth flow backend. If it reflects, cross-origin token exchange becomes possible.  
+verify_steps: GET https://app.box.com/api/oauth2/token with Origin: https://evil.com — check for access-control-allow-origin  
+impact: Cross-origin OAuth token endpoint access. Severity: Medium.  
+testability: PASSIVE  
+[HYP] app.box.com API proxy routes test CORS inheritance  
+class: MISCONFIG  
+asset: app.box.com/api/2.0/folders/0, /api/2.0/users/me  
+confidence: 65  
+reasoning: If backend API routes on app.box.com inherit the same CORS policy as auth routes, user/folder data could be accessible cross-origin. Requires testing multiple API paths.  
+verify_steps: GET https://app.box.com/api/2.0/folders/0 with Origin: https://evil.com, then GET https://app.box.com/api/2.0/users/me  
+impact: Cross-origin API data access. Severity: High.  
+testability: PASSIVE  
+[PARKED] dl.boxcloud.com wildcard CORS hypothesis: All tested paths (/, /api/*, OPTIONS) return 404 without CORS headers. No cross-origin data leakage observed.  
+[NEXT] PROBE: GET https://app.box.com/api/oauth2/token with Origin: https://evil.com — test if token endpoint reflects CORS. Then GET https://app.box.com/start and https://app.box.com/forgot_password. 1 req/2s.
