@@ -35,34 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-21 23:39:54 UTC"
+  "last_advance": "2026-08-21 23:57:01 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: dl.boxcloud.com/api/2.0/files/*/content
-confidence: 50
-reasoning: dl.boxcloud.com returns Access-Control-Allow-Origin: * with Access-Control-Expose-Headers: Content-Range on unauthenticated 401 responses. The OPTIONS preflight returns 204 with Access-Control-Allow-Origin: * but does NOT include Access-Control-Allow-Headers: Authorization — so browsers currently cannot send Bearer tokens cross-origin. However, this is a fragile posture: the wildcard CORS on a file download proxy means if Box ever adds cookie-based auth or if a subdomain XSS allows token theft, any website could read file content via JavaScript. The Content-Range exposure enables byte-range enumeration attacks.
-verify_steps: Already confirmed via curl. To fully test: (1) curl -D- -H "Origin: https://evil.com" dl.boxcloud.com/api/2.0/files/1/content — confirm ACAO:* on 401; (2) curl -D- -X OPTIONS -H "Origin: https://evil.com" dl.boxcloud.com/api/2.0/files/1/content — confirm 204 without Allow-Headers; (3) Compare with cloud.app.box.com/api/2.0/files/1/content which has NO CORS headers
-impact: Low-Medium — currently not exploitable because Authorization header is not in Allow-Headers on preflight, so browsers block cross-origin credentialed requests. But the wildcard CORS on a file download proxy is a misconfiguration waiting to become critical if auth mechanism changes. Severity upgradeable if any subdomain XSS or cookie injection is found.
-testability: PASSIVE
-[HYP] cloud.app.box.com/embed/config feature flag + version enumeration
-class: OTHER
-asset: cloud.app.box.com/embed/config
-confidence: 90
-reasoning: /embed/config is an unauthenticated endpoint that returns the complete feature flag configuration for anonymous embed contexts (embed:true, canvas:false, sign:false, shield:false, etc.), plus all 20+ micro-frontend version strings from Box.webpackRemotesManifest. This allows attackers to fingerprint the exact deployment version of every component and identify known vulnerabilities in specific versions. The partnerId field in the response is server-controlled (not reflected from user input).
-verify_steps: Already confirmed — /embed/config returns 200 with full JSON config including version strings
-impact: Low — version enumeration aids targeted exploitation but is informational only
-testability: PASSIVE
-[HYP] cloud.app.box.com GraphQL introspection/auth bypass
-class: AUTH
-asset: cloud.app.box.com/graphql
-confidence: 25
-reasoning: The /graphql endpoint exists and returns a proper Box API error JSON (not 404) on both cloud.app.box.com and api.box.com. It returns 503 Service Unavailable without auth, suggesting the GraphQL service requires authentication to route requests. The SPA feature flags reference euaRootFolderGraphql, euaSubfolderGraphql, and euaFolderPreflightScript — indicating a GraphQL API for folder operations. If authentication can be bypassed, GraphQL introspection could expose the entire data schema.
-verify_steps: Requires AUTH_HELPED — cannot test further without valid Bearer token
-impact: High (if auth bypass possible) — full schema disclosure and potentially unauthorized data access via GraphQL
-testability: AUTH_HELPED
-[PARKED] m.box.com unique surface: All paths 301 redirect to app.box.com — confirmed as pure redirect layer with no unique rendering/session logic
-[PARKED] upload.box.com API surface: All paths return404 with nginx "Not found" — internal upload service with no unauthenticated surface
-[LEARN] CONFIRMED OTHER @ dl.boxcloud.com: Download proxy has wildcard CORS (ACAO:*) but preflight does NOT allow Authorization header — fragile but not currently exploitable
-[LEARN] CONFIRMED OTHER @ cloud.app.box.com: Full SPA + API proxy mirrors api.box.com behavior; no CORS headers on API; requestToken is per-session and not valid as Bearer
 [LEARN] CONFIRMED OTHER @ m.box.com: Pure redirect layer to app.box.com — no unique surface
 [LEARN] CONFIRMED OTHER @ upload.box.com: Internal service, no unauthenticated surface
 [NEXT] PROBE: Focus on cloud.app.box.com — test additional SPA catch-all paths that might expose different data than app.box.com. 3xGET with UA "box-research/1.0 +(research)", 2s pause: (1) cloud.app.box.com/shared/{test-token} (2) cloud.app.box.com/preview/{test-token} (3) cloud.app.box.com/embed/{test-token} — check if these catch-all SPA routes embed different Box.prefetchedData or expose shared-link metadata
@@ -97,14 +71,33 @@ testability: PASSIVE
 [LEARN] CONFIRMED OTHER @ cloud.app.box.com /embed/*: User input is URL-encoded in JSON context, not raw — no direct XSS via HTML injection; DOM XSS depends on client-side handling
 [LEARN] ACCEPTED OTHER @ cloud.app.box.com /folder/0, /file/1, /collections: 302 redirect to cloud.account.box.com/login — redirect_url is server-controlled, no user input reflection
 [NEXT] PROBE: Read embed.js client-side code to test DOM XSS hypothesis. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — check for URL decoding and DOM insertion of prefetchedData (2) cloud.app.box.com/embed/test-token — re-confirm linkedRequestId uniqueness (3) cloud.app.box.com/representation/0 — test if /representation is a file preview path that needs a file ID
+## 2026-08-21 23:57:01 UTC api.box.com (mimo)
+[CONFIRMED] cloud.app.box.com CORS preflight/response mismatch
+class: MISCONFIG
+asset: cloud.app.box.com (all paths)
+confidence: 80
+reasoning: Directly confirmed: OPTIONS on /app-api/enduserapp/current-user returns ACAO:* with DELETE/POST/PUT allowed. GET response has NO CORS headers (no ACAO). Split-proxy 404 path DOES return ACAO:* on GET (CDN layer). The origin proxy adds CORS to OPTIONS but NOT to proxied API GET responses — a CDN/origin configuration mismatch.
+verify_steps: Already confirmed via curl with Origin: https://evil.com header on OPTIONS and GET to /app-api/enduserapp/current-user and /app-api/split-proxy
+impact: Low — not currently exploitable because GET responses lack CORS headers, blocking browser cross-origin reads. However, the wildcard ACAO:* preflight with ALL write methods (DELETE/POST/PUT) is an over-permissive policy that becomes critical if any origin endpoint ever adds CORS headers to GET responses.
+testability: PASSIVE
+[NEW] dl.boxcloud.com/api/2.0/files/1/content: 401 with ACAO:* + Access-Control-Expose-Headers including Content-Range — confirmed wildcard CORS on actual file download proxy responses (not just preflight)
+[CONFIRMED] dl.boxcloud.com wildcard CORS on download proxy
+class: MISCONFIG
+asset: dl.boxcloud.com/api/2.0/files/*/content
+confidence: 75
+reasoning: GET to /api/2.0/files/1/content returns 401 with access-control-allow-origin: *, access-control-expose-headers: Accept-Ranges,Content-Encoding,Content-Length,Content-Range,Date,Retry-After. The 401 response body is empty (no auth token = no data). The ACAO:* + Content-Range exposure on a file download proxy means any authenticated file download response (if a browser can obtain a valid token) would be fully readable cross-origin.
+verify_steps: Already confirmed via curl. Critical question: does a VALID token response also include ACAO: *?
+impact: Medium — if a valid Bearer token can be obtained (e.g., via session hijacking, XSS on a Box subdomain), the wildcard CORS allows full cross-origin file content exfiltration including byte-range enumeration via Content-Range.
+testability: AUTH_HELPED
+[NEW] cloud.account.box.com/login: Login page has x-frame-options: SAMEORIGIN, referrer-policy: no-referrer, x-xss-protection: 0 — strong defensive headers. redirect_url parameter accepted but not reflected in redirect — no open redirect vector found.
+[PARKED] Embed.js DOM XSS via redirectParentIframe postMessage: Origin check validates against box.com/boxcdn.net/boxenterprise.net/inside-box.net/boxgov.us whitelist. The redirectParentIframe action does window.location.href=n.url from postMessage data, but only processes messages from whitelisted Box origins. Cannot exploit without first compromising a Box subdomain.
+testability: AUTH_HELPED (requires subdomain compromise)
+[PARKED] cloud.app.box.com /shared/* and /preview/* paths: Both return 404 — not valid SPA catch-all routes. Only /embed/* catches all paths.
+[LEARN] CONFIRMED OTHER @ cloud.app.box.com /embed/*: embed.js postMessage handler origin check regex: `^(?:https?:\/\/)?(?:([a-zA-Z0-9\-_]+)\.)*box\.com|boxcdn\.net|boxenterprise\.net|inside-box\.net|boxgov\.us` — subdomain-aware validation with subdomain capture group check via `c.current` ref
+[LEARN] CONFIRMED OTHER @ cloud.app.box.com: /embed/* response includes server-constructed message JSON with `action: "retrieveEmbedStateResult"` containing 80+ feature flags and embed context. User input only in url/displayedURL/originalURL fields, all URL-encoded.
+[LEARN] CONFIRMED OTHER @ cloud.account.box.com/login: Strong security headers (X-Frame-Options: SAMEORIGIN, referrer-policy: no-referrer, x-xss-protection: 0). No open redirect on redirect_url parameter.
+[NEXT] PROBE: Test if dl.boxcloud.com returns ACAO:* on successful (token-bearing) file download responses, and explore cloud.app.box.com /app-api/ for additional version/header leaks. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) dl.boxcloud.com/api/2.0/folders/0 — test folder listing CORS (2) cloud.app.box.com/app-api/enduserapp/app-version — test for version endpoint (3) cloud.app.box.com/webapp/_rightsidebar — test for sidebar API endpoint with different response format
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 21:56:23 UTC
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-21 23:55:24 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 22:36:36 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-21 23:34:44 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-21 23:55:24 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404

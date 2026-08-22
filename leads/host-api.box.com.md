@@ -949,3 +949,28 @@ testability: AUTH_HELPED (requires subdomain compromise)
 [LEARN] CONFIRMED OTHER @ cloud.app.box.com: /embed/* response includes server-constructed message JSON with `action: "retrieveEmbedStateResult"` containing 80+ feature flags and embed context. User input only in url/displayedURL/originalURL fields, all URL-encoded.
 [LEARN] CONFIRMED OTHER @ cloud.account.box.com/login: Strong security headers (X-Frame-Options: SAMEORIGIN, referrer-policy: no-referrer, x-xss-protection: 0). No open redirect on redirect_url parameter.
 [NEXT] PROBE: Test if dl.boxcloud.com returns ACAO:* on successful (token-bearing) file download responses, and explore cloud.app.box.com /app-api/ for additional version/header leaks. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) dl.boxcloud.com/api/2.0/folders/0 — test folder listing CORS (2) cloud.app.box.com/app-api/enduserapp/app-version — test for version endpoint (3) cloud.app.box.com/webapp/_rightsidebar — test for sidebar API endpoint with different response format
+## 2026-08-22 00:27:45 UTC api.box.com (mimo)
+[NEW] cloud.app.box.com /app-api/enduserapp/app-version: Unauthenticated 200 with full micro-frontend version manifest — 24 remote modules with exact versions, CDN paths, and build hashes
+[NEW] cloud.app.box.com /app-api/enduserapp/current-user: Unauthenticated 200 with Amplitude API key (`c6eb3d709c5c30ca80c0381080bcc254`), Split.io API key (`3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a`), full feature flag matrix (100+ flags), infrastructure URLs, preview config, and user model schema
+[NEW] cloud.app.box.com /app-api/enduserapp/folder/0: 401 (auth required) — confirms some endpoints are auth-gated but current-user and app-version are not
+[HYP] Unauthenticated API key and feature flag leakage via cloud.app.box.com /app-api/enduserapp/current-user
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 70
+reasoning: GET without any auth token returns 200 with full JSON containing Amplitude and Split.io API keys, 100+ feature flags, infrastructure config (accountHost, apiHost, CDN hostname), and preview token timeout. No CORS headers on GET response (confirmed), so cross-origin browser exfiltration is blocked. However, Split.io API key can be used server-side to query feature flag targeting rules and experiment configurations for Box's entire user base. The Amplitude key can inject analytics events.
+verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.box.com/app-api/enduserapp/current-user — confirm response contains splitIOAPIKey and amplitudeAPIKey fields
+impact: Low-Medium — Split.io key exposure enables enumeration of internal feature flag targeting rules and A/B test configurations (information disclosure). Amplitude key enables fake analytics event injection. Neither key directly grants access to user data or files.
+testability: PASSIVE
+[CONFIRMED] cloud.app.box.com CORS preflight/response mismatch — extends to /app-api/ namespace
+class: MISCONFIG
+asset: cloud.app.box.com (all paths including /app-api/*)
+confidence: 85
+reasoning: Directly confirmed: OPTIONS on /app-api/enduserapp/current-user returns ACAO:* with DELETE/POST/PUT/GET/PATCH/OPTIONS. GET on same endpoint returns NO CORS headers (no ACAO, no ACEH). GET on /app-api/enduserapp/app-version also returns NO CORS headers. The CDN layer adds ACAO:* on OPTIONS preflight only — origin proxy responses never include CORS headers.
+verify_steps: Already confirmed via curl with Origin: https://evil.com header
+impact: Low — not currently exploitable because GET responses lack CORS headers. However, the overly permissive OPTIONS preflight persists as a latent risk.
+testability: PASSIVE
+[PARKED] dl.boxcloud.com folder listing CORS: /api/2.0/folders/0 returns 404 on the download proxy — this endpoint doesn't exist on dl.boxcloud.com (only file content endpoints do)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: CORS wildcard preflight on ALL /app-api/ endpoints, but NO CORS headers on any GET responses — CDN/origin mismatch confirmed across entire namespace
+[LEARN] ACCEPTED OTHER @ cloud.app.box.com /app-api/enduserapp/folder/0: Returns 401 — auth-gated endpoint, different from current-user/app-version which are unauthenticated
+[LEARN] CONFIRMED OTHER @ cloud.app.box.com /app-api/enduserapp/config,features,experiments,search,notifications,preferences,metadata,enterprise,split-proxy: All return 404 — only app-version and current-user are live unauthenticated endpoints in this namespace
+[NEXT] PROBE: Explore additional /app-api/ sub-namespaces and cloud.app.box.com edge paths for more unauthenticated data. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/app-api/enduserapp/branding — test for white-label theme config (2) cloud.app.box.com/app-api/enduserapp/available-locales — test for i18n config (3) cloud.app.box.com/app-api/shared_link_api/preview — test if shared-link preview API is accessible unauthenticated
