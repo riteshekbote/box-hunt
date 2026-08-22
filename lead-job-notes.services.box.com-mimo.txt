@@ -1,0 +1,32 @@
+[LEARN] ACCEPTED notes.services.box.com Socket.IO: Fully broken — envoy LB has no session stickiness. Handshake returns valid SID but subsequent POST returns "Session ID unknown". No Socket.IO connection can ever complete. Dead service.
+[LEARN] ACCEPTED notes.services.box.com rate-limiting: None observed — 5 rapid-fire handshakes all returned 200 within 1s
+[LEARN] ACCEPTED notes.services.box.com Express CSRF: csrf-token cookie is NOT HttpOnly (JS-readable), Path=/, NO Domain attribute → scoped to notes.services.box.com only. _csrf is HttpOnly. Neither is exploitable cross-origin.
+[LEARN] ACCEPTED notes.services.box.com x-frame-options: ALLOW-FROM https://app.box.com on all Express responses — confirms embedded-iframe history, but with only 404s there's nothing to frame
+[LEARN] ACCEPTED upload.box.com CORS events/search: Confirmed POST-only CORS with Origin reflection + credentials on /api/2.0/events and /api/2.0/search. GET/PUT/DELETE return no CORS headers.
+[LEARN] ACCEPTED upload.box.com POST response CORS: The actual POST response body does NOT carry CORS headers — JS can trigger the upload but cannot read the response
+[LEARN] ACCEPTED upload.box.com standalone CSRF: Server rejects without Bearer token (no cookie fallback). Cross-origin attacker page can trigger uploads but cannot authenticate them without prior token theft.
+[LEARN] ACCEPTED cloud.app.box.com current-user disclosure: Unauthenticated GET returns full config JSON including Amplitude API key (c6eb3d709c5c30ca80c0381080bcc254), Split.io SDK key (3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a), feature flags (100+), internal endpoints, SDK config. Both keys are client-side SDK keys — designed to be public, not exploitable.
+[LEARN] ACCEPTED cloud.app.box.com CORS on current-user: Wildcard `*` without credentials — cross-origin JS can read the response, but no cookies are sent. Information disclosure only, no auth escalation.
+[LEARN] ACCEPTED notes.app.box.com: Valid subdomain, 302 → app.box.com. Shares `.app.box.com` session cookie domain with cloud.app.box.com.
+[LEARN] REJECTED Split.io key exploit: The leaked SDK key returns 400/403 from Split.io APIs — it's a client-side key, not an admin key
+[LEARN] REJECTED notes.services.box.com Socket.IO path-namespaces: Both `/socket.io/` and `/socket.io/notes/` return identical handshakes — no namespace isolation
+[PARKED] notes.services.box.com — Socket.IO session hijacking: Dead endpoint. Sessions aren't sticky behind envoy LB. No client can ever complete handshake+connect cycle. Not exploitable.
+[PARKED] notes.services.box.com — All Express routes: Every path returns 404. Only the Socket.IO endpoint is alive. Service has been consolidated to services.app.box.com/app.box.com.
+[PARKED] cloud.app.box.com — current-user SDK key disclosure: Keys are client-side by design (Amplitude ingest, Split.io browser SDK). No admin/data access possible. Information disclosure only — not a security vulnerability.
+[HYP] upload.box.com — CORS Origin Reflection + Credentials on POST Collection Endpoints (Full Scope Confirmation)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, search, shared_items}
+confidence: 95
+reasoning: |
+[HYP] upload.box.com — CORS Origin Reflection + Credentials on POST Collection Endpoints (Full Scope Confirmation)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, search, shared_items, oauth2/token}
+confidence: 95
+reasoning: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[PARKED] upload.box.com — oauth2/token endpoint real handler: Returns 415 on all POST content types tested. May be a catch-all route without real OAuth handler. Needs AUTH_HELPED test with valid authorization code to confirm.
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/zip-downloads with Origin: evil.com, Method: POST — test if batch/download endpoints also have CORS
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST — test nested resource endpoints
+[NEXT] VERIFY: GET https://upload.box.com/api/2.0/users/me with Origin: evil.com — confirm GET requests to user endpoints also lack CORS headers (defense-in-depth)

@@ -26,3 +26,17 @@ https://notes.services.box.com/graphql -> HTTP 503
 https://notes.services.box.com/health -> HTTP 404
 https://notes.services.box.com/404test -> HTTP 404
 https://notes.services.box.com/graphql/ -> HTTP 503
+
+## 2026-08-22 02:07:08 UTC notes.services.box.com
+https://notes.services.box.com/socket.io/?EIO=4&transport=polling&note_id=test123 -> 200
+https://notes.services.box.com/socket.io/notes/?EIO=4&transport=polling -> 200
+https://notes.services.box.com/socket.io/?EIO=4&transport=polling -> 200
+https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=CdyDL9bI2d7zZR5HAGSW -> HTTP 400
+https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=5kgKZY4eY6iUQ_scAGF3 -> HTTP 400
+https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=$SID -> HTTP 400
+https://notes.services.box.com/graphql -> HTTP 503
+https://notes.services.box.com/api/1.0/notes -> HTTP 404
+https://notes.services.box.com/socket.io/?EIO=4&transport=websocket -> HTTP 400
+https://notes.services.box.com/socket.io/?EIO=4&transport=websocket&sid=$SID -> HTTP 400
+https://notes.services.box.com/ -> 206
+https://notes.services.box.com/api/v1/notes -> HTTP 404
