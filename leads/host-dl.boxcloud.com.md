@@ -990,3 +990,38 @@ testability: HUMAN_ONLY
 [NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?callback=test123 — test if callback value is used in any script context
 [NEXT] RECON: Search for Box subdomains that accept user input (search, forms, comments) which could host postMessage injection to chain with embed widget's redirectParentIframe
 [NEXT] RECON: GET https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — search for `eval`, `innerHTML`, `document.write` patterns that could execute reflected parameters
+## 2026-08-22 04:48:21 UTC dl.boxcloud.com (mimo)
+[LEARN] ACCEPTED class=MISCONFIG @ cdn01.boxcdn.net/embed-widget/1.4.4/embed.js: embed.js `redirectParentIframe` handler does `window.location.href=n.url` with ZERO validation — confirmed via source analysis. No eval, no innerHTML dangerous patterns, no document.write.
+[LEARN] ACCEPTED class=MISCONFIG @ cdn01.boxcdn.net/embed-widget/1.4.4/embed.js: `MSTeamsAuthenticate` handler passes `n.loginUrl` directly to `new URL(n.loginUrl)` with no domain check — confirmed. Success/failure callbacks both do `window.location.assign(o)` with the component's `redirectURL` prop.
+[NEW] blog.box.com: Drupal CMS with backend at backend.blog.box.com — static blog, no search reflection, no iframes
+[NEW] community.box.com: 200 — potential user-generated content source for postMessage injection
+[HYP] Embed widget `reload` action — forced page reload via postMessage
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 80
+reasoning: The postMessage handler processes `case "reload": window.location.reload()` — any whitelisted origin can force the parent page to reload at will. Combined with `redirectParentIframe`, this allows an attacker on a whitelisted origin to force reload + redirect chains.
+verify_steps: 1) Embed cloud.app.box.com/embed/shared/abc on attacker page 2) Send postMessage({action:"reload"}) 3) Observe page reloads
+impact: Denial-of-service via forced reloads; potential cache-poisoning prelude for redirect chains. Severity: Low-Medium.
+testability: HUMAN_ONLY
+[HYP] Embed widget `retrieveEmbedState` leaks feature flags to whitelisted origins
+class: BUSLOGIC
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 70
+reasoning: The `retrieveEmbedStateResult` message contains ~80 feature flags (boxAI flags, relay config, admin console, Shield, sign, etc.) plus embed configuration. When sent to the widget from a whitelisted origin, the widget responds with `e.source.postMessage(r, e.origin)` — leaking all feature flags and internal configuration to the requesting origin. This reveals enterprise feature state that could be useful for targeted attacks.
+verify_steps: 1) Embed the widget on a whitelisted origin page 2) Send postMessage({action:"retrieveEmbedState"}) 3) Capture the response message and parse the JSON payload
+impact: Information disclosure of enterprise feature configuration, AI feature rollout status, admin capabilities. Severity: Low (requires whitelisted origin).
+testability: HUMAN_ONLY
+[HYP] blog.box.com search reflection for postMessage injection chaining
+class: XSS
+asset: blog.box.com
+confidence: 50
+reasoning: blog.box.com is a Drupal/Next.js CMS with backend at backend.blog.box.com. Blog sites commonly have search functionality with query parameter reflection. If `?s=query` reflects in the page without sanitization, an attacker could inject an iframe + postMessage script targeting the embed widget. The blog is a `*.box.com` subdomain that matches the embed widget's origin allowlist.
+verify_steps: 1) GET https://blog.box.com/?s=test 2) Check if `test` appears in page HTML 3) Check for iframe embedding capability
+impact: If search reflects unsanitized input, XSS on blog.box.com → postMessage injection to embed widget → open redirect via redirectParentIframe. Severity: Medium-High (full chain).
+testability: PASSIVE
+[PARKED] cloud.app.box.com embed callback in script context: `callback=alert(1)` reflects in `Box.prefetchedData` JSON inside `<script>` tag, but is URL-encoded (`%22` not `"`) — no JSON breakout possible. LOW impact.
+[PARKED] cloud.app.box.com embed redirect_uri javascript: protocol: Server prepends `https://cloud.app.box.com/shared/abc?` as base URL, so `redirect_uri=javascript:alert(1)` becomes `?redirect_uri=javascript:alert(1)` — not a standalone `javascript:` URL. LOW impact.
+[NEXT] PROBE: GET https://blog.box.com/?s=testBhx9k3 — check if search parameter reflects in page HTML
+[NEXT] PROBE: GET https://community.box.com/ — check for user-generated content, forums, search
+[NEXT] PROBE: GET https://blog.box.com/search?q=testBhx9k3 — alternate search path
+[NEXT] RECON: Search for Box embed widget documentation to identify all accepted postMessage actions

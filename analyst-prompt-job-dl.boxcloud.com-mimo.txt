@@ -35,41 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 03:35:27 UTC"
+  "last_advance": "2026-08-22 04:05:45 UTC"
 }=== MY LAST LEADS (tail) ===
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/admin`: 403 explicit route protection.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/settings`: 302 with `box_redirect_rm=box_user_settings` cookie — route mapper name leaked.
-[LEARN] REJECTED cloud.app.box.com shared-item query params: All tested parameter names return 400.
-[LEARN] REJECTED cloud.app.box.com S3 bucket listing: No S3 XML response observed.
-[NEXT] RECON: Search box_canvas, box_hubs_client, box_sign_client remote bundles for `shared-item` or `sharedItem` API call patterns — GET https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js
-[NEXT] RECON: Search box_ai_client for `shared-item` — GET https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js
-[NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with header X-Box-EndUser-API: {"sharedName":"abc1234567"} — test header-based param delivery
-[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/ abc1234567 — test shared link embed variant
-## 2026-08-22 02:52:43 UTC dl.boxcloud.com (mimo)
-[NEW] cloud.app.box.com `/embed/shared/{token}` returns 200 with full prefetchedData for ANY token value — reflected query params (including redirect_uri) in url/displayedURL/originalURL fields
-class: MISCONFIG
-asset: cloud.app.box.com/embed/shared/{token}
-confidence: 90
-reasoning: The embed endpoint reflects ALL query parameters into prefetchedData. `redirect_uri=https://evil.com` appears verbatim in `url`, `displayedURL`, and `originalURL` fields. `url` is used as iframe src after challenge completion. `originalURL` is used in window.location.assign() during MS Teams auth. Server-side /shared/{token} returns 404 for invalid tokens (no server redirect observed), but valid shared link tokens may cause the embedded iframe to navigate to the redirect_uri target.
-verify_steps: 1) GET https://cloud.app.box.com/embed/shared/VALID_SHARED_TOKEN?redirect_uri=https://attacker.com 2) Observe if the iframe navigates to attacker.com after challenge completion 3) Observe if the server-side /shared/VALID_SHARED_TOKEN?redirect_uri=... causes a 302 to the redirect_uri
-impact: If a valid shared link token is combined with redirect_uri and the server/iframe follows it, this is an open redirect on cloud.app.box.com domain — usable for OAuth token theft, phishing, or session hijacking. Severity: Medium-High (requires valid shared link token as prerequisite).
-testability: HUMAN_ONLY
-[NEW] cloud.app.box.com `/embed/file/{id}?redirect_uri=` same parameter reflection — `originalURL` used in window.location.assign()
-class: MISCONFIG
-asset: cloud.app.box.com/embed/file/{id}
-confidence: 85
-reasoning: The /embed/file/{id} endpoint also reflects redirect_uri into prefetchedData. The originalURL field containing the attacker's redirect_uri is passed to window.location.assign(o) in the MS Teams auth success/failure callbacks. This only triggers when runningInMSTeams is true, but the reflection is confirmed.
-verify_steps: GET https://cloud.app.box.com/embed/file/123?redirect_uri=https://evil.com — observe prefetchedData.url, prefetchedData.originalURL contain the reflected redirect_uri
-impact: URL parameter reflection into window.location.assign() context — medium severity if MS Teams integration is active.
-testability: PASSIVE
-[PARKED] cloud.app.box.com path traversal via embed shared tokens: Both URL-encoded (%2e%2e%2f) and double-encoded (..%252f..) path traversal attempts return 403 Forbidden. Server has traversal protection on embed routes.
-[PARKED] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration: Still returns 400 for all tested params. The canvas and AI client bundles contain only Module Federation runtime code — no application-level API patterns. The correct parameter name remains unknown.
-[NEXT] PROBE: GET https://app.box.com/embed/shared/VALID_TOKEN?redirect_uri=https://evil.com — test if app.box.com has same reflection behavior
-[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?callback=alert(1) — test for XSS via callback parameter reflection in prefetchedData
-[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?state=malicious_value — test state parameter reflection (OAuth state vector)
-[NEXT] RECON: GET https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — search for "postMessage" patterns to map all message actions the child iframe can trigger on the parent
-## 2026-08-22 03:35:27 UTC dl.boxcloud.com (mimo)
-class: MISCONFIG
 asset: cloud.app.box.com/embed/shared/{token} + app.box.com/embed/shared/{token}
 confidence: 90
 reasoning: embed.js `completeChallenge` action does `t.src=s` where `s=prefetchedData.url`. Server reflects `redirect_uri=https://evil.com` into `prefetchedData.url` as `https://cloud.app.box.com/shared/abc123test?redirect_uri=https://evil.com&is_embed_widget=true`. After challenge completion, iframe navigates to this URL. Confirmed on BOTH cloud.app.box.com and app.box.com. The `originalURL` field also feeds into `window.location.assign(o)` in MS Teams auth callbacks.
@@ -97,6 +64,39 @@ reasoning: The postMessage origin validation regex uses `(?:https?:\\/\\/)?` whi
 verify_steps: 1) Serve a page over HTTP on any *.box.com subdomain (if any accept HTTP) 2) Embed the Box widget 3) Send postMessage with redirect URL 4) Check if widget processes it
 impact: Weakens origin allowlist — could enable postMessage injection from HTTP origins. Severity: Low (requires HTTP-accessible Box subdomain).
 testability: HUMAN_ONLY
+## 2026-08-22 04:05:45 UTC dl.boxcloud.com (mimo)
+[NEW] app.box.com `/embed/shared/{token}`: Same `redirect_uri` reflection confirmed — `prefetchedData.url` contains `https://app.box.com/shared/abc123test?redirect_uri=https://evil.com&is_embed_widget=true`
+[CONFIRMED] cloud.app.box.com embed shared-item query param reflection
+class: MISCONFIG
+asset: cloud.app.box.com/embed/shared/{token} + app.box.com/embed/shared/{token}
+confidence: 95
+reasoning: `redirect_uri`, `callback`, `state`, and arbitrary query params are all reflected verbatim into `prefetchedData.url`, `prefetchedData.displayedURL`, `prefetchedData.originalURL`, and `embed.originalLocation` in the message JSON. Confirmed on BOTH cloud.app.box.com AND app.box.com. The `url` field is consumed by `completeChallenge` action (`t.src=s`) in embed.js — after challenge completion, the iframe navigates to the reflected URL. The `originalURL` field feeds `window.location.assign(o)` in MS Teams auth callbacks.
+verify_steps: 1) Obtain a valid Box shared link token 2) GET `https://app.box.com/embed/shared/VALID_TOKEN?redirect_uri=https://attacker.com` 3) Observe if `completeChallenge` fires and iframe src changes to attacker URL
+impact: Open redirect on app.box.com/cloud.app.box.com domain — chains with OAuth flows for token theft, session hijacking, or phishing. Severity: Medium-High (requires valid shared link token).
+testability: HUMAN_ONLY
+[CONFIRMED] embed.js `redirectParentIframe` postMessage — no URL validation
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 90
+reasoning: The postMessage handler processes `case "redirectParentIframe": window.location.href=n.url` with NO URL validation — no protocol check, no allowlist check on the URL value. Any whitelisted origin (`*.box.com`, `*.box.net`, `*.boxcloud.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`, `*.boxgov.us`) can send this message and redirect the top-level page to any URL including `javascript:`, `data:`, or external phishing sites. The origin allowlist regex also accepts `http://` origins.
+verify_steps: 1) Embed cloud.app.box.com/embed/shared/abc on attacker-controlled page on any *.box.com subdomain 2) Send postMessage({action:"redirectParentIframe", url:"https://evil.com"}) to widget iframe 3) Observe top-level page navigates to evil.com
+impact: Open redirect from any Box-domain origin — chains with OAuth flows for token theft, session hijacking, or phishing. Severity: Medium-High.
+testability: HUMAN_ONLY
+[CONFIRMED] embed.js `MSTeamsAuthenticate` postMessage — arbitrary auth URL injection
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 85
+reasoning: The `MSTeamsAuthenticate` handler constructs `new URL(n.loginUrl)` directly from postMessage data, then passes it to `f.current.authentication.authenticate({url:i.toString()})`. No URL validation on `loginUrl` — any allowed-origin parent can open an auth popup to an arbitrary URL.
+verify_steps: 1) Embed the widget on a *.box.com origin 2) Send postMessage({action:"MSTeamsAuthenticate", loginUrl:"https://evil.com/phish"}) 3) Observe auth popup opens to attacker URL
+impact: OAuth/auth popup URL injection — attacker can capture auth codes or credentials via fake auth page. Severity: Medium-High.
+testability: HUMAN_ONLY
+[PARKED] cloud.app.box.com embed `callback` parameter reflection: `callback=alert(1)` reflects into `prefetchedData.url` as `https://cloud.app.box.com/shared/abc?callback=alert(1)&is_embed_widget=true`. Not executed as JavaScript (loaded as iframe src, not eval'd). LOW impact — no XSS via this vector.
+[PARKED] cloud.app.box.com embed `state` parameter reflection: `state=malicious_value_123` reflects into `prefetchedData.url` and `embed.originalLocation`. Could be used for OAuth state manipulation if embedded in auth flow. LOW impact — requires valid shared link token + auth flow trigger.
+[PARKED] cloud.app.box.com embed external URL injection: Tested `redirect_uri=javascript:alert(1)` — returns 200 but the URL field shows `https://cloud.app.box.com/shared/abc?redirect_uri=javascript:alert(1)&is_embed_widget=true`. The server prepends `https://` base URL, so `javascript:` protocol is not directly injectable into the URL field. However, the `redirect_uri` value itself is still reflected as a query parameter value.
+[NEXT] PROBE: GET https://app.box.com/embed/shared/abc?redirect_uri=javascript:alert(1) — test if app.box.com also prepends https:// base URL
+[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?callback=test123 — test if callback value is used in any script context
+[NEXT] RECON: Search for Box subdomains that accept user input (search, forms, comments) which could host postMessage injection to chain with embed widget's redirectParentIframe
+[NEXT] RECON: GET https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — search for `eval`, `innerHTML`, `document.write` patterns that could execute reflected parameters
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
