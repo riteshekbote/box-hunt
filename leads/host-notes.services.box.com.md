@@ -1157,3 +1157,32 @@ testability: AUTH_HELPED
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/zip-downloads with Origin: evil.com, Method: POST — test if batch/download endpoints also have CORS
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST — test nested resource endpoints
 [NEXT] VERIFY: GET https://upload.box.com/api/2.0/users/me with Origin: evil.com — confirm GET requests to user endpoints also lack CORS headers (defense-in-depth)
+## 2026-08-22 02:51:34 UTC notes.services.box.com (mimo)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 95
+reasoning: |
+evidence: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 90
+reasoning: |
+evidence: |
+verify_steps: |
+impact: |
+testability: PASSIVE
+class: OTHER
+asset: upload.box.com/oauth2/token
+confidence: 50
+reasoning: |
+evidence: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/files/upload_session with Origin: https://app.box.com -> test if legitimate Origin gets different CORS behavior
+[NEXT] VERIFY: GET https://upload.box.com/api/2.0/files/upload_session with Origin: evil.com -> confirm GET still returns no CORS even on upload-specific endpoints
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/users/me with Origin: evil.com, Method: POST -> test if user-specific endpoints also get POST CORS (even though GET doesn't)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST -> test nested resource endpoints

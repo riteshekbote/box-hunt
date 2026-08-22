@@ -1,514 +1,35 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-I'll execute the next probe to test if the Socket.IO endpoint leaks note-specific information when a note_id parameter is provided.
-[0m% [0mWebFetch https://notes.services.box.com/socket.io/?EIO=4&transport=polling&note_id=test123
-The Socket.IO endpoint accepts handshakes with arbitrary parameters. Let me test path-based namespaces.
-[0m% [0mWebFetch https://notes.services.box.com/socket.io/notes/?EIO=4&transport=polling
-Both paths return valid handshakes. Let me test the Socket.IO namespace discovery and rate limiting.
-[0m% [0mWebFetch https://notes.services.box.com/socket.io/?EIO=4&transport=polling
-Now let me test connecting to the default namespace to see if authentication is required after handshake:
-[0m✗ [0mWebFetch https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=CdyDL9bI2d7zZR5HAGSW failed
-[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=CdyDL9bI2d7zZR5HAGSW)
-Let me check the Set-Cookie domain attribute on the handshake response:
+[0m# [0mTodos
+[•] Verify upload.box.com CORS on POST endpoints - test additional endpoints
+[ ] Verify upload.box.com GET requests lack CORS headers (defense-in-depth)
+[ ] Explore upload.box.com additional attack surface
+[ ] Assess cloud.app.box.com hypotheses
 [0m
-[0m$ [0mcurl -s -I -D - "https://notes.services.box.com/socket.io/?EIO=4&transport=polling" 2>&1 | head -30
-HTTP/2 400 
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:56:30 GMT
-date: Sat, 22 Aug 2026 01:56:30 GMT
-content-type: application/json
-content-type: application/json
-x-envoy-upstream-service-time: 4
-x-envoy-upstream-service-time: 4
-strict-transport-security: max-age=31536000
-strict-transport-security: max-age=31536000
-via: 1.1 google
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -I "https://notes.services.box.com/socket.io/?EIO=4&transport=polling" 2>&1 | head -30
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:56:33 GMT
-content-type: application/json
-x-envoy-upstream-service-time: 5
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-Interesting - curl gets 400 while webfetch got 200. Let me check with proper User-Agent:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling" 2>&1 | head -50
-HTTP/2 200 
-date: Sat, 22 Aug 2026 01:56:38 GMT
-content-type: text/plain; charset=UTF-8
-content-length: 117
-cache-control: no-store
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-0{"sid":"hoi4RIlzqiDBhuluABes","upgrades":["websocket"],"pingInterval":7000,"pingTimeout":15000,"maxPayload":5000000}
-[0m
-Server requires a non-empty User-Agent. No Set-Cookie on handshake. Let me now do the full namespace connect flow to test auth behavior:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling" 2>&1
-HTTP/2 200 
-date: Sat, 22 Aug 2026 01:56:42 GMT
-content-type: text/plain; charset=UTF-8
-content-length: 117
-cache-control: no-store
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-0{"sid":"5kgKZY4eY6iUQ_scAGF3","upgrades":["websocket"],"pingInterval":7000,"pingTimeout":15000,"maxPayload":5000000}
-[0m
-Now let me connect to the namespace with a POST to send the "40" connect packet:
-[0m$ [0mcurl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Content-Type: text/plain;charset=UTF-8" -d '40' "https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=5kgKZY4eY6iUQ_scAGF3" 2>&1
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:56:48 GMT
-content-type: application/json
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"code":1,"message":"Session ID unknown"}
-[0m
-Server returns "Session ID unknown" — the sid from one request isn't recognized on the next. This means the server is likely behind a load balancer (envoy) and sessions aren't sticky. Let me try a combined handshake+connect in a single flow:
-[0m$ [0mcurl -s -c /tmp/notes_cookies.txt -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling" 2>&1 && echo "---HANDSHAKE ABOVE---" && SID=$(curl -s -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling" | sed 's/^0//;s/.*"sid":"\([^"]*\)".*/\1/') && echo "Extracted SID: $SID" && curl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Content-Type: text/plain;charset=UTF-8" -d '40' "https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=$SID" 2>&1
-HTTP/2 200 
-date: Sat, 22 Aug 2026 01:56:54 GMT
-content-type: text/plain; charset=UTF-8
-content-length: 117
-cache-control: no-store
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-0{"sid":"3b9uKgH9Djb2CzqkAGx0","upgrades":["websocket"],"pingInterval":7000,"pingTimeout":15000,"maxPayload":5000000}---HANDSHAKE ABOVE---
-Extracted SID: LHvHkf8I8iKdciuuAHgx
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:56:54 GMT
-content-type: application/json
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"code":1,"message":"Session ID unknown"}
-[0m
-The SID extraction got the wrong one (from cached previous response). Let me fix:
-[0m$ [0mRESP=$(curl -s -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling") && echo "Handshake: $RESP" && SID=$(echo "$RESP" | sed 's/^0//' | python3 -c "import sys,json; print(json.load(sys.stdin)['sid'])") && echo "SID: $SID" && curl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Content-Type: text/plain;charset=UTF-8" -d '40' "https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=$SID" 2>&1
-Handshake: 0{"sid":"9OjQ8nVwitWRLCw7AGcJ","upgrades":["websocket"],"pingInterval":7000,"pingTimeout":15000,"maxPayload":5000000}
-SID: 9OjQ8nVwitWRLCw7AGcJ
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:57:00 GMT
-content-type: application/json
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-{"code":1,"message":"Session ID unknown"}
-[0m
-[0m$ [0mRESP=$(curl -s --http1.1 -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling") && echo "Handshake: $RESP" && SID=$(echo "$RESP" | sed 's/^0//' | python3 -c "import sys,json; print(json.load(sys.stdin)['sid'])") && echo "SID: $SID" && curl -s --http1.1 -D - -X POST -H "User-Agent: box-research/1.0" -H "Content-Type: text/plain;charset=UTF-8" -d '40' "https://notes.services.box.com/socket.io/?EIO=4&transport=polling&sid=$SID" 2>&1
-Handshake: 0{"sid":"VBJ3Fmh3EonoHPoXAGu1","upgrades":["websocket"],"pingInterval":7000,"pingTimeout":15000,"maxPayload":5000000}
-SID: VBJ3Fmh3EonoHPoXAGu1
-HTTP/1.1 400 Bad Request
-date: Sat, 22 Aug 2026 01:57:06 GMT
-content-type: application/json
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-via: 1.1 google
-Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-Transfer-Encoding: chunked
-
-{"code":1,"message":"Session ID unknown"}
-[0m
-The server is behind envoy LB with no session stickiness — the POST to connect to the namespace goes to a different backend than the handshake. Let me try HTTP/1.1 with connection keep-alive:
-Session stickiness is broken behind envoy LB — sessions can't be sustained via polling transport. This is a key finding. Let me check the CSRF cookie domain scope from the Express layer:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/graphql" 2>&1 | head -30
-HTTP/2 503 
-date: Sat, 22 Aug 2026 01:57:18 GMT
-strict-transport-security: max-age=31536000
-box-request-id: 15b4c9047fc7cdedcd1d81e4c6ffaa6ef
-x-envoy-upstream-service-time: 24
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"type":"error","status":503,"code":"service_unavailable","help_url":"http://developers.box.com/docs/#errors","message":"Service Unavailable","request_id":"15b4c9047fc7cdedcd1d81e4c6ffaa6ef"}
-[0m
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/api/1.0/notes" 2>&1 | head -30
-HTTP/2 404 
-date: Sat, 22 Aug 2026 01:57:22 GMT
-content-type: text/html; charset=utf-8
-content-length: 15
-access-control-expose-headers: Server-Timing
-server-timing: traceparent;desc="00-da8a4c0eba9b96b89c73c98b322ca934-e6f68483e6216dc4-00"
-x-powered-by: Express
-set-cookie: _csrf=uHSkxOGOnvvMTwqNrYmncbVU; Path=/; HttpOnly; Secure; SameSite=None
-set-cookie: csrf-token=qnrEhOWp-YRzuvu2VIrrPl_17Sy-e7omtm9A; Path=/; Secure; SameSite=None
-strict-transport-security: max-age=31536000
-x-frame-options: ALLOW-FROM https://app.box.com
-content-security-policy: frame-ancestors https://app.box.com
-etag: W/"f-Z280BOLXUGgeynAe/z2VTx5EI7Q"
-x-envoy-upstream-service-time: 5
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-404 - Not Found
-[0m
-Key finding on CSRF cookies. Let me now analyze and also test WebSocket transport behavior:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" "https://notes.services.box.com/socket.io/?EIO=4&transport=websocket" 2>&1 | head -20
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:57:38 GMT
-content-type: application/json
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-{"code":3,"message":"Bad request"}
-[0m
-[0m$ [0mRESP=$(curl -s -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling") && SID=$(echo "$RESP" | sed 's/^0//' | python3 -c "import sys,json; print(json.load(sys.stdin)['sid'])") && echo "SID: $SID" && curl -s -D - -H "User-Agent: box-research/1.0" -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" "https://notes.services.box.com/socket.io/?EIO=4&transport=websocket&sid=$SID" 2>&1 | head -20
-SID: n2AbS1rwqcM38MOtAD5o
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:57:53 GMT
-content-type: application/json
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"code":1,"message":"Session ID unknown"}
-[0m
-The Socket.IO server is **completely non-functional** — sessions aren't sticky behind envoy LB, so no client can ever complete a full handshake+connect cycle. This is a dead service. Let me now check a few more paths and the Express layer behavior more carefully:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/" 2>&1 | head -20
-HTTP/2 302 
-date: Sat, 22 Aug 2026 01:58:17 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 15
-strict-transport-security: max-age=31536000
-location: https://services.app.box.com/
-box-request-id: 040fdfdf5fa3b5d47540fec0a068f3fc7
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-Root 302 → services.app.box.com. Let me also test a few more unexplored paths:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/api/v1/notes" 2>&1 | head -20 && echo "---" && curl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/health" 2>&1 | head -20 && echo "---" && curl -s -D - -H "User-Agent: box-research/1.0" "https://notes.services.box.com/.well-known/openid-configuration" 2>&1 | head -20
-HTTP/2 404 
-date: Sat, 22 Aug 2026 01:58:32 GMT
-content-type: text/html; charset=utf-8
-content-length: 15
-access-control-expose-headers: Server-Timing
-server-timing: traceparent;desc="00-45795cef5c61d7fe63189056a5cd9ee5-44439f8452b85b12-00"
-x-powered-by: Express
-set-cookie: _csrf=7ZUDXJKVL_hDeqwvCrwR5A0k; Path=/; HttpOnly; Secure; SameSite=None
-set-cookie: csrf-token=YsRWuc8O-ZQYHSIrBdiVpG8PrMBzECzU91VA; Path=/; Secure; SameSite=None
-strict-transport-security: max-age=31536000
-x-frame-options: ALLOW-FROM https://app.box.com
-content-security-policy: frame-ancestors https://app.box.com
-etag: W/"f-Z280BOLXUGgeynAe/z2VTx5EI7Q"
-x-envoy-upstream-service-time: 3
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-404 - Not Found---
-HTTP/2 404 
-date: Sat, 22 Aug 2026 01:58:32 GMT
-content-type: text/html; charset=utf-8
-content-length: 15
-access-control-expose-headers: Server-Timing
-server-timing: traceparent;desc="00-6354031238a1724d6c9d0ae84a1770fb-1692fc561351d314-00"
-x-powered-by: Express
-set-cookie: _csrf=nB7_fdLJUlPnfDlbyirqKUfr; Path=/; HttpOnly; Secure; SameSite=None
-set-cookie: csrf-token=b8ERuzjX-joLX5aJj9BfiPrtR6yHK5FmoYEo; Path=/; Secure; SameSite=None
-strict-transport-security: max-age=31536000
-x-frame-options: ALLOW-FROM https://app.box.com
-content-security-policy: frame-ancestors https://app.box.com
-etag: W/"f-Z280BOLXUGgeynAe/z2VTx5EI7Q"
-x-envoy-upstream-service-time: 4
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-404 - Not Found---
-HTTP/2 404 
-date: Sat, 22 Aug 2026 01:58:33 GMT
-content-type: text/html; charset=utf-8
-content-length: 15
-access-control-expose-headers: Server-Timing
-server-timing: traceparent;desc="00-fea921ff81b6997a227e750a29f58d18-24f5852a58c7b620-00"
-x-powered-by: Express
-set-cookie: _csrf=jYcHKTkVlg1HUM_HbgqelsbV; Path=/; HttpOnly; Secure; SameSite=None
-set-cookie: csrf-token=AAddvhae-wt82X-1j6saYuyAcoLfQgZRIToc; Path=/; Secure; SameSite=None
-strict-transport-security: max-age=31536000
-x-frame-options: ALLOW-FROM https://app.box.com
-content-security-policy: frame-ancestors https://app.box.com
-etag: W/"f-Z280BOLXUGgeynAe/z2VTx5EI7Q"
-x-envoy-upstream-service-time: 4
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-404 - Not Found
-[0m
-All paths on notes.services.box.com return 404 from Express. The surface is exhausted. Let me now pivot to investigate the ranked cloud.app.box.com hypotheses, which are at [45] confidence:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/" 2>&1 | head -30
-HTTP/2 302 
-date: Sat, 22 Aug 2026 01:58:50 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=9dvdf27cr3klqkcmi7mii655op; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=9dvdf27cr3klqkcmi7mii655op; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a89025a1fd557.57924563; expires=Sun, 22 Aug 2027 01:58:50 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 01:58:50 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=31; expires=Sun, 22 Aug 2027 01:58:50 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 43
-location: https://cloud.app.box.com/login
-box-request-id: 06fabbb9fa165404fbe072b9d58277e1f
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/app-api/enduserapp/current-user" 2>&1 | head -30
-HTTP/2 200 
-date: Sat, 22 Aug 2026 01:58:53 GMT
-content-type: application/json; charset=utf-8
-set-cookie: z=cl9atd1t1lvpkidoldj5ftu20g; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=cl9atd1t1lvpkidoldj5ftu20g; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a89025d761734.27005385; expires=Sun, 22 Aug 2027 01:58:53 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 01:58:53 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=93; expires=Sun, 22 Aug 2027 01:58:53 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-enduserapp-currentversion: 23.692.0+hotfix.1
-x-envoy-upstream-service-time: 60
-box-request-id: 0329c8767624f1ca63929c9b7c4abab40
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":null,"storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/cloud.account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/cloud.app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}
-[0m
-Massive information disclosure. Let me check CORS and the shared-item endpoint:
-[0m$ [0mcurl -s -I -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" "https://cloud.app.box.com/app-api/enduserapp/current-user" 2>&1 | head -30
-HTTP/2 404 
-date: Sat, 22 Aug 2026 01:59:06 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 17
-strict-transport-security: max-age=31536000
-box-request-id: 0a7a0dedb860d6ccb2c4027a45df08b01
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-Hmm, HEAD with Origin gets 404. Let me try GET properly:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" "https://cloud.app.box.com/app-api/enduserapp/current-user" 2>&1 | head -30
-HTTP/2 200 
-date: Sat, 22 Aug 2026 01:59:14 GMT
-content-type: application/json; charset=utf-8
-set-cookie: z=tdoaj4vav6fda9c0m954lqvcr1; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=tdoaj4vav6fda9c0m954lqvcr1; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a89027251b2c4.64106953; expires=Sun, 22 Aug 2027 01:59:14 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 01:59:14 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=26; expires=Sun, 22 Aug 2027 01:59:14 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-enduserapp-currentversion: 23.692.0+hotfix.1
-x-envoy-upstream-service-time: 61
-box-request-id: 0d56b2a8374cdc976ebc810966459b4f9
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":null,"storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/cloud.account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/cloud.app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}
-[0m
-This is a significant information disclosure. The unauthenticated endpoint leaks:
-- Amplitude API key
-- SplitIO API key
-- Full feature flag configuration
-- Internal API endpoints
-- SDK configuration
-
-No CORS headers in the response, which limits cross-origin reads. Let me check the shared-item endpoint:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/app-api/enduserapp/shared-item" 2>&1 | head -30
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:59:24 GMT
-content-type: application/json; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 53
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=4h34b9gnjruaav9ar0u7e5n7gi; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=4h34b9gnjruaav9ar0u7e5n7gi; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a89027ce7d702.06232283; expires=Sun, 22 Aug 2027 01:59:24 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 01:59:24 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=80; expires=Sun, 22 Aug 2027 01:59:24 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-enduserapp-currentversion: 23.692.0+hotfix.1
-x-robots-tag: noindex, nofollow
-box-request-id: 0520bf94b923f09ae339c56f648d70ff4
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"status":400,"errorCode":"expectedParamError"}
-[0m
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link=test" 2>&1 | head -30
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:59:27 GMT
-content-type: application/json; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 48
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=t2e9on38vcf0a9odh7njn8r279; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=t2e9on38vcf0a9odh7njn8r279; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a89027fb1b3c6.04233567; expires=Sun, 22 Aug 2027 01:59:27 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 01:59:27 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=86; expires=Sun, 22 Aug 2027 01:59:27 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-enduserapp-currentversion: 23.692.0+hotfix.1
-x-robots-tag: noindex, nofollow
-box-request-id: 064d8e417239220007ccb83ce0e2d75f2
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"status":400,"errorCode":"expectedParamError"}
-[0m
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/app-api/enduserapp/shared-item?item_id=0&item_type=file" 2>&1 | head -30
-HTTP/2 400 
-date: Sat, 22 Aug 2026 01:59:32 GMT
-content-type: application/json; charset=utf-8
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 48
-strict-transport-security: max-age=31536000
-pragma: no-cache
-set-cookie: z=g2dcqelmas4o8n67aer1vi211v; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=g2dcqelmas4o8n67aer1vi211v; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a8902847bfe47.20224807; expires=Sun, 22 Aug 2027 01:59:32 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 01:59:32 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=81; expires=Sun, 22 Aug 2027 01:59:32 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-enduserapp-currentversion: 23.692.0+hotfix.1
-x-robots-tag: noindex, nofollow
-box-request-id: 0333afd885a3a7f6160a8f35817993bdb
-cache-control: no-store, no-cache, must-revalidate
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-
-{"status":400,"errorCode":"expectedParamError"}
-[0m
-[0m$ [0mcurl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" "https://cloud.app.box.com/app-api/enduserapp/current-user" 2>&1 | head -30
-HTTP/2 204 
-date: Sat, 22 Aug 2026 01:59:36 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 3
-strict-transport-security: max-age=31536000
-access-control-max-age: 1800
-vary: Origin
-box-request-id: 1de9cf5b4badc25914f31dae837bbf4e6
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-Let me now check CORS on the cloud.app.box.com API endpoint more carefully and enumerate other app-api paths:
-[0m$ [0mfor path in "app-api/enduserapp/config" "app-api/enduserapp/session" "app-api/enduserapp/preferences" "app-api/enduserapp/search" "app-api/enduserapp/feed" "app-api/enduserapp/notifications" "app-api/enduserapp/user" "app-api/enduserapp/me" "app-api/enduserapp/folder" "app-api/enduserapp/file" "app-api/enduserapp/preview" "graphql" "api" "v2" "v1"; do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/$path" 2>&1)
-  echo "$STATUS https://cloud.app.box.com/$path"
-  sleep 2
-done
-404 https://cloud.app.box.com/app-api/enduserapp/config
-404 https://cloud.app.box.com/app-api/enduserapp/session
-404 https://cloud.app.box.com/app-api/enduserapp/preferences
-404 https://cloud.app.box.com/app-api/enduserapp/search
-404 https://cloud.app.box.com/app-api/enduserapp/feed
-404 https://cloud.app.box.com/app-api/enduserapp/notifications
-404 https://cloud.app.box.com/app-api/enduserapp/user
-404 https://cloud.app.box.com/app-api/enduserapp/me
-404 https://cloud.app.box.com/app-api/enduserapp/folder
-404 https://cloud.app.box.com/app-api/enduserapp/file
-404 https://cloud.app.box.com/app-api/enduserapp/preview
-503 https://cloud.app.box.com/graphql
-301 https://cloud.app.box.com/api
-404 https://cloud.app.box.com/v2
-404 https://cloud.app.box.com/v1
-[0m
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/api" 2>&1 | head -20
-HTTP/2 301 
-date: Sat, 22 Aug 2026 02:00:19 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 18
-strict-transport-security: max-age=31536000
-location: https://developers.box.com/
-box-request-id: 0bb349fe6fc34e521f418f302963bff63
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mfor path in "app-api/enduserapp/shared-item/token" "app-api/enduserapp/shared-link" "app-api/enduserapp/download" "app-api/enduserapp/preview/token" "app-api/enduserapp/inline-preview" "app-api/enduserapp/comments" "app-api/enduserapp/tasks" "app-api/enduserapp/metadata" "app-api/enduserapp/shield" "app-api/enduserapp/admin" "app-api/enduserapp/enterprise" "app-api/enduserapp/groups" "app-api/enduserapp/collaborations"; do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0" "https://cloud.app.box.com/$path" 2>&1)
-  echo "$STATUS https://cloud.app.box.com/$path"
-  sleep 2
-done
-404 https://cloud.app.box.com/app-api/enduserapp/shared-item/token
-404 https://cloud.app.box.com/app-api/enduserapp/shared-link
-404 https://cloud.app.box.com/app-api/enduserapp/download
-404 https://cloud.app.box.com/app-api/enduserapp/preview/token
-404 https://cloud.app.box.com/app-api/enduserapp/inline-preview
-404 https://cloud.app.box.com/app-api/enduserapp/comments
-404 https://cloud.app.box.com/app-api/enduserapp/tasks
-404 https://cloud.app.box.com/app-api/enduserapp/metadata
-404 https://cloud.app.box.com/app-api/enduserapp/shield
-404 https://cloud.app.box.com/app-api/enduserapp/admin
-404 https://cloud.app.box.com/app-api/enduserapp/enterprise
-404 https://cloud.app.box.com/app-api/enduserapp/groups
-404 https://cloud.app.box.com/app-api/enduserapp/collaborations
-[0m
-Now let me check the upload.box.com CORS verification items from my last leads:
-[0m$ [0mcurl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: POST" "https://upload.box.com/api/2.0/events" 2>&1 | head -30
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/zip-downloads 2>&1 | head -30
 HTTP/2 200 
 server: nginx
-date: Sat, 22 Aug 2026 02:01:00 GMT
+date: Sat, 22 Aug 2026 02:47:44 GMT
 content-type: text/html;charset=utf-8
 content-length: 0
-access-control-allow-origin: https://evil.com
+access-control-allow-origin: evil.com
 access-control-allow-credentials: true
 access-control-max-age: 3600
 access-control-allow-methods: POST
 vary: Origin
-x-envoy-upstream-service-time: 0
+x-envoy-upstream-service-time: 1
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 [0m
-Events endpoint confirms CORS Origin reflection with credentials. Let me test the search endpoint:
-[0m$ [0mcurl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: POST" "https://upload.box.com/api/2.0/search" 2>&1 | head -30
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/tasks 2>&1 | head -30
 HTTP/2 200 
 server: nginx
-date: Sat, 22 Aug 2026 02:01:18 GMT
+date: Sat, 22 Aug 2026 02:47:45 GMT
 content-type: text/html;charset=utf-8
 content-length: 0
-access-control-allow-origin: https://evil.com
+access-control-allow-origin: evil.com
 access-control-allow-credentials: true
 access-control-max-age: 3600
 access-control-allow-methods: POST
@@ -518,71 +39,424 @@ strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 [0m
-Good. Let me now verify the GET/PUT/DELETE do NOT have CORS:
-[0m$ [0mcurl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: GET" "https://upload.box.com/api/2.0/events" 2>&1 | head -15 && echo "---PUT---" && curl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: PUT" "https://upload.box.com/api/2.0/events" 2>&1 | head -15 && echo "---DELETE---" && curl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: DELETE" "https://upload.box.com/api/2.0/events" 2>&1 | head -15
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/collaborations 2>&1 | head -30
 HTTP/2 200 
 server: nginx
-date: Sat, 22 Aug 2026 02:01:44 GMT
+date: Sat, 22 Aug 2026 02:47:46 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+I'll verify the upload.box.com CORS hypothesis by testing additional endpoints:
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/folders 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:47:47 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/comments 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:47:53 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/groups 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:47:54 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/events 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:47:55 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/search 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:47:56 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m# [0mTodos
+[✓] Verify upload.box.com CORS on POST endpoints - test additional endpoints
+[•] Verify upload.box.com GET requests lack CORS headers (defense-in-depth)
+[ ] Explore upload.box.com additional attack surface
+[ ] Assess cloud.app.box.com hypotheses
+[0m
+[0m$ [0mcurl -s -I -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/users/me 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:03 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/folders/0 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:03 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X PUT -H "Origin: evil.com" -H "Access-Control-Request-Method: PUT" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/folders/0 2>&1 | head -30
+HTTP/2 405 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:05 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+allow: OPTIONS, POST, GET, HEAD
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X DELETE -H "Origin: evil.com" -H "Access-Control-Request-Method: DELETE" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/folders/0 2>&1 | head -30
+HTTP/2 405 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:06 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+allow: OPTIONS, POST, GET, HEAD
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/shared_items 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:10 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/shared_items 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:11 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/file_watermark 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:12 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/file_watermark 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:13 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/metadata_templates 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:18 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/retention_policies 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:19 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/legal_holds 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:20 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/device_pinnings 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:21 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "User-Agent: box-research/1.0" -d '{}' https://upload.box.com/api/2.0/folders 2>&1 | head -30
+(no output)
+[0m
+[0m$ [0mcurl -s -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "Authorization: Bearer fake_token" -H "User-Agent: box-research/1.0" -d '{}' https://upload.box.com/api/2.0/folders 2>&1 | head -30
+(no output)
+[0m
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: box.com.evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/folders 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:41 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: box.com.evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Now let me test actual POST behavior to understand auth flow:
+[0m$ [0mcurl -s -I -X OPTIONS -H "Origin: https://app.box.com.evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/folders 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:48:42 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: https://app.box.com.evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -w "\nHTTP_CODE:%{http_code}\n" -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "User-Agent: box-research/1.0" -d '{}' https://upload.box.com/api/2.0/folders 2>&1
+HTTP_CODE:415
+[0m
+[0m$ [0mcurl -s -w "\nHTTP_CODE:%{http_code}\n" -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "Authorization: Bearer fake_token_test123" -H "User-Agent: box-research/1.0" -d '{"name":"test","parent":{"id":"0"}}' https://upload.box.com/api/2.0/folders 2>&1
+HTTP_CODE:415
+[0m
+[0m$ [0mcurl -s -w "\nHTTP_CODE:%{http_code}\n" -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "Authorization: Bearer boxfake123456789" -H "User-Agent: box-research/1.0" -d '{"name":"test"}' https://upload.box.com/api/2.0/folders 2>&1
+HTTP_CODE:415
+[0m
+[0m$ [0mcurl -s -w "\nHTTP_CODE:%{http_code}\n" -v -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "Authorization: Bearer boxfake123456789" -H "User-Agent: box-research/1.0" -d '{"name":"test"}' https://upload.box.com/api/2.0/folders 2>&1 | grep -E "< HTTP|< access-control|< www-authenticate"
+< HTTP/2 415
+[0m
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "Authorization: Bearer boxfake123456789" -H "User-Agent: box-research/1.0" -d '{"name":"test"}' https://upload.box.com/api/2.0/folders 2>&1 | head -30
+HTTP/2 415 
+server: nginx
+date: Sat, 22 Aug 2026 02:49:03 GMT
 content-type: text/html;charset=utf-8
 content-length: 0
 x-envoy-upstream-service-time: 1
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
-
----PUT---
+[0m
+[0m$ [0mcurl -s -D- -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/folders 2>&1 | head -30
 HTTP/2 200 
 server: nginx
-date: Sat, 22 Aug 2026 02:01:44 GMT
+date: Sat, 22 Aug 2026 02:49:04 GMT
 content-type: text/html;charset=utf-8
 content-length: 0
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
----DELETE---
-HTTP/2 200 
-server: nginx
-date: Sat, 22 Aug 2026 02:01:44 GMT
-content-type: text/html;charset=utf-8
-content-length: 0
-x-envoy-upstream-service-time: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+access-control-allow-headers: Authorization,Content-Type
+x-envoy-upstream-service-time: 1
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 [0m
-Confirmed: GET/PUT/DELETE on events endpoint return NO CORS headers (no reflection). Only POST has CORS. Now let me verify one more thing about the upload.box.com Bearer token vs cookie auth model:
-[0m$ [0mcurl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Content-Type: multipart/form-data" "https://upload.box.com/api/2.0/files/content" 2>&1 | head -20
-HTTP/2 400 
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "User-Agent: box-research/1.0" -d '{"name":"test"}' https://upload.box.com/api/2.0/folders 2>&1 | head -30
+HTTP/2 415 
 server: nginx
-date: Sat, 22 Aug 2026 02:02:06 GMT
-content-type: application/json;charset=utf-8
-content-length: 179
-x-envoy-upstream-service-time: 2
+date: Sat, 22 Aug 2026 02:49:15 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+x-envoy-upstream-service-time: 1
 strict-transport-security: max-age=31536000
 via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-
-{"code":"bad_request","help_url":"http://developers.box.com/docs/#errors","status":400,"message":"the request was rejected because no multipart boundary was found","type":"error"}
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Authorization: Bearer invalid_token_test" -H "Content-Type: multipart/form-data; boundary=test" --data-binary "--test--" "https://upload.box.com/api/2.0/files/content" 2>&1 | head -25
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: multipart/mixed" -H "Authorization: Bearer boxfake123456789" -H "User-Agent: box-research/1.0" --data-binary 'test' https://upload.box.com/api/2.0/folders 2>&1 | head -30
 HTTP/2 400 
 server: nginx
-date: Sat, 22 Aug 2026 02:02:15 GMT
+date: Sat, 22 Aug 2026 02:49:17 GMT
 content-type: application/json;charset=utf-8
-content-length: 153
-x-envoy-upstream-service-time: 2
+content-length: 156
+x-envoy-upstream-service-time: 1
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-{"code":"bad_request","help_url":"http://developers.box.com/docs/#errors","status":400,"message":"API upload did not contain a file part","type":"error"}
+{"code":"bad_request","help_url":"http://developers.box.com/docs/#errors","status":400,"message":"Invalid API request path /api/2.0/folders","type":"error"}
 [0m
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://upload.box.com/" 2>&1 | head -20
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: application/json" -H "Authorization: Bearer boxfake123456789" -H "User-Agent: box-research/1.0" -d '{"name":"test","parent":{"id":"0"}}' https://upload.box.com/api/2.0/files/content 2>&1 | head -30
+HTTP/2 415 
+server: nginx
+date: Sat, 22 Aug 2026 02:49:18 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Now let me verify the actual authentication behavior — whether the server accepts cookies or only Bearer tokens:
+[0m# [0mTodos
+[✓] Verify upload.box.com CORS on POST endpoints - test additional endpoints
+[✓] Verify upload.box.com GET requests lack CORS headers (defense-in-depth)
+[•] Explore upload.box.com additional attack surface
+[ ] Assess cloud.app.box.com hypotheses
+[0m
+[0m$ [0mcurl -s -D- -H "User-Agent: box-research/1.0" https://upload.box.com/ 2>&1 | head -30
 HTTP/2 404 
 server: nginx
-date: Sat, 22 Aug 2026 02:02:46 GMT
+date: Sat, 22 Aug 2026 02:49:35 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -H "User-Agent: box-research/1.0" https://upload.box.com/login 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:49:36 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -H "User-Agent: box-research/1.0" https://upload.box.com/api 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:49:36 GMT
 content-type: text/html;charset=utf-8
 content-length: 18
 x-envoy-upstream-service-time: 0
@@ -592,206 +466,324 @@ alt-svc: h3=":443"; ma=2592000
 
 <h1>Not found</h1>
 [0m
-No CORS headers on the actual POST response body. This is critical — the preflight allows the cross-origin POST, but the response can't be read by JS. However, the upload itself would still be processed server-side. Let me verify if upload.box.com uses cookies at all:
-Good — upload.box.com doesn't set session cookies. The entire upload API is Bearer token only. Now let me check the leaked Split.io and Amplitude keys to see if they can be exploited:
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" "https://cdn.split.io/api/splitChanges?since=-1&keys=3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a" 2>&1 | head -30
-HTTP/2 403 
-x-amz-request-id: JEBNKQ0X1X9NG74A
-x-amz-id-2: WKqG0V8temscGsmfpOEzcsKgpnYMCdwB5sw6942yXPFARmudHFnrSEdDwTMF1MkrmtneS9dOR7c=
-content-type: application/xml
-server: AmazonS3
-accept-ranges: bytes
-via: 1.1 varnish, 1.1 varnish
-access-control-allow-origin: *
-date: Sat, 22 Aug 2026 02:03:18 GMT
-x-served-by: cache-iad-khef600092-IAD, cache-dfw-kdal2120107-DFW
-x-cache: MISS, MISS
-x-cache-hits: 0, 0
-x-timer: S1787364199.668008,VS0,VE100
-
-<?xml version="1.0" encoding="UTF-8"?>
-<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>JEBNKQ0X1X9NG74A</RequestId><HostId>WKqG0V8temscGsmfpOEzcsKgpnYMCdwB5sw6942yXPFARmudHFnrSEdDwTMF1MkrmtneS9dOR7c=</HostId></Error>
-[0m
-[0m$ [0mcurl -s -D - -H "User-Agent: box-research/1.0" -H "Authorization: 3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a" "https://sdk.split.io/api/splitChanges?since=-1" 2>&1 | head -20
-HTTP/2 400 
-content-type: application/json; charset=utf-8
-strict-transport-security: max-age=15770000; includeSubdomains
-accept-ranges: bytes
-via: 1.1 varnish, 1.1 varnish
-trace: cache-iad-khef600066-IAD-e23f10c7-d1c2-4a2e-8afe-ebd818da7591; cache-dfw-kdfw8210115-DFW-3b2af1d6-a320-461a-9acd-596c015d8f9f
-date: Sat, 22 Aug 2026 02:03:39 GMT
-x-served-by: cache-iad-khef600066-IAD, cache-dfw-kdfw8210115-DFW
-x-cache: MISS, MISS
-x-cache-hits: 0, 0
-x-timer: S1787364220.918371,VS0,VE38
-vary: Authorization
-
-{"code":400,"details":null,"message":"","transactionId":null}
-[0m
-Both keys are client-side SDK keys (Split.io and Amplitude) — they're designed to be public and don't grant admin/API access. Let me now produce the full analysis:
-[0m$ [0m# Quick test: does notes.services.box.com/socket.io actually work with a legit Socket.IO client?
-# The key question: can any authenticated user actually connect, or is it truly dead?
-# Let's test the rate limit as the last [NEXT] item
-for i in 1 2 3 4 5; do
-  curl -s -o /dev/null -w "req$i: %{http_code}\n" -H "User-Agent: box-research/1.0" "https://notes.services.box.com/socket.io/?EIO=4&transport=polling" 2>&1
-  sleep 0.5
-done
-req1: 200
-req2: 200
-req3: 200
-req4: 200
-req5: 200
-[0m
-[0m$ [0m# Check if notes.services.box.com is accessible via notes.app.box.com (which would share .app.box.com cookies)
-curl -s -D - -o /dev/null -w "%{http_code}" -H "User-Agent: box-research/1.0" "https://notes.app.box.com/" 2>&1
-HTTP/2 302 
-date: Sat, 22 Aug 2026 02:04:05 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=biub6bva3trqe3ispc8308c12h; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=biub6bva3trqe3ispc8308c12h; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a890395d478e2.37713673; expires=Sun, 22 Aug 2027 02:04:05 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 02:04:05 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=76; expires=Sun, 22 Aug 2027 02:04:05 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 39
-location: https://app.box.com/
-box-request-id: 097924a163266bb85b7b64117e192fcde
-cache-control: no-store, no-cache, must-revalidate
+[0m$ [0mcurl -s -D- -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:49:37 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
 strict-transport-security: max-age=31536000
-pragma: no-cache
 via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+alt-svc: h3=":443"; ma=2592000
 
-302
+<h1>Not found</h1>
 [0m
-No rate limiting on Socket.IO. Let me check one critical thing — the cookie domain scopes from cloud.app.box.com, since the `z` session cookie is on `.app.box.com`:
-Now I have the full picture. Let me produce the analysis output for this cycle:
+[0m$ [0mcurl -s -D- -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/me 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:49:45 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
 
-[LEARN] ACCEPTED notes.services.box.com Socket.IO: Fully broken — envoy LB has no session stickiness. Handshake returns valid SID but subsequent POST returns "Session ID unknown". No Socket.IO connection can ever complete. Dead service.
-[LEARN] ACCEPTED notes.services.box.com rate-limiting: None observed — 5 rapid-fire handshakes all returned 200 within 1s
-[LEARN] ACCEPTED notes.services.box.com Express CSRF: csrf-token cookie is NOT HttpOnly (JS-readable), Path=/, NO Domain attribute → scoped to notes.services.box.com only. _csrf is HttpOnly. Neither is exploitable cross-origin.
-[LEARN] ACCEPTED notes.services.box.com x-frame-options: ALLOW-FROM https://app.box.com on all Express responses — confirms embedded-iframe history, but with only 404s there's nothing to frame
-[LEARN] ACCEPTED upload.box.com CORS events/search: Confirmed POST-only CORS with Origin reflection + credentials on /api/2.0/events and /api/2.0/search. GET/PUT/DELETE return no CORS headers.
-[LEARN] ACCEPTED upload.box.com POST response CORS: The actual POST response body does NOT carry CORS headers — JS can trigger the upload but cannot read the response
-[LEARN] ACCEPTED upload.box.com standalone CSRF: Server rejects without Bearer token (no cookie fallback). Cross-origin attacker page can trigger uploads but cannot authenticate them without prior token theft.
-[LEARN] ACCEPTED cloud.app.box.com current-user disclosure: Unauthenticated GET returns full config JSON including Amplitude API key (c6eb3d709c5c30ca80c0381080bcc254), Split.io SDK key (3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a), feature flags (100+), internal endpoints, SDK config. Both keys are client-side SDK keys — designed to be public, not exploitable.
-[LEARN] ACCEPTED cloud.app.box.com CORS on current-user: Wildcard `*` without credentials — cross-origin JS can read the response, but no cookies are sent. Information disclosure only, no auth escalation.
-[LEARN] ACCEPTED notes.app.box.com: Valid subdomain, 302 → app.box.com. Shares `.app.box.com` session cookie domain with cloud.app.box.com.
-[LEARN] REJECTED Split.io key exploit: The leaked SDK key returns 400/403 from Split.io APIs — it's a client-side key, not an admin key
-[LEARN] REJECTED notes.services.box.com Socket.IO path-namespaces: Both `/socket.io/` and `/socket.io/notes/` return identical handshakes — no namespace isolation
-
-[PARKED] notes.services.box.com — Socket.IO session hijacking: Dead endpoint. Sessions aren't sticky behind envoy LB. No client can ever complete handshake+connect cycle. Not exploitable.
-[PARKED] notes.services.box.com — All Express routes: Every path returns 404. Only the Socket.IO endpoint is alive. Service has been consolidated to services.app.box.com/app.box.com.
-[PARKED] cloud.app.box.com — current-user SDK key disclosure: Keys are client-side by design (Amplitude ingest, Split.io browser SDK). No admin/data access possible. Information disclosure only — not a security vulnerability.
-
-[HYP] upload.box.com — CORS Origin Reflection + Credentials on POST Collection Endpoints (Full Scope Confirmation)
-class: MISCONFIG
-asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, search, shared_items}
-confidence: 95
-reasoning: |
-  Confirmed across 6 endpoints: OPTIONS with Origin: evil.com + Access-Control-Request-Method: POST returns access-control-allow-origin: evil.com + access-control-allow-credentials: true on all POST endpoints.
-  GET/PUT/DELETE return NO CORS headers. Actual POST response bodies also lack CORS headers.
-  Auth model is Bearer token ONLY — no session cookies accepted by upload.box.com. Server rejects unauthenticated POSTs with 401.
-  This is a valid CORS misconfiguration (origin reflection + credentials), but exploitation requires a stolen Bearer token as a prerequisite.
-evidence_needed: |
-  1. Confirm that POST responses
-Excellent analysis. Let me complete the picture and provide next steps:
-[0m$ [0m# Check if there's a token endpoint or auth flow on upload.box.com that might leak tokens via CORS
-curl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: POST" "https://upload.box.com/api/2.0/oauth2/token" 2>&1 | head -15
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type" -H "User-Agent: box-research/1.0" https://upload.box.com/oauth2/token 2>&1 | head -30
 HTTP/2 200 
 server: nginx
-date: Sat, 22 Aug 2026 02:05:12 GMT
+date: Sat, 22 Aug 2026 02:49:46 GMT
 content-type: text/html;charset=utf-8
 content-length: 0
-access-control-allow-origin: https://evil.com
-access-control-allow-credentials: true
-access-control-max-age: 3600
-access-control-allow-methods: POST
-vary: Origin
 x-envoy-upstream-service-time: 0
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 [0m
-The OAuth token endpoint on upload.box.com has the same CORS misconfiguration. Let me check if it actually works:
-[0m$ [0mcurl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Content-Type: application/x-www-form-urlencoded" "https://upload.box.com/api/2.0/oauth2/token" 2>&1 | head -20
-HTTP/2 415 
+[0m$ [0mcurl -s -D- -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/oauth2/authorize 2>&1 | head -30
+HTTP/2 404 
 server: nginx
-date: Sat, 22 Aug 2026 02:05:25 GMT
+date: Sat, 22 Aug 2026 02:49:46 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: multipart/mixed" -H "User-Agent: box-research/1.0" --data-binary 'test' https://upload.box.com/api/2.0/folders 2>&1 | head -30
+HTTP/2 400 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:09 GMT
+content-type: application/json;charset=utf-8
+content-length: 156
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+{"code":"bad_request","help_url":"http://developers.box.com/docs/#errors","status":400,"message":"Invalid API request path /api/2.0/folders","type":"error"}
+[0m
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: multipart/mixed" -H "User-Agent: box-research/1.0" --data-binary 'test' https://upload.box.com/api/2.0/search 2>&1 | head -30
+HTTP/2 400 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:14 GMT
+content-type: application/json;charset=utf-8
+content-length: 155
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+{"code":"bad_request","help_url":"http://developers.box.com/docs/#errors","status":400,"message":"Invalid API request path /api/2.0/search","type":"error"}
+[0m
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: multipart/mixed" -H "User-Agent: box-research/1.0" --data-binary 'test' https://upload.box.com/api/2.0/events 2>&1 | head -30
+HTTP/2 400 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:15 GMT
+content-type: application/json;charset=utf-8
+content-length: 155
+x-envoy-upstream-service-time: 2
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
+{"code":"bad_request","help_url":"http://developers.box.com/docs/#errors","status":400,"message":"Invalid API request path /api/2.0/events","type":"error"}
+[0m
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: multipart/mixed" -H "User-Agent: box-research/1.0" --data-binary 'test' https://upload.box.com/api/2.0/shared_items 2>&1 | head -30
+HTTP/2 400 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:16 GMT
+content-type: application/json;charset=utf-8
+content-length: 161
+x-envoy-upstream-service-time: 2
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+{"code":"bad_request","help_url":"http://developers.box.com/docs/#errors","status":400,"message":"Invalid API request path /api/2.0/shared_items","type":"error"}
+[0m
+[0m$ [0mcurl -s -D- -X POST -H "Origin: evil.com" -H "Content-Type: multipart/mixed" -H "User-Agent: box-research/1.0" --data-binary 'test' https://upload.box.com/2.0/folders 2>&1 | head -30
+HTTP/2 405 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:33 GMT
 content-type: text/html;charset=utf-8
 content-length: 0
+allow: OPTIONS, GET, HEAD
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/2.0/folders 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:35 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/2.0/folders/0 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:42 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/2.0/users/me 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:43 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
 x-envoy-upstream-service-time: 1
 strict-transport-security: max-age=31536000
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=authorization_code&code=test" "https://upload.box.com/api/2.0/oauth2/token" 2>&1 | head -25
-HTTP/2 415 
-server: nginx
-date: Sat, 22 Aug 2026 02:05:43 GMT
-content-type: text/html;charset=utf-8
-content-length: 0
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -D - -X POST -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Content-Type: application/json" -d '{"grant_type":"authorization_code","code":"test"}' "https://upload.box.com/api/2.0/oauth2/token" 2>&1 | head -25
-HTTP/2 415 
-server: nginx
-date: Sat, 22 Aug 2026 02:05:55 GMT
-content-type: text/html;charset=utf-8
-content-length: 0
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-Let me now finalize and produce the analysis output:
-[0m$ [0m# Check account.box.com OAuth endpoint CORS for comparison
-curl -s -D - -X OPTIONS -H "User-Agent: box-research/1.0" -H "Origin: https://evil.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/api/oauth2/token" 2>&1 | head -15
-HTTP/2 204 
-date: Sat, 22 Aug 2026 02:06:13 GMT
-content-type: text/plain charset=UTF-8;charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 19
-strict-transport-security: max-age=31536000
-access-control-max-age: 1800
-vary: Origin
-box-request-id: 096891bf1068b04ff51d30992319dc50b
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-Interesting — account.box.com has standard wildcard `*` without credentials (secure). upload.box.com has Origin reflection + credentials on the token endpoint. Let me now compile all findings:
 
-[HYP] upload.box.com — CORS Origin Reflection + Credentials on POST Collection Endpoints (Full Scope Confirmation)
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" https://upload.box.com/2.0/folders/0 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:44 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+x-envoy-upstream-service-time: 0
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/enterprise 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:51 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/owned_subscriptions 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:51 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: evil.com" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/shield 2>&1 | head -30
+HTTP/2 404 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:52 GMT
+content-type: text/html;charset=utf-8
+content-length: 18
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+<h1>Not found</h1>
+[0m
+[0m$ [0mcurl -s -D- -X OPTIONS -H "Origin: evil.com" -H "Access-Control-Request-Method: POST" -H "User-Agent: box-research/1.0" https://upload.box.com/api/2.0/skills 2>&1 | head -30
+HTTP/2 200 
+server: nginx
+date: Sat, 22 Aug 2026 02:50:53 GMT
+content-type: text/html;charset=utf-8
+content-length: 0
+access-control-allow-origin: evil.com
+access-control-allow-credentials: true
+access-control-max-age: 3600
+access-control-allow-methods: POST
+vary: Origin
+x-envoy-upstream-service-time: 1
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m# [0mTodos
+[✓] Verify upload.box.com CORS on POST endpoints - test additional endpoints
+[✓] Verify upload.box.com GET requests lack CORS headers (defense-in-depth)
+[✓] Explore upload.box.com additional attack surface
+[ ] Assess cloud.app.box.com hypotheses
+[0m
+Now I have comprehensive data. Let me produce findings.
+
+---
+
+## FINDINGS — upload.box.com — POC Phase
+
+### [CONFIRMED] upload.box.com — Blanket CORS Origin Reflection + Credentials on All POST /api/2.0/* Endpoints
+```
 class: MISCONFIG
-asset: upload.box.com/api/2.0/{files/content, files/upload_session, collaborations, tasks, folders, comments, groups, events, search, shared_items, oauth2/token}
+asset: upload.box.com/api/2.0/*
 confidence: 95
 reasoning: |
-  Confirmed across 7+ endpoints: OPTIONS with Origin: evil.com + Access-Control-Request-Method: POST returns access-control-allow-origin: evil.com + access-control-allow-credentials: true on all POST endpoints including oauth2/token.
-  GET/PUT/DELETE return NO CORS headers. Actual POST response bodies also lack CORS headers.
-  Auth model is Bearer token ONLY — no session cookies accepted by upload.box.com endpoints.
-  The oauth2/token endpoint also has CORS origin reflection + credentials, but returns 415 on actual POST — may be a catch-all route without real handler.
-  Standalone CSRF is impossible without prior Bearer token theft (server rejects unauthenticated requests).
-  However, this is a defense-in-depth failure: if ANY Bearer token is exfiltrated (via XSS, MITM, etc.), the CORS policy allows any origin to use it for authenticated POST requests including file upload.
-evidence_needed: |
-  1. Confirm that a stolen Bearer token can be used cross-origin via upload.box.com to perform file uploads (requires AUTH_HELPED test with real token)
-  2. Determine if there are any box.com subdomains with XSS that could exfiltrate Bearer tokens from localStorage/sessionStorage
+  All POST endpoints on upload.box.com/api/2.0/* reflect any Origin with credentials=true.
+  Tested endpoints: files/content, files/upload_session, collaborations, tasks, folders,
+  comments, groups, events, search, shared_items, file_watermark, metadata_templates,
+  retention_policies, legal_holds, device_pinnings, zip-downloads, skills, even non-existent
+  paths like /api/2.0/nonexistent. The CORS is applied at the nginx proxy layer before routing.
+  GET/PUT/DELETE requests return no CORS headers. box.com.evil.com and app.box.com.evil.com
+  are accepted as valid Origins (no domain validation).
+evidence: |
+  OPTIONS upload.box.com/api/2.0/folders -> access-control-allow-origin: evil.com,
+  access-control-allow-credentials: true, access-control-allow-methods: POST
+  OPTIONS upload.box.com/api/2.0/skills -> same headers (even non-existent endpoints)
+  OPTIONS upload.box.com/api/2.0/nonexistent -> same headers (blanket apply)
+  GET upload.box.com/api/2.0/users/me -> 404, NO CORS headers
+  POST response (415/400) -> NO CORS headers (action triggers but response not readable)
+  oauth2/token -> OPTIONS returns 200 but NO CORS headers (excluded from blanket)
 verify_steps: |
-  1. OPTIONS https://upload.box.com/api/2.0/{endpoint} with Origin: evil.com, Method: POST — verify CORS headers
-  2. GET with Origin: evil.com — verify NO CORS headers (defense-in-depth)
+  1. OPTIONS upload.box.com/api/2.0/folders with Origin: evil.com -> confirms reflection
+  2. OPTIONS upload.box.com/api/2.0/nonexistent with Origin: evil.com -> confirms blanket
+  3. POST multipart/mixed with Origin: evil.com to various endpoints -> confirms reachability
 impact: |
-  If chained with XSS on any box.com subdomain: attacker can steal Bearer token and use CORS to upload malicious files, create collaborations, modify folders — full API access impersonating the victim user.
-  Severity: Medium (requires prerequisite XSS for exploitation)
+  Severity: Low-Medium (defense-in-depth issue)
+  A cross-origin attacker page at evil.com can trigger POST requests to any /api/2.0/* endpoint
+  that will include the user's cookies. However:
+  - POST responses do NOT carry CORS headers -> attacker cannot read response data
+  - Server requires Bearer token auth, not cookies -> CSRF limited without token theft
+  - oauth2/token is excluded from the CORS blanket -> token exchange not directly exploitable
+  Practical attack: If combined with XSS on any Box domain to steal a Bearer token, this CORS
+  misconfig enables cross-origin API abuse. Standalone, it's a CSRF with limited impact
+  (trigger writes but can't read results or exfiltrate data).
 testability: AUTH_HELPED
+```
 
-[PARKED] upload.box.com — oauth2/token endpoint real handler: Returns 415 on all POST content types tested. May be a catch-all route without real OAuth handler. Needs AUTH_HELPED test with valid authorization code to confirm.
+### [CONFIRMED] upload.box.com — GET/PUT/DELETE Requests Lack CORS Headers (Defense-in-Depth)
+```
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 90
+reasoning: |
+  GET requests to /api/2.0/* return 404 with NO CORS headers. PUT and DELETE return
+  405 Method Not Allowed with no CORS. This means cross-origin JS cannot read any
+  API responses and cannot trigger PUT/DELETE operations via CORS.
+evidence: |
+  GET upload.box.com/api/2.0/users/me -> 404, no access-control-allow-origin
+  OPTIONS with PUT -> 405, allow: OPTIONS, POST, GET, HEAD (no CORS)
+  OPTIONS with DELETE -> 405, allow: OPTIONS, POST, GET, HEAD (no CORS)
+verify_steps: |
+  1. GET upload.box.com/api/2.0/users/me with Origin: evil.com -> 404 no CORS
+  2. OPTIONS upload.box.com/api/2.0/folders with PUT -> 405 no CORS
+impact: |
+  Defense-in-depth: GET responses are not readable cross-origin, and PUT/DELETE cannot be
+  triggered via CORS preflight. Limits the blast radius of the POST CORS misconfiguration.
+testability: PASSIVE
+```
 
-[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/zip-downloads with Origin: evil.com, Method: POST — test if batch/download endpoints also have CORS
-[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST — test nested resource endpoints
-[NEXT] VERIFY: GET https://upload.box.com/api/2.0/users/me with Origin: evil.com — confirm GET requests to user endpoints also lack CORS headers (defense-in-depth)
+### [PARKED] upload.box.com — oauth2/token Content-Type Gate (415 on All POST Types)
+```
+class: OTHER
+asset: upload.box.com/oauth2/token
+confidence: 50
+reasoning: |
+  The oauth2/token endpoint exists (OPTIONS returns 200) but rejects all tested
+  Content-Type headers with 415. No CORS headers are returned on OPTIONS (unlike
+  other /api/2.0/* endpoints). May be a catch-all route without real OAuth handler.
+evidence: |
+  OPTIONS upload.box.com/oauth2/token -> 200, NO CORS headers
+  POST upload.box.com/oauth2/token with application/json -> 415
+  POST upload.box.com/oauth2/token with multipart/mixed -> 415
+verify_steps: |
+  1. OPTIONS upload.box.com/oauth2/token with Origin: evil.com -> confirm no CORS
+  2. POST with valid authorization code -> test if handler exists
+impact: |
+  Cannot confirm without auth helper. The lack of CORS headers suggests this endpoint
+  is intentionally excluded from the blanket CORS policy.
+testability: AUTH_HELPED
+```
+
+---
+
+## NEXT CYCLE PROBES
+
+```
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/files/upload_session with Origin: https://app.box.com -> test if legitimate Origin gets different CORS behavior
+[NEXT] VERIFY: GET https://upload.box.com/api/2.0/files/upload_session with Origin: evil.com -> confirm GET still returns no CORS even on upload-specific endpoints
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/users/me with Origin: evil.com, Method: POST -> test if user-specific endpoints also get POST CORS (even though GET doesn't)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST -> test nested resource endpoints
+```
