@@ -1,180 +1,90 @@
 [0m
 > build · mimo-v2.5-free
 [0m
+[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link_format_test=abc failed
+[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link_format_test=abc)
+[0m% [0mWebFetch https://cloud.app.box.com/embed/abc123
+[0m% [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/current-user
 [0m% [0mWebFetch https://cdn01.boxcdn.net/enduser/app.50c208b371.js
-[0m✱ [0mGrep "shared-item|sharedItem|shared_item|sharedLink|shared_link"[90m in /tmp/opencode · 0 matches[0m
-[0m✱ [0mGrep "app-api/enduserapp"[90m in /tmp/opencode · 0 matches[0m
-Let me search the JS file for relevant endpoint patterns.
-[0m
-[0m$ [0mecho 'https://cdn01.boxcdn.net/enduser/app.50c208b371.js' | xargs -I{} curl -sL -A 'box-research/1.0 (research)' {} 2>/dev/null | grep -oP 'app-api/enduserapp/[a-zA-Z0-9_/-]+' | sort -u
-app-api/enduserapp/app-version
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/enduser/app.50c208b371.js' 2>/dev/null | grep -oP '"[^"]*enduserapp[^"]*"' | sort -u | head -30
-"/app-api/enduserapp"
-"/app-api/enduserapp/app-version"
-"enduserapp"
-"enduserapp_logging"
-"x-enduserapp-currentversion"
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/enduser/app.50c208b371.js' 2>/dev/null | grep -oP '"/[a-zA-Z0-9_./-]+"' | sort -u | head -50
-"//"
-"/app-api/enduserapp"
-"/app-api/enduserapp/app-version"
-"/folder/0"
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/enduser/app.50c208b371.js' 2>/dev/null | grep -oP '(?:fetch|get|post|put|delete|patch)\s*\(\s*["`'"'"'][^"`'"'"']*["`'"'"']' | head -20
-fetch("/app-api/enduserapp/app-version"
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/enduser/app.50c208b371.js' 2>/dev/null | grep -oP 'shared[a-zA-Z_]*' | sort -u | head -30
-shared
-sharedName
-shared_name
-[0m
-[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link=abc1234567 failed
-[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link=abc1234567)
-[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_name=abc1234567 failed
-[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_name=abc1234567)
-Now let me proceed with probing based on the JS analysis. I found the SPA handles shared links via `/s/{token}` and `/v/{token}` where tokens are 10, 20, or 32 char alphanumeric. Let me probe accordingly.
-[0m% [0mWebFetch https://cloud.app.box.com/embed/s/abc1234567
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link=abc1234567' 2>/dev/null | head -20
-{"status":400,"errorCode":"expectedParamError"}
-HTTP_STATUS: 400
-CONTENT_TYPE: application/json; charset=utf-8
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/current-user' 2>/dev/null | head -80
-{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":null,"storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/cloud.account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/cloud.app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}
-HTTP_STATUS: 200
-CONTENT_TYPE: application/json; charset=utf-8
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/embed/s/abc1234567' 2>/dev/null | head -30
-<div id="embed-container"></div>
-<script>
-	window.Box = window.Box || {};
-    
-		Box.prefetchedData = {"url":"https:\/\/cloud.app.box.com\/s\/abc1234567?is_embed_widget=true","displayedURL":"https:\/\/cloud.app.box.com\/s\/abc1234567?is_embed_widget=true","originalURL":"https:\/\/cloud.app.box.com\/embed\/s\/abc1234567","message":"embed{\"action\":\"retrieveEmbedStateResult\",\"features\":{\"disableLinkToBoxAccessibilitySite\":false,\"adminConsole\":false,\"appGalleryV2\":false,\"autoClassification\":false,\"automateEnterprise\":false,\"automations\":\"\",\"boxAIExtractMetadata\":false,\"boxAiHubs\":false,\"boxAiHubsProvisioned\":false,\"boxAIInPreview\":false,\"boxAIForMultidoc\":false,\"boxAIForPublicApi\":false,\"boxAIStudio\":false,\"boxAiAgentBuilder\":false,\"boxExtract\":false,\"boxAiCenter\":false,\"boxAiBoxapps\":false,\"boxAiAutomate\":false,\"canvas\":false,\"canvasLandingPage\":false,\"classification\":false,\"classificationV2\":false,\"collections\":false,\"connector\":false,\"crooze\":false,\"croozeManagement\":false,\"customConnectorCreation\":false,\"developerConsole\":false,\"dispositionInsights\":false,\"docgenEnabled\":false,\"euaFolderPreflightScript\":true,\"euaRootFolderGraphql\":true,\"euaRootFolderGraphqlPagination\":true,\"euaSubfolderGraphql\":true,\"feed\":false,\"feedAccessStats\":false,\"fileRequestEnabled\":false,\"fileRequestAllowEditorsEnabled\":false,\"fileRequestBrandingUserEnablementEnabled\":false,\"folderOwnerInsights\":false,\"formsEnabled\":false,\"formsAllowEditorsEnabled\":false,\"formsBrandingUserEnablementEnabled\":false,\"fullVersionShield\":false,\"googleDSSFeatureFlip\":false,\"hubs\":true,\"hubsProvisioned\":false,\"hubsCreation\":false,\"hubsGallery\":false,\"metadata\":false,\"notes\":true,\"openWithProgram\":false,\"ownedByMe\":false,\"pendoAnalyticsTrackSplitExperiments\":true,\"previewAnnotations\":false,\"reactFilesPageFF\":false,\"recents\":true,\"relayAdvancedProduct\":false,\"isAdvancedRelayProductOn\":true,\"relayAdvancedAllowEditorsAsBuilders\":false,\"relayAdvancedEnterpriseTierFeatures\":false,\"boxAutomateEnterpriseAdvTierFeatures\":false,\"relayEnterpriseLevel\":\"\",\"relayUserLevel\":\"\",\"relayAllowEditorsAsBuilders\":false,\"relayUserCanPublishTemplates\":false,\"sfc\":false,\"sfcShare\":false,\"sharedWithMe\":false,\"shield\":false,\"showProfileAndAccount\":false,\"sign\":false,\"signEnterprise\":false,\"sync\":false,\"tags\":false,\"threadedReplies\":false,\"trash\":true,\"updatesPage\":false,\"userFeedbackFormCollectPromptData\":false,\"userFeedbackFormFreeText\":false,\"videoAndCustomWatermarking\":false,\"canvasBetaPill\":false,\"persistentDrivePromotion\":false,\"allowEditSharedLinkForFile\":false,\"canAddSeats\":false,\"canUpgradeTrial\":false,\"chatbot\":false,\"collapseSidebars\":true,\"customWatermarking\":false,\"governance\":false,\"inbox\":false,\"isEligibleForIYTAddUsers\":false,\"isMergedFlowOn\":false,\"unusedManagedUserCount\":false,\"unusedManagedUserPlusOverageAllowanceCount\":false,\"upgradeInline\":false,\"videoWatermarking\":false,\"boxEdit\":true,\"restrictFolderNavigation\":false,\"hideBoxLogo\":false,\"hideGoToHubsGallery\":false,\"hideNavigationControls\":false,\"appsHideNavigationControls\":false,\"embed\":true},\"embed\":{\"context\":\"\",\"originalLocation\":\"https:\\\/\\\/cloud.app.box.com\\\/s\\\/abc1234567?is_embed_widget=true\",\"partnerId\":\"\",\"rootFolderId\":0}}","runningInMSTeams":false,"linkedRequestId":"46mdhfigcax862wk"};
-    
-</script>
-<div id="embed_component" data-component="Embed"></div>
-<link rel="stylesheet" type="text/css" href="https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.css" />
-<script src="https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js" defer></script>
-<script src="https://cdn01.boxcdn.net/embed-widget/1.4.4/vendors.js" defer></script>
+Looking at the current state, I need to execute the pending [NEXT] probes to advance the POC phase. Let me run the probes in parallel:
+[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link= abc1234567 failed
+[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link= abc1234567)
+[0m% [0mWebFetch https://cloud.app.box.com/embed/file/123456
+[0m% [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/app-version
+Let me analyze the results and refine the probes. The JavaScript bundle reveals the shared link token format: exactly 10, 20, or 32 alphanumeric characters. Let me test with valid formats:
+[0m✗ [0mWebFetch https://cloud.app.box.com/s/ abc1234567 failed
+[91m[1mError: [0mStatusCode: non 2xx status code (404 GET https://cloud.app.box.com/s/ abc1234567)
+[0m% [0mWebFetch https://cloud.app.box.com/embed/file/123456
+Now let me check the embed endpoint more carefully and try another endpoint:
+[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item failed
+[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item)
+[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item?token= abc1234567 failed
+[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item?token= abc1234567)
+[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link_token= abc1234567 failed
+[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item?shared_link_token= abc1234567)
+[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/shared-item?item_id=12345 failed
+[91m[1mError: [0mStatusCode: non 2xx status code (400 GET https://cloud.app.box.com/app-api/enduserapp/shared-item?item_id=12345)
+Now let me probe a few more app-api endpoints and test different parameter names for shared-item:
+[0m✗ [0mWebFetch https://cloud.app.box.com/app-api/enduserapp/config failed
+[91m[1mError: [0mStatusCode: non 2xx status code (404 GET https://cloud.app.box.com/app-api/enduserapp/config)
+[0m% [0mWebFetch https://cdn01.boxcdn.net/enduser/app.50c208b371.js
+Let me search the JS bundle for the shared-item parameter name:
+Now let me compile all findings and emit the structured output:
 
-HTTP_STATUS: 200
-CONTENT_TYPE: text/html; charset=utf-8
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/shared-item?token=abc1234567' 2>/dev/null | head -10
-{"status":400,"errorCode":"expectedParamError"}
-HTTP_STATUS: 400
-CONTENT_TYPE: application/json; charset=utf-8
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/app-version' 2>/dev/null | head -10
-{"version":"23.692.0+hotfix.1","confVersion":"21.293.0","overrideVersion":null,"assetPath":"enduser","cdnHostname":"cdn01.boxcdn.net","isDeveloper":false,"remotes":{"box_canvas":"https:\/\/cdn01.boxcdn.net\/canvas-assets\/box_canvas_remote.0.340.20.js","box_forms_client":"https:\/\/cdn01.boxcdn.net\/file-request-forms\/box_forms_client_remote.2.587.1.js","box_hubs_client":"https:\/\/cdn01.boxcdn.net\/hubs-assets\/box_hubs_client_remote.2.286.0.js","box_money_client":"https:\/\/cdn01.boxcdn.net\/money-assets\/box_money_client_remote.0.137.1.js","box_sign_client":"https:\/\/cdn01.boxcdn.net\/sign-assets\/box_sign_client_remote.2.416.1.js","box_trigger_client":"https:\/\/cdn01.boxcdn.net\/relay-trigger-assets\/box_trigger_client_remote.16.97.0.js","box_docgen_client":"https:\/\/cdn01.boxcdn.net\/docgen-client-assets\/box_docgen_client_remote.0.167.1.js","box_insights_client":"https:\/\/cdn01.boxcdn.net\/insights-assets\/box_insights_client_remote.1.412.1.js","box_ai_client":"https:\/\/cdn01.boxcdn.net\/box-ai-client\/box_ai_client_remote.1.599.0.js","box_extract_client":"https:\/\/cdn01.boxcdn.net\/extract-client\/box_extract_client_remote.1.223.0.js","box_workflow_client":"https:\/\/cdn01.boxcdn.net\/workflow-client-assets\/box_workflow_client_remote.0.813.1.js","box_governance_client":"https:\/\/cdn01.boxcdn.net\/governance-client\/box_governance_client_remote.1.60.11.js","box_integrations_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-client\/box_integrations_client_remote.1.17.4.js","box_integrations_center_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-center-client\/box_integrations_center_client_remote.1.30.0.js","box_aistudio_client":"https:\/\/cdn01.boxcdn.net\/aistudio-assets\/box_aistudio_client_remote.1.1165.0.js","box_ai_prompt_library":"https:\/\/cdn01.boxcdn.net\/ai-prompt-library\/box_ai_prompt_library_remote.2.9.0.js","box_solutions_client":"https:\/\/cdn01.boxcdn.net\/box-solutions-client\/box_solutions_client_remote.1.18.0.js","box_markdown_editor":"https:\/\/cdn01.boxcdn.net\/markdown-editor\/box_markdown_editor_remote.2.3.18.js","box_ai_security_client":"https:\/\/cdn01.boxcdn.net\/ai-security-client-assets\/box_ai_security_client_remote.1.55.0.js","box_ai_center":"https:\/\/cdn01.boxcdn.net\/ai-center\/box_ai_center_remote.2.46.1.js","box_preview_client":"https:\/\/cdn01.boxcdn.net\/preview-client-assets\/box_preview_client_remote.1.114.2.js","box_boxapps_client":"https:\/\/cdn01.boxcdn.net\/boxapps-client\/box_boxapps_client_remote.0.20260815.362.js","box_boxapps_solutions_client":"https:\/\/cdn01.boxcdn.net\/boxapps-solutions-client\/box_boxapps_solutions_client_remote.0.20260810.85.js","box_items_client":"https:\/\/cdn01.boxcdn.net\/items-client-assets\/box_items_client_remote.1.73.0.js"},"remotesManifest":{"box_canvas":{"hostname":"cdn01.boxcdn.net","remotePath":"canvas-assets","remoteVersion":"0.340.20","remoteVersionSuffix":".0.340.20","remoteEntryFileName":"box_canvas_remote"},"box_forms_client":{"hostname":"cdn01.boxcdn.net","remotePath":"file-request-forms","remoteVersion":"2.587.1","remoteVersionSuffix":".2.587.1","remoteEntryFileName":"box_forms_client_remote"},"box_hubs_client":{"hostname":"cdn01.boxcdn.net","remotePath":"hubs-assets","remoteVersion":"2.286.0","remoteVersionSuffix":".2.286.0","remoteEntryFileName":"box_hubs_client_remote"},"box_money_client":{"hostname":"cdn01.boxcdn.net","remotePath":"money-assets","remoteVersion":"0.137.1","remoteVersionSuffix":".0.137.1","remoteEntryFileName":"box_money_client_remote"},"box_sign_client":{"hostname":"cdn01.boxcdn.net","remotePath":"sign-assets","remoteVersion":"2.416.1","remoteVersionSuffix":".2.416.1","remoteEntryFileName":"box_sign_client_remote"},"box_trigger_client":{"hostname":"cdn01.boxcdn.net","remotePath":"relay-trigger-assets","remoteVersion":"16.97.0","remoteVersionSuffix":".16.97.0","remoteEntryFileName":"box_trigger_client_remote"},"box_docgen_client":{"hostname":"cdn01.boxcdn.net","remotePath":"docgen-client-assets","remoteVersion":"0.167.1","remoteVersionSuffix":".0.167.1","remoteEntryFileName":"box_docgen_client_remote"},"box_insights_client":{"hostname":"cdn01.boxcdn.net","remotePath":"insights-assets","remoteVersion":"1.412.1","remoteVersionSuffix":".1.412.1","remoteEntryFileName":"box_insights_client_remote"},"box_ai_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-ai-client","remoteVersion":"1.599.0","remoteVersionSuffix":".1.599.0","remoteEntryFileName":"box_ai_client_remote"},"box_extract_client":{"hostname":"cdn01.boxcdn.net","remotePath":"extract-client","remoteVersion":"1.223.0","remoteVersionSuffix":".1.223.0","remoteEntryFileName":"box_extract_client_remote"},"box_workflow_client":{"hostname":"cdn01.boxcdn.net","remotePath":"workflow-client-assets","remoteVersion":"0.813.1","remoteVersionSuffix":".0.813.1","remoteEntryFileName":"box_workflow_client_remote"},"box_governance_client":{"hostname":"cdn01.boxcdn.net","remotePath":"governance-client","remoteVersion":"1.60.11","remoteVersionSuffix":".1.60.11","remoteEntryFileName":"box_governance_client_remote"},"box_integrations_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-client","remoteVersion":"1.17.4","remoteVersionSuffix":".1.17.4","remoteEntryFileName":"box_integrations_client_remote"},"box_integrations_center_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-center-client","remoteVersion":"1.30.0","remoteVersionSuffix":".1.30.0","remoteEntryFileName":"box_integrations_center_client_remote"},"box_aistudio_client":{"hostname":"cdn01.boxcdn.net","remotePath":"aistudio-assets","remoteVersion":"1.1165.0","remoteVersionSuffix":".1.1165.0","remoteEntryFileName":"box_aistudio_client_remote"},"box_ai_prompt_library":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-prompt-library","remoteVersion":"2.9.0","remoteVersionSuffix":".2.9.0","remoteEntryFileName":"box_ai_prompt_library_remote"},"box_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-solutions-client","remoteVersion":"1.18.0","remoteVersionSuffix":".1.18.0","remoteEntryFileName":"box_solutions_client_remote"},"box_markdown_editor":{"hostname":"cdn01.boxcdn.net","remotePath":"markdown-editor","remoteVersion":"2.3.18","remoteVersionSuffix":".2.3.18","remoteEntryFileName":"box_markdown_editor_remote"},"box_ai_security_client":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-security-client-assets","remoteVersion":"1.55.0","remoteVersionSuffix":".1.55.0","remoteEntryFileName":"box_ai_security_client_remote"},"box_ai_center":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-center","remoteVersion":"2.46.1","remoteVersionSuffix":".2.46.1","remoteEntryFileName":"box_ai_center_remote"},"box_preview_client":{"hostname":"cdn01.boxcdn.net","remotePath":"preview-client-assets","remoteVersion":"1.114.2","remoteVersionSuffix":".1.114.2","remoteEntryFileName":"box_preview_client_remote"},"box_boxapps_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-client","remoteVersion":"0.20260815.362","remoteVersionSuffix":".0.20260815.362","remoteEntryFileName":"box_boxapps_client_remote"},"box_boxapps_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-solutions-client","remoteVersion":"0.20260810.85","remoteVersionSuffix":".0.20260810.85","remoteEntryFileName":"box_boxapps_solutions_client_remote"},"box_items_client":{"hostname":"cdn01.boxcdn.net","remotePath":"items-client-assets","remoteVersion":"1.73.0","remoteVersionSuffix":".1.73.0","remoteEntryFileName":"box_items_client_remote"}},"remoteVersions":{"box_canvas":"0.340.20","box_forms_client":"2.587.1","box_hubs_client":"2.286.0","box_money_client":"0.137.1","box_sign_client":"2.416.1","box_trigger_client":"16.97.0","box_docgen_client":"0.167.1","box_insights_client":"1.412.1","box_ai_client":"1.599.0","box_extract_client":"1.223.0","box_workflow_client":"0.813.1","box_governance_client":"1.60.11","box_integrations_client":"1.17.4","box_integrations_center_client":"1.30.0","box_aistudio_client":"1.1165.0","box_ai_prompt_library":"2.9.0","box_solutions_client":"1.18.0","box_markdown_editor":"2.3.18","box_ai_security_client":"1.55.0","box_ai_center":"2.46.1","box_preview_client":"1.114.2","box_boxapps_client":"0.20260815.362","box_boxapps_solutions_client":"0.20260810.85","box_items_client":"1.73.0"}}
-HTTP_STATUS: 200
-CONTENT_TYPE: application/json; charset=utf-8
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}\nCONTENT_TYPE: %{content_type}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/shared-item?item_id=12345' 2>/dev/null | head -10
-{"status":400,"errorCode":"expectedParamError"}
-HTTP_STATUS: 400
-CONTENT_TYPE: application/json; charset=utf-8
-[0m
-[0m$ [0mcurl -s -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/embed/s/zzzzzzzzzz' 2>/dev/null | grep -oP 'linkedRequestId[^,}]*' | head -5
-linkedRequestId":"9mpe7kigcaxjykpg"
-[0m
-[0m$ [0mcurl -s -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/embed/v/testvanityname' 2>/dev/null | grep -oP 'linkedRequestId[^,}]*' | head -5
-linkedRequestId":"cd7byoigcaxkk1q9"
-[0m
-Key findings this cycle. Let me verify the `linkedRequestId` behavior and probe more embed paths.
-[0m$ [0mcurl -s -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/embed/s/abc1234567' 2>/dev/null | grep -oP 'partnerId[^,}]*' | head -5
-partnerId\":\"\"
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/folder/0' 2>/dev/null | head -5
-{"status":401,"code":"sessionExpired","message":"session expired"}
-HTTP_STATUS: 401
-[0m
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/config' 2>/dev/null | head -5
-HTTP_STATUS: 404
-[0m
-Let me explore more app-api endpoints and check for other interesting patterns.
-[0m$ [0mcurl -s -w '\nHTTP_STATUS: %{http_code}' -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/me' 2>/dev/null | head -5
-HTTP_STATUS: 404
-[0m
-Let me analyze the `linkedRequestId` pattern more carefully.
-[0m$ [0mfor i in $(seq 1 5); do
-  curl -s -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/embed/s/abc1234567' 2>/dev/null | grep -oP 'linkedRequestId":"[^"]*'
-  sleep 1
-done
-linkedRequestId":"6bktwfigcaxz23gh
-linkedRequestId":"7zw7lsigcaxzszoy
-linkedRequestId":"jflkwgigcay0lq2n
-linkedRequestId":"hnyck5igcay1coa9
-linkedRequestId":"ohfmesigcay23ykk
-[0m
-[0m$ [0mfor i in $(seq 1 3); do
-  curl -s -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/embed/s/sametoken12' 2>/dev/null | grep -oP 'linkedRequestId":"[^"]*'
-  sleep 1
-done
-linkedRequestId":"v8iuoyigcay59a8q
-linkedRequestId":"jpllimigcay6115x
-linkedRequestId":"xmuyknigcay6sw95
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js' 2>/dev/null | grep -oP 'shared[-_]?item|sharedItem|sharedLink|shared_link' | sort -u | head -20
-sharedLink
-[0m
-Now let me search the embed widget JS for shared-item endpoint usage.
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js' 2>/dev/null | grep -oP 'app-api/[^"'"'"'\s]+' | sort -u | head -20
-app-api/enduserapp/current-user
-app-api/split-proxy/api`,n=void
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js' 2>/dev/null | grep -oP 'split-proxy[^"'"'"'\s,}]*' | sort -u | head -10
-split-proxy/api`
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js' 2>/dev/null | grep -oP '/api/[^"'"'"'\s]+' | sort -u | head -20
-(no output)
-[0m
-[0m$ [0mcurl -sL -A 'box-research/1.0 (research)' 'https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js' 2>/dev/null | grep -oP '.{0,80}sharedLink.{0,80}' | head -10
-embedType;return"chat-button"===r?function(e,t){var n=e.hubId,r=e.scriptUrl,o=e.sharedLink,i=e.vanityName;if(!t||!n)return"";var a=new URL(t).host;if(!a)return"";var s=""
-ize,isPreviewOnly:n.uxLite,embedType:n.type,hubId:n.hubId,scriptUrl:n.scriptUrl,sharedLink:n.sharedLink,vanityName:n.vanityName}};function ET(e){var n=e.initialWidth,r=e.
-(r&&n.current&&window.Box){var e=r.fileId,t=r.token,o=r.apiHost,i=r.logoUrl,a=r.sharedLink,s=new window.Box.Preview;return s.addListener("load",function(){var e,t=s.getCu
-tainer:n.current,showDownload:!0,enableThumbnailsSidebar:!0,apiHost:o,logoUrl:i,sharedLink:a}),function(){s.hide()}}},[r]),(0,t.useEffect)(function(){r&&Tt(r.linkedReques
-[0m
-[0m$ [0mcurl -s -I -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/current-user' 2>/dev/null | head -30
-HTTP/2 404 
-date: Sat, 22 Aug 2026 00:28:06 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 16
-strict-transport-security: max-age=31536000
-box-request-id: 0195be56e8887d3213d12891f8b4cc7a6
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -s -I -A 'box-research/1.0 (research)' -H 'Origin: https://evil.com' 'https://cloud.app.box.com/app-api/enduserapp/current-user' 2>/dev/null | head -30
-HTTP/2 404 
-date: Sat, 22 Aug 2026 00:28:07 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 19
-strict-transport-security: max-age=31536000
-box-request-id: 1b0d6242e6de45ddd49fc5fbaac537a63
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-Let me check CORS headers and the split-proxy endpoint.
-[0m$ [0mcurl -s -I -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/split-proxy/api' 2>/dev/null | head -30
-HTTP/2 404 
-date: Sat, 22 Aug 2026 00:28:08 GMT
-content-type: text/plain
-x-envoy-upstream-service-time: 8
-strict-transport-security: max-age=31536000
-box-request-id: 0a7aee74577eee2ae0a756fc0f879251d
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/headers.txt -A 'box-research/1.0 (research)' 'https://cloud.app.box.com/app-api/enduserapp/current-user' -o /dev/null 2>/dev/null && cat /tmp/headers.txt | head -30 failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/headers2.txt -A 'box-research/1.0 (research)' -H 'Origin: https://evil.com' 'https://cloud.app.box.com/app-api/enduserapp/current-user' -o /dev/null 2>/dev/null && cat /tmp/headers2.txt | head -30 failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
-[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
-[0m✗ [0mcurl -s -D /tmp/headers3.txt -A 'box-research/1.0 (research)' -X OPTIONS 'https://cloud.app.box.com/app-api/enduserapp/current-user' -o /dev/null 2>/dev/null && cat /tmp/headers3.txt | head -30 failed
-[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[CONFIRMED] cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 95
+reasoning: 200 returns full JSON without auth. Contains: user object (id:2, isLoggedIn:false), 60+ feature flags (adminConsole, boxAI*, shield, canvas, notes, sign), API keys (amplitudeAPIKey: c6eb3d709c5c30ca80c0381080bcc254, splitIOAPIKey: 3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a), infrastructure (accountHost, apiHost, preview config with tokenTimeout:3600), account tier status. Confirmed across multiple cycles.
+evidence_needed: Already have full response body captured.
+verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/current-user
+impact: Information disclosure of internal feature flags, API keys, infrastructure config. Severity: Low (client-side config but reveals internal structure).
+testability: PASSIVE
+
+[NEW] cloud.app.box.com `/app-api/enduserapp/app-version` unauthenticated version/remote disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/app-version
+confidence: 90
+reasoning: 200 returns full JSON with: app version "23.692.0+hotfix.1", confVersion "21.293.0", isDeveloper:false, cdnHostname "cdn01.boxcdn.net", and complete manifest of 24 micro-frontend remotes with exact CDN URLs, remotePath, remoteVersion, and remoteEntryFileName for each (box_canvas, box_hubs_client, box_sign_client, box_ai_client, box_extract_client, box_workflow_client, box_boxapps_client, etc.).
+evidence_needed: Already have full response body.
+verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/app-version
+impact: Exact version enumeration of 24 internal micro-frontend modules, CDN paths, and deployment versions. Aids targeted exploitation of specific module versions. Severity: Low-Medium.
+testability: PASSIVE
+
+[NEW] cloud.app.box.com `/embed/file/{id}` server-side prefetchedData with feature flags and embed context
+class: MISCONFIG
+asset: cloud.app.box.com/embed/file/{id}
+confidence: 85
+reasoning: 200 returns HTML with Box.prefetchedData containing: full feature flags (embed:true, showProfileAndAccount:false, boxEdit:true, collapseSidebars:true, etc.), embed context (originalLocation, partnerId:"", rootFolderId:0), linkedRequestId. Embed widget loads from cdn01.boxcdn.net/embed-widget/1.4.4/. Different feature flag set than current-user (embed-specific defaults).
+evidence_needed: Already have full HTML response with embedded JSON.
+verify_steps: GET https://cloud.app.box.com/embed/file/123456
+impact: Unauthenticated access to embed-specific feature flags and internal embed context. Severity: Low.
+testability: PASSIVE
+
+[HYP] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration
+class: BUSLOGIC
+asset: cloud.app.box.com/app-api/enduserapp/shared-item
+confidence: 55
+reasoning: Endpoint returns 400 with `{"status":400,"errorCode":"expectedParamError"}` for all tested params (shared_link, token, shared_link_token, item_id, shared_link_format_test). The structured error confirms it is live. JS bundle shows X-Box-EndUser-API header pattern for app-api calls. The correct parameter name may require the X-Box-EndUser-API header with specific serialized data, not a query parameter.
+evidence_needed: Identify correct parameter name/header combination. Search for `shared-item` or `sharedItem` in other remote bundles.
+verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with X-Box-EndUser-API header containing serialized shared link token
+impact: If unauthenticated shared item access possible, severity Medium.
+testability: AUTH_HELPED
+
+[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping enumeration: Confirmed route-specific behaviors: `/admin`→403, `/settings`→302+cookie `box_user_settings`, `/debug`→302→`/v/debug`, `/embed/file/{id}`→200+prefetchedData, `/v/*`→SPA shell. Different paths trigger different server-side route handlers with different prefetchedData payloads. Low direct impact.
+[PARKED] cloud.app.box.com S3-compatible bucket-listing parameter acceptance: `?list-type=2` returned 302 to login this cycle. No evidence of S3 ListBucketResult XML. Rejected.
+[PARKED] cloud.app.box.com `/sitemap.xml` cross-origin redirect: 302 to `https://www.box.com/sitemap.xml`. Target is Box's own domain — not exploitable as open redirect.
+[PARKED] cloud.app.box.com `/crossdomain.xml` Flash policy: Allows `*.box.net`, `*.box.com`, etc. Flash is EOL — informational only.
+
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/current-user`: Unauthenticated 200 with full config JSON containing feature flags, API keys (amplitude, splitIO), infrastructure config. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/app-version`: Unauthenticated 200 with full version manifest of 24 micro-frontend remotes. Severity: Low-Medium.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/embed/file/{id}`: Server-side prefetchedData with embed-specific feature flags. Severity: Low.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/admin`: 403 explicit route protection.
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/settings`: 302 with `box_redirect_rm=box_user_settings` cookie — route mapper name leaked.
+[LEARN] REJECTED cloud.app.box.com shared-item query params: All tested parameter names return 400.
+[LEARN] REJECTED cloud.app.box.com S3 bucket listing: No S3 XML response observed.
+
+[NEXT] RECON: Search box_canvas, box_hubs_client, box_sign_client remote bundles for `shared-item` or `sharedItem` API call patterns — GET https://cdn01.boxcdn.net/canvas-assets/box_canvas_remote.0.340.20.js
+[NEXT] RECON: Search box_ai_client for `shared-item` — GET https://cdn01.boxcdn.net/box-ai-client/box_ai_client_remote.1.599.0.js
+[NEXT] PROBE: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with header X-Box-EndUser-API: {"sharedName":"abc1234567"} — test header-based param delivery
+[NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/ abc1234567 — test shared link embed variant
