@@ -1599,3 +1599,4 @@ reasoning: The authorize endpoint reflects Origin in CORS and exposes response h
 verify_steps: GET https://app.box.com/api/oauth2/authorize?response_type=code&client_id=test&state=xss with Origin: https://evil.com — inspect body for tokens.
 impact: Potential OAuth CSRF or authorization code interception. Severity: Medium.
 testability: PASSIVE
+## 2026-08-22 05:00:25 UTC account.box.com (mimo)
