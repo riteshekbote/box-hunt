@@ -1153,3 +1153,4 @@ testability: HUMAN_ONLY
 [NEXT] PROBE: OPTIONS https://account.box.com/login with Origin: https://evil.com and Access-Control-Request-Method: POST — test if login endpoint allows cross-origin POST (needed for CSRF token usage in login form). 1 req/2s.
 [NEXT] PROBE: GET https://account.box.com/login/reset?redirect_url=https://evil.com with Origin: https://evil.com — test if password reset redirect_url parameter is reflected (potential open redirect chain). 1 req/2s.
 [NEXT] PROBE: GET https://api.box.com/2.0/users/me with Origin: https://evil.com — check if API endpoint reflects origin on 401 responses (extends attack surface to main API). 1 req/2s.
+## 2026-08-22 04:05:13 UTC m.box.com (mimo)
