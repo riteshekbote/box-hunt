@@ -1,66 +1,629 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m• [0mCheck Box developer docs[90m General Agent[0m
-[0m✓ [0mCheck Box developer docs[90m General Agent[0m
-Based on my analysis of the extensive research context, here is my assessment and plan:
+Looking at the state, I need to probe cloud.app.box.com root path more carefully since it returns 206 consistently while other paths return 404. Let me check what the 206 response actually contains and whether it has CORS headers or other interesting behavior.
+[0m% [0mWebFetch https://cloud.app.box.com/
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" https://cloud.app.box.com/ 2>&1 | head -30
+HTTP/2 302 
+date: Sat, 22 Aug 2026 04:05:13 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=pmm6rdm1gqhh6bqn47gkvrcc7l; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=pmm6rdm1gqhh6bqn47gkvrcc7l; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a891ff916d494.52062072; expires=Sun, 22 Aug 2027 04:05:13 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:05:13 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=39; expires=Sun, 22 Aug 2027 04:05:13 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 37
+location: https://cloud.app.box.com/login
+box-request-id: 09bb244a06d18f185e777c126ac600da4
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" https://cloud.app.box.com/login 2>&1 | head -30
+HTTP/2 405 
+date: Sat, 22 Aug 2026 04:05:21 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 37
+expires: 0
+vary: origin
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.com
+set-cookie: box_visitor_id=6a89200100cd39.22178028; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 084745a8218b256feb48055bf3b30cf13
+server-timing: traceparent;desc="00-f45f4d9579ecc0ef6c0d4a6a55911b8c-f414bcaffe15ec03-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Interesting — `/login` returns 405 with CORS headers. Let me probe the current-user and app-api endpoints more carefully.
+[0m$ [0mcurl -s -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" https://cloud.app.box.com/app-api/enduserapp/current-user 2>&1
+{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":null,"storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/cloud.account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/cloud.app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" https://cloud.app.box.com/app-api/enduserapp/current-user 2>&1
+HTTP/2 404 
+date: Sat, 22 Aug 2026 04:05:31 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 16
+strict-transport-security: max-age=31536000
+box-request-id: 03d5784ab2ac157bd8a88200e4222b790
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" https://cloud.app.box.com/app-api/enduserapp/current-user 2>&1 | head -40
+HTTP/2 200 
+date: Sat, 22 Aug 2026 04:05:35 GMT
+content-type: application/json; charset=utf-8
+set-cookie: z=psv5o8g4qgodqmf3pm2dg34b38; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=psv5o8g4qgodqmf3pm2dg34b38; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a89200f7c5491.35055294; expires=Sun, 22 Aug 2027 04:05:35 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:05:35 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=37; expires=Sun, 22 Aug 2027 04:05:35 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-enduserapp-currentversion: 23.692.0+hotfix.1
+x-envoy-upstream-service-time: 63
+box-request-id: 04e311faf2cd529a15bc8646e68977ab
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-## Current Status Assessment
+{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":null,"storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/cloud.account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"isUserExcludedFromGrowthExperiments":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/cloud.app.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0}
+[0m
+[0m$ [0mcurl -s -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/app-api/enduserapp/shared-item?sharedItem=test" 2>&1 | head -20
+{"status":400,"errorCode":"expectedParamError"}
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/app-api/enduserapp/shared-item?sharedItem=test" 2>&1
+HTTP/2 404 
+date: Sat, 22 Aug 2026 04:06:02 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 14
+strict-transport-security: max-age=31536000
+box-request-id: 0900dfe1889ac564e784c08b18382c804
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/app-api/enduserapp/shared-item?sharedItem=test" 2>&1
+HTTP/2 404 
+date: Sat, 22 Aug 2026 04:06:06 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 14
+strict-transport-security: max-age=31536000
+box-request-id: 06043ad99f3d23d621e632ee2134aca75
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Let me now focus on finding novel attack surfaces. I'll check account.box.com for unique behavior and try some creative probes.
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com/callback" 2>&1 | head -30
+HTTP/2 200 
+date: Sat, 22 Aug 2026 04:06:16 GMT
+content-type: text/html; charset=UTF-8
+expires: 0
+x-envoy-upstream-service-time: 153
+vary: origin,accept-encoding
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+strict-transport-security: max-age=31536000
+pragma: no-cache
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.com
+set-cookie: z=da2uaq1d10rs08ialfp6atba2s; path=/; domain=.account.box.com; secure; HttpOnly
+set-cookie: z=da2uaq1d10rs08ialfp6atba2s; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a8920384339b4.59870555; expires=Sun, 22 Aug 2027 04:06:16 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:06:16 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
+set-cookie: cn=32; expires=Sun, 22 Aug 2027 04:06:16 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a892038abbf10.90952194; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 0e8491212a12b473987334e98bf9b69fa
+server-timing: traceparent;desc="00-80614212f642061a5432905d2c612170-cca9d8fe0b786918-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+accept-ranges: bytes
+surrogate-control: max-age=0
+via: 1.1 google
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/api/2.0/folders/0" 2>&1 | head -30
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:06:25 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 0c933a699bb4d55faa4606116c8ff53d4
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+Let me try some creative probes to find novel surfaces.
+[0m$ [0mfor path in "/app-api/enduserapp/folder" "/app-api/enduserapp/search" "/app-api/enduserapp/user" "/app-api/enduserapp/settings" "/app-api/enduserapp/config" "/app-api/enduserapp/version" "/app-api/enduserapp/features" "/app-api/enduserapp/experiments" "/app-api/enduserapp/notifications" "/app-api/enduserapp/events" "/app-api/enduserapp/batch" "/app-api/enduserapp/metadata" "/app-api/enduserapp/tasks" "/app-api/enduserapp/comments" "/app-api/enduserapp/collections" "/app-api/enduserapp/tags"; do
+  code=$(curl -s -o /dev/null -w "%{http_code}" -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com${path}" 2>/dev/null)
+  echo "$code $path"
+  sleep 2
+done
+404 /app-api/enduserapp/folder
+404 /app-api/enduserapp/search
+404 /app-api/enduserapp/user
+404 /app-api/enduserapp/settings
+404 /app-api/enduserapp/config
+404 /app-api/enduserapp/version
+404 /app-api/enduserapp/features
+404 /app-api/enduserapp/experiments
+404 /app-api/enduserapp/notifications
+404 /app-api/enduserapp/events
+404 /app-api/enduserapp/batch
+404 /app-api/enduserapp/metadata
+404 /app-api/enduserapp/tasks
+404 /app-api/enduserapp/comments
+404 /app-api/enduserapp/collections
+401 /app-api/enduserapp/tags
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/app-api/enduserapp/tags" 2>&1
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:07:10 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=p5noi2g7ckitrffo52ep31kf37; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=p5noi2g7ckitrffo52ep31kf37; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a89206e3e1c09.66252553; expires=Sun, 22 Aug 2027 04:07:10 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:07:10 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=89; expires=Sun, 22 Aug 2027 04:07:10 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 40
+box-request-id: 01b6cd1098159f32405d35b53dfb62876
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
 
-**Phase:** POC (Point of Contact)  
-**Status:** Research surface for unauthenticated read-only probes is **EXHAUSTED**
+{"status":401,"code":"sessionExpired","message":"session expired"}
+[0m
+[0m$ [0mfor path in "/graphql" "/gql" "/api/graphql" "/v1/graphql" "/_graphql" "/ws" "/wss" "/socket" "/realtime" "/debug" "/admin" "/internal" "/_internal" "/actuator" "/health" "/status" "/metrics" "/info" "/env" "/config" "/version"; do
+  code=$(curl -s -o /dev/null -w "%{http_code}" -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com${path}" 2>/dev/null)
+  if [ "$code" != "404" ]; then
+    echo "$code $path"
+  fi
+  sleep 2
+done
+503 /graphql
+302 /debug
+403 /admin
+302 /metrics
+301 /info
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/graphql" 2>&1 | head -20
+HTTP/2 503 
+date: Sat, 22 Aug 2026 04:08:11 GMT
+strict-transport-security: max-age=31536000
+box-request-id: 0206f34d238130012cd18433237b1c1b3
+x-envoy-upstream-service-time: 484
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
 
-## Confirmed Findings (Ranked by Impact)
+{"type":"error","status":503,"code":"service_unavailable","help_url":"http://developers.box.com/docs/#errors","message":"Service Unavailable","request_id":"0206f34d238130012cd18433237b1c1b3"}
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/admin" 2>&1 | head -30
+HTTP/2 403 
+date: Sat, 22 Aug 2026 04:08:11 GMT
+content-type: text/html; charset=utf-8
+x-envoy-upstream-service-time: 23
+box-request-id: 07d4ef28738106f9ccdd18bed8b9cd68c
+strict-transport-security: max-age=31536000
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/debug" 2>&1 | head -30
+HTTP/2 302 
+date: Sat, 22 Aug 2026 04:08:12 GMT
+content-type: text/html; charset=utf-8
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 52
+strict-transport-security: max-age=31536000
+pragma: no-cache
+set-cookie: z=i95oqokvq6lb3ikmjp1ko7kbpc; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=i95oqokvq6lb3ikmjp1ko7kbpc; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a8920ac89bbc5.84684631; expires=Sun, 22 Aug 2027 04:08:12 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:08:12 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=82; expires=Sun, 22 Aug 2027 04:08:12 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+x-robots-tag: noindex, nofollow
+location: /v/debug
+box-request-id: 15e2d7eca62e519387e432729aadb4698
+cache-control: no-store, no-cache, must-revalidate
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/metrics" 2>&1 | head -30
+HTTP/2 302 
+date: Sat, 22 Aug 2026 04:08:13 GMT
+content-type: text/html; charset=utf-8
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 54
+strict-transport-security: max-age=31536000
+pragma: no-cache
+set-cookie: z=1ienm9rcn17f73h8g7akca01aa; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=1ienm9rcn17f73h8g7akca01aa; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a8920ad677ab3.85874967; expires=Sun, 22 Aug 2027 04:08:13 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:08:13 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=25; expires=Sun, 22 Aug 2027 04:08:13 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+x-robots-tag: noindex, nofollow
+location: /v/metrics
+box-request-id: 0b5475db56f197d374592bed025fa662
+cache-control: no-store, no-cache, must-revalidate
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+Found non-404 endpoints. Let me investigate each.
+[0m$ [0mcurl -s -D- -L -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com/info" 2>&1 | head -30
+HTTP/2 301 
+date: Sat, 22 Aug 2026 04:08:14 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 17
+strict-transport-security: max-age=31536000
+location: /features/
+box-request-id: 0a4f7394513dae07fb8c9db3268ec4c4e
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
 
-1. **OAuth2 SPA Shell CORS Reflection** (LOW-MEDIUM severity)
-   - Reflects arbitrary Origin in `access-control-allow-origin`
-   - Exposes `WWW-Authenticate` and `Server-Authorization` headers
-   - **NO** `access-control-allow-credentials` → cookies NOT sent cross-origin
-   - Found on 6+ subdomains (cloud.app.box.com, account.box.com, accounts.account.box.com, etc.)
-   - Infrastructure metadata leaked: k8s deployment, availability zone (us-west4-prod), feature flags, client-side API keys
+HTTP/2 301 
+date: Sat, 22 Aug 2026 04:08:14 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 15
+strict-transport-security: max-age=31536000
+location: /business/features/
+box-request-id: 0c8b8494f78966389ca53661fb11b99d8
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
 
-2. **Box API Per-Endpoint CORS Policy** (by design)
-   - Public integration endpoints (`/api/2.0/me`, `/api/2.0/skills`): `access-control-allow-origin: *`
-   - Sensitive endpoints (`/api/2.0/folders/0`, `/api/2.0/users/me`): No CORS headers
-   - Admin endpoints have wildcard CORS but require Bearer tokens
+HTTP/2 301 
+date: Sat, 22 Aug 2026 04:08:14 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 15
+strict-transport-security: max-age=31536000
+location: /solutions/
+box-request-id: 0d342e777699d6aba1147d81c19636fb1
+via: 1.1 google
+[0m
+Interesting findings: `/admin` (403), `/graphql` (503), `/debug` and `/metrics` redirect to SPA shell. Let me now probe app.box.com for comparison and explore novel surfaces.
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://app.box.com/admin" 2>&1 | head -30
+HTTP/2 403 
+date: Sat, 22 Aug 2026 04:08:47 GMT
+content-type: text/html; charset=utf-8
+x-envoy-upstream-service-time: 14
+box-request-id: 0d21ac18ad7ab0e9ec46678af3a363e19
+strict-transport-security: max-age=31536000
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mfor path in "/graphql" "/admin" "/debug" "/metrics" "/internal" "/health" "/status"; do
+  resp=$(curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://app.box.com${path}" 2>/dev/null)
+  code=$(echo "$resp" | head -1)
+  cors=$(echo "$resp" | grep -i "access-control-allow-origin" || echo "NO-CORS")
+  echo "$code | $cors | $path"
+  sleep 2
+done
+HTTP/2 503  | NO-CORS | /graphql
+HTTP/2 403  | NO-CORS | /admin
+HTTP/2 404  | NO-CORS | /debug
+HTTP/2 302  | NO-CORS | /metrics
+HTTP/2 404  | NO-CORS | /internal
+HTTP/2 302  | NO-CORS | /health
+HTTP/2 404  | NO-CORS | /status
+[0m
+[0m$ [0mcurl -s -D- -L -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://app.box.com/health" 2>&1 | head -30
+HTTP/2 302 
+date: Sat, 22 Aug 2026 04:09:12 GMT
+content-type: text/html; charset=utf-8
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 41
+strict-transport-security: max-age=31536000
+pragma: no-cache
+set-cookie: z=u1s3h3m8qrrlo80gd6rrlog4vf; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=u1s3h3m8qrrlo80gd6rrlog4vf; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a8920e8e97b94.94585269; expires=Sun, 22 Aug 2027 04:09:12 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:09:12 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=26; expires=Sun, 22 Aug 2027 04:09:12 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+x-robots-tag: noindex, nofollow
+location: /v/health
+box-request-id: 0f74696b7a3d16fdb40e799b56d0e123c
+cache-control: no-store, no-cache, must-revalidate
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
 
-3. **App Version Leak** (LOW severity)
-   - `x-enduserapp-currentversion: 23.692.0+hotfix.1` on app.box.com/cloud.app.box.com
-   - Not cross-origin readable (no CORS headers)
+HTTP/2 302 
+date: Sat, 22 Aug 2026 04:09:13 GMT
+content-type: text/html; charset=utf-8
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 87
+strict-transport-security: max-age=31536000
+pragma: no-cache
+set-cookie: z=o9l94uh3g385tavauquipp5ifd; path=/; domain=.app.box.com; secure; HttpOnly
+[0m
+[0m$ [0mcurl -s -H "User-Agent: box-research/1.0+(research)" "https://app.box.com/v/health" 2>&1 | head -50
+(no output)
+[0m
+[0m$ [0mfor path in "/" "/api/2.0/files/content" "/api/2.0/files/upload" "/api/2.0/folders/items" "/upload" "/multipart" "/chunked" "/resumable" "/api/2.0/files" "/api/2.0/SharedItems"; do
+  resp=$(curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://upload.box.com${path}" 2>/dev/null)
+  code=$(echo "$resp" | head -1)
+  cors=$(echo "$resp" | grep -i "access-control-allow-origin" || echo "NO-CORS")
+  echo "$code | $cors | $path"
+  sleep 2
+done
+HTTP/2 404  | NO-CORS | /
+HTTP/2 404  | NO-CORS | /api/2.0/files/content
+HTTP/2 404  | NO-CORS | /api/2.0/files/upload
+HTTP/2 404  | NO-CORS | /api/2.0/folders/items
+HTTP/2 404  | NO-CORS | /upload
+HTTP/2 404  | NO-CORS | /multipart
+HTTP/2 404  | NO-CORS | /chunked
+HTTP/2 404  | NO-CORS | /resumable
+HTTP/2 404  | NO-CORS | /api/2.0/files
+HTTP/2 404  | NO-CORS | /api/2.0/SharedItems
+[0m
+[0m$ [0mfor path in "/api/2.0/users/me" "/api/2.0/me" "/api/2.0/folders/0" "/app-api" "/oauth2/token" "/oauth2/revoke" "/api/oauth2/token" "/api/oauth2/revoke" "/sso" "/oauth2/auth" "/api/v1" "/v1" "/api/v2"; do
+  resp=$(curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://account.box.com${path}" 2>/dev/null)
+  code=$(echo "$resp" | head -1)
+  cors=$(echo "$resp" | grep -i "access-control-allow-origin" || echo "NO-CORS")
+  echo "$code | $cors | $path"
+  sleep 2
+done
+HTTP/2 401  | NO-CORS | /api/2.0/users/me
+HTTP/2 401  | access-control-allow-origin: * | /api/2.0/me
+HTTP/2 401  | NO-CORS | /api/2.0/folders/0
+HTTP/2 401  | NO-CORS | /app-api
+HTTP/2 400  | access-control-allow-origin: * | /oauth2/token
+HTTP/2 404  | NO-CORS | /oauth2/revoke
+HTTP/2 400  | access-control-allow-origin: * | /api/oauth2/token
+HTTP/2 302  | NO-CORS | /api/oauth2/revoke
+HTTP/2 302  | NO-CORS | /sso
+HTTP/2 404  | NO-CORS | /oauth2/auth
+HTTP/2 404  | NO-CORS | /api/v1
+HTTP/2 302  | NO-CORS | /v1
+HTTP/2 404  | NO-CORS | /api/v2
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://account.box.com/app-api" 2>&1
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:10:30 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 016e5f461e8a6016413593f7a83ee03d
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+Let me pivot to testing for open redirects and SSRF vectors via OAuth parameters, which can be tested read-only.
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com/callback" 2>&1 | grep -i "location\|access-control\|redirect" 
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.com
+</head><body class="is-loading " data-resin-application="files">  <noscript><div class="noscript-warning"> JavaScript is currently disabled in your browser. You must have JavaScript enabled to take full advantage of Box.</div></noscript><div id="app" class="react-container"></div><script>window.Box = window.Box || {};   Box.prefetchedData = {"\/app-api\/enduserapp\/current-user":{"id":2,"name":"","email":"","language":"en-US","locale":"en-US","timezone":"","countryCode":"US","hasAvatar":false,"avatarURLs":{"small":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_small-QaPHWb.png","large":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_large-M9h6O2.png","preview":"https:\/\/cdn01.boxcdn.net\/_assets\/img\/box\/box_user_avatar_preview-y_etx-.png"},"isAdmin":false,"isCoAdmin":false,"isGroupAdmin":false,"isDeveloper":false,"isInstantLoggedIn":false,"isLoggedIn":false,"isDemoEnvironmentV2":false,"isEnrolledInShieldTrial":false,"loginPage":null,"maxFileSizeAsString":"0 B","realtimeSubscriberID":"v4o497igche6sjyr","storageAmountAsString":"0 B","storageRemainingAsString":"0 B","hasUnlimitedStorage":false,"tier":null,"tariffName":null,"boxToolsDownloadURL":"https:\/\/e3.boxcdn.net\/box-installers\/boxedit\/win\/currentrelease\/BoxToolsInstaller.exe","accountHost":"https:\/\/account.box.com","apiHost":"https:\/\/api.box.com\/","amplitudeAPIKey":"c6eb3d709c5c30ca80c0381080bcc254","splitIOAPIKey":"3sd5ltupa3cq5t3ovm1r2kear6i4kvmeb42a","enterprise":[],"theme":{"id":1,"isDefaultTheme":true,"primaryColor":"#0061D5","logoURLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""},"logo2URLs":{"small":"","large":"","preview":"","xsmall":"","xsmall2x":"","xsmall3x":""}},"footer":{"footerText":"","footerLinkText":"","footerLinkUrl":""},"support":{"phone":"","email":"","url":"\/help"},"account":{"canEndTrial":false,"canUpgrade":false,"daysLeftInTrial":0,"daysSinceTrialStart":-1,"hasPaymentSystem":false,"isInUpgradeTrial":false,"isOnCCFreeTrial":false,"isOnTrial":false,"isPaymentBlocked":false,"unusedManagedUserCount":null,"unusedManagedUserPlusOverageAllowanceCount":null},"features":{"disableLinkToBoxAccessibilitySite":false,"adminConsole":false,"appGalleryV2":true,"autoClassification":false,"automateEnterprise":false,"automations":"","boxAIExtractMetadata":false,"boxAiHubs":false,"boxAiHubsProvisioned":false,"boxAIInPreview":false,"boxAIForMultidoc":false,"boxAIForPublicApi":false,"boxAIStudio":false,"boxAiAgentBuilder":false,"boxExtract":false,"boxAiCenter":false,"boxAiBoxapps":false,"boxAiAutomate":false,"canvas":true,"canvasLandingPage":true,"classification":false,"classificationV2":false,"collections":false,"connector":false,"crooze":false,"croozeManagement":false,"customConnectorCreation":false,"developerConsole":false,"dispositionInsights":false,"docgenEnabled":false,"euaFolderPreflightScript":true,"euaRootFolderGraphql":true,"euaRootFolderGraphqlPagination":true,"euaSubfolderGraphql":true,"feed":false,"feedAccessStats":false,"fileRequestEnabled":false,"fileRequestAllowEditorsEnabled":false,"fileRequestBrandingUserEnablementEnabled":false,"folderOwnerInsights":false,"formsEnabled":false,"formsAllowEditorsEnabled":false,"formsBrandingUserEnablementEnabled":false,"fullVersionShield":false,"googleDSSFeatureFlip":false,"hubs":true,"hubsProvisioned":false,"hubsCreation":false,"hubsGallery":false,"metadata":false,"notes":true,"openWithProgram":false,"ownedByMe":false,"pendoAnalyticsTrackSplitExperiments":true,"previewAnnotations":false,"reactFilesPageFF":false,"recents":true,"relayAdvancedProduct":false,"isAdvancedRelayProductOn":true,"relayAdvancedAllowEditorsAsBuilders":false,"relayAdvancedEnterpriseTierFeatures":false,"boxAutomateEnterpriseAdvTierFeatures":false,"relayEnterpriseLevel":"","relayUserLevel":"","relayAllowEditorsAsBuilders":false,"relayUserCanPublishTemplates":false,"sfc":false,"sfcShare":false,"sharedWithMe":false,"shield":false,"showProfileAndAccount":true,"sign":false,"signEnterprise":false,"sync":false,"tags":false,"threadedReplies":false,"trash":true,"updatesPage":true,"userFeedbackFormCollectPromptData":false,"userFeedbackFormFreeText":false,"videoAndCustomWatermarking":false},"relayFeatures":{"newUserEnablement":false,"fileRequestMoveCrossShard":false,"tariffMigration":false,"folderMetadataOutcome":true,"renameFileOutcome":true,"aiActionPromptOutcome":false},"experiments":{"hcaptchaVisible":true,"eua_experiment_preview_react_controls":true,"eua_experiment_split_io":true,"eua_experiment_split_proxy":true,"eua_experiment_responsive_web":true,"eua_experiment_list_view_enhancements":true,"eua_experiment_grid_view_enhancements":true,"eua_experiment_preview_esl_post_ga":true},"preview":{"apiHost":"https:\/\/api.box.com\/","appHost":"https:\/\/account.box.com\/","staticHost":"https:\/\/cdn01.boxcdn.net\/","staticPath":"platform\/preview","version":"3.79.0","tokenTimeout":3600,"preloadEnabled":true,"annotationsEnabled":false},"userPreferences":{"columnWidths":[],"sortColumn":"date","sortDirection":"desc","view":"list","viewSize":1},"isPasswordBreached":false,"maxFileSize":0},"\/api\/oauth2\/authorize\/data":{"error":"invalid_client","errorParams":{"responseType":"code","redirectUri":"https:\/\/evil.com\/callback","clientId":"test"}}};    Box.webpackPublicPath = 'https://cdn01.boxcdn.net/enduser/';    Box.webpackRemotes = {"box_canvas":"https:\/\/cdn01.boxcdn.net\/canvas-assets\/box_canvas_remote.0.340.20.js","box_forms_client":"https:\/\/cdn01.boxcdn.net\/file-request-forms\/box_forms_client_remote.2.587.1.js","box_hubs_client":"https:\/\/cdn01.boxcdn.net\/hubs-assets\/box_hubs_client_remote.2.286.0.js","box_money_client":"https:\/\/cdn01.boxcdn.net\/money-assets\/box_money_client_remote.0.137.1.js","box_sign_client":"https:\/\/cdn01.boxcdn.net\/sign-assets\/box_sign_client_remote.2.416.1.js","box_trigger_client":"https:\/\/cdn01.boxcdn.net\/relay-trigger-assets\/box_trigger_client_remote.16.97.0.js","box_docgen_client":"https:\/\/cdn01.boxcdn.net\/docgen-client-assets\/box_docgen_client_remote.0.167.1.js","box_insights_client":"https:\/\/cdn01.boxcdn.net\/insights-assets\/box_insights_client_remote.1.412.1.js","box_ai_client":"https:\/\/cdn01.boxcdn.net\/box-ai-client\/box_ai_client_remote.1.599.0.js","box_extract_client":"https:\/\/cdn01.boxcdn.net\/extract-client\/box_extract_client_remote.1.223.0.js","box_workflow_client":"https:\/\/cdn01.boxcdn.net\/workflow-client-assets\/box_workflow_client_remote.0.813.1.js","box_governance_client":"https:\/\/cdn01.boxcdn.net\/governance-client\/box_governance_client_remote.1.60.11.js","box_integrations_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-client\/box_integrations_client_remote.1.17.4.js","box_integrations_center_client":"https:\/\/cdn01.boxcdn.net\/box-integrations-center-client\/box_integrations_center_client_remote.1.30.0.js","box_aistudio_client":"https:\/\/cdn01.boxcdn.net\/aistudio-assets\/box_aistudio_client_remote.1.1165.0.js","box_ai_prompt_library":"https:\/\/cdn01.boxcdn.net\/ai-prompt-library\/box_ai_prompt_library_remote.2.9.0.js","box_solutions_client":"https:\/\/cdn01.boxcdn.net\/box-solutions-client\/box_solutions_client_remote.1.18.0.js","box_markdown_editor":"https:\/\/cdn01.boxcdn.net\/markdown-editor\/box_markdown_editor_remote.2.3.18.js","box_ai_security_client":"https:\/\/cdn01.boxcdn.net\/ai-security-client-assets\/box_ai_security_client_remote.1.55.0.js","box_ai_center":"https:\/\/cdn01.boxcdn.net\/ai-center\/box_ai_center_remote.2.46.1.js","box_preview_client":"https:\/\/cdn01.boxcdn.net\/preview-client-assets\/box_preview_client_remote.1.114.2.js","box_boxapps_client":"https:\/\/cdn01.boxcdn.net\/boxapps-client\/box_boxapps_client_remote.0.20260815.362.js","box_boxapps_solutions_client":"https:\/\/cdn01.boxcdn.net\/boxapps-solutions-client\/box_boxapps_solutions_client_remote.0.20260810.85.js","box_items_client":"https:\/\/cdn01.boxcdn.net\/items-client-assets\/box_items_client_remote.1.73.0.js"};    Box.webpackRemotesManifest = {"box_canvas":{"hostname":"cdn01.boxcdn.net","remotePath":"canvas-assets","remoteVersion":"0.340.20","remoteVersionSuffix":".0.340.20","remoteEntryFileName":"box_canvas_remote"},"box_forms_client":{"hostname":"cdn01.boxcdn.net","remotePath":"file-request-forms","remoteVersion":"2.587.1","remoteVersionSuffix":".2.587.1","remoteEntryFileName":"box_forms_client_remote"},"box_hubs_client":{"hostname":"cdn01.boxcdn.net","remotePath":"hubs-assets","remoteVersion":"2.286.0","remoteVersionSuffix":".2.286.0","remoteEntryFileName":"box_hubs_client_remote"},"box_money_client":{"hostname":"cdn01.boxcdn.net","remotePath":"money-assets","remoteVersion":"0.137.1","remoteVersionSuffix":".0.137.1","remoteEntryFileName":"box_money_client_remote"},"box_sign_client":{"hostname":"cdn01.boxcdn.net","remotePath":"sign-assets","remoteVersion":"2.416.1","remoteVersionSuffix":".2.416.1","remoteEntryFileName":"box_sign_client_remote"},"box_trigger_client":{"hostname":"cdn01.boxcdn.net","remotePath":"relay-trigger-assets","remoteVersion":"16.97.0","remoteVersionSuffix":".16.97.0","remoteEntryFileName":"box_trigger_client_remote"},"box_docgen_client":{"hostname":"cdn01.boxcdn.net","remotePath":"docgen-client-assets","remoteVersion":"0.167.1","remoteVersionSuffix":".0.167.1","remoteEntryFileName":"box_docgen_client_remote"},"box_insights_client":{"hostname":"cdn01.boxcdn.net","remotePath":"insights-assets","remoteVersion":"1.412.1","remoteVersionSuffix":".1.412.1","remoteEntryFileName":"box_insights_client_remote"},"box_ai_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-ai-client","remoteVersion":"1.599.0","remoteVersionSuffix":".1.599.0","remoteEntryFileName":"box_ai_client_remote"},"box_extract_client":{"hostname":"cdn01.boxcdn.net","remotePath":"extract-client","remoteVersion":"1.223.0","remoteVersionSuffix":".1.223.0","remoteEntryFileName":"box_extract_client_remote"},"box_workflow_client":{"hostname":"cdn01.boxcdn.net","remotePath":"workflow-client-assets","remoteVersion":"0.813.1","remoteVersionSuffix":".0.813.1","remoteEntryFileName":"box_workflow_client_remote"},"box_governance_client":{"hostname":"cdn01.boxcdn.net","remotePath":"governance-client","remoteVersion":"1.60.11","remoteVersionSuffix":".1.60.11","remoteEntryFileName":"box_governance_client_remote"},"box_integrations_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-client","remoteVersion":"1.17.4","remoteVersionSuffix":".1.17.4","remoteEntryFileName":"box_integrations_client_remote"},"box_integrations_center_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-integrations-center-client","remoteVersion":"1.30.0","remoteVersionSuffix":".1.30.0","remoteEntryFileName":"box_integrations_center_client_remote"},"box_aistudio_client":{"hostname":"cdn01.boxcdn.net","remotePath":"aistudio-assets","remoteVersion":"1.1165.0","remoteVersionSuffix":".1.1165.0","remoteEntryFileName":"box_aistudio_client_remote"},"box_ai_prompt_library":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-prompt-library","remoteVersion":"2.9.0","remoteVersionSuffix":".2.9.0","remoteEntryFileName":"box_ai_prompt_library_remote"},"box_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"box-solutions-client","remoteVersion":"1.18.0","remoteVersionSuffix":".1.18.0","remoteEntryFileName":"box_solutions_client_remote"},"box_markdown_editor":{"hostname":"cdn01.boxcdn.net","remotePath":"markdown-editor","remoteVersion":"2.3.18","remoteVersionSuffix":".2.3.18","remoteEntryFileName":"box_markdown_editor_remote"},"box_ai_security_client":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-security-client-assets","remoteVersion":"1.55.0","remoteVersionSuffix":".1.55.0","remoteEntryFileName":"box_ai_security_client_remote"},"box_ai_center":{"hostname":"cdn01.boxcdn.net","remotePath":"ai-center","remoteVersion":"2.46.1","remoteVersionSuffix":".2.46.1","remoteEntryFileName":"box_ai_center_remote"},"box_preview_client":{"hostname":"cdn01.boxcdn.net","remotePath":"preview-client-assets","remoteVersion":"1.114.2","remoteVersionSuffix":".1.114.2","remoteEntryFileName":"box_preview_client_remote"},"box_boxapps_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-client","remoteVersion":"0.20260815.362","remoteVersionSuffix":".0.20260815.362","remoteEntryFileName":"box_boxapps_client_remote"},"box_boxapps_solutions_client":{"hostname":"cdn01.boxcdn.net","remotePath":"boxapps-solutions-client","remoteVersion":"0.20260810.85","remoteVersionSuffix":".0.20260810.85","remoteEntryFileName":"box_boxapps_solutions_client_remote"},"box_items_client":{"hostname":"cdn01.boxcdn.net","remotePath":"items-client-assets","remoteVersion":"1.73.0","remoteVersionSuffix":".1.73.0","remoteEntryFileName":"box_items_client_remote"}};   Box.config = {"clientGeoCountryCode":"US","currentRm":"box_oauth2_server_authorize","datacenterTag":"us-west4-prod","runtimeMetadata":{"availabilityZone":"us-west4-prod","deploymentType":"k8s","environment":"prod"},"requestId":"v4o497igche6sjyr","requestToken":null,"sessionAge":0,"billing":{"creditCardCreationURL":"https:\/\/api.zuora.com\/rest\/v1\/payment-methods\/credit-cards"},"consoleLoggingEnabled":false,"debug":false,"isBoxEditFallbackEnabled":false,"isBoxToolsLoggingEnabled":false,"isBoxToolsV3EolEnabled":true,"isIEMixedModeEnabled":false,"isMSEdgeSupportForBoxEditEnabled":true,"isSandbox":false,"isWebappApdexV2Enabled":true,"logJSErrorsEnabled":false,"pendoAnalyticsAPIKey":"123e0628-cb29-41d1-466c-c592c7ddcd06","pendoAnalyticsProxyContentHost":"https:\/\/pendo-prod.box.com","pendoAnalyticsProxyDataHost":"https:\/\/pendo-data-prod.box.com","rumBeaconUrl":null,"rumRatio":0,"shouldUseActiveXObjectJSRef":false,"splitIOAPIKey":null,"staticHost":"https:\/\/cdn01.boxcdn.net","useUnSecureUrlForComServer":false};</script> <script src="https://cdn01.boxcdn.net/enduser/runtime.8db7096146.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~app.205b37e9ff.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~shared.050babac70.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~observability.1a34b1ac32.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/vendors~blueprint.79381b5dfc.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/lang-en-US.a12e6a0c21.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/app.50c208b371.js" type="text/javascript" crossorigin="anonymous"></script> <script src="https://cdn01.boxcdn.net/enduser/main.735b60652e.js" type="text/javascript" crossorigin="anonymous"></script>   </body></html>
+[0m
+[0m$ [0m# Test for host header injection via different paths
+for path in "/api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com/callback" "/login" "/api/2.0/me"; do
+  resp=$(curl -s -D- -H "Host: evil.com" -H "User-Agent: box-research/1.0+(research)" "https://app.box.com${path}" 2>/dev/null)
+  code=$(echo "$resp" | head -1)
+  echo "$code | Host:evil.com | $path"
+  sleep 2
+done
+HTTP/2 404  | Host:evil.com | /api/oauth2/authorize?response_type=code&client_id=test&redirect_uri=https://evil.com/callback
+HTTP/2 404  | Host:evil.com | /login
+HTTP/2 404  | Host:evil.com | /api/2.0/me
+[0m
+[0m$ [0m# Check dl.boxcloud.com with specific paths that might reveal S3 interaction
+for path in "/?cors" "/?acl" "/?versioning" "/?policy" "/?tagging" "/?torrent" "/?website" "/?lifecycle" "/?versionId=test" "/?response-content-disposition=test" "/?response-content-type=test"; do
+  resp=$(curl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://dl.boxcloud.com${path}" 2>/dev/null)
+  code=$(echo "$resp" | head -1)
+  cors=$(echo "$resp" | grep -i "access-control-allow-origin" || echo "NO-CORS")
+  echo "$code | $cors | $path"
+  sleep 2
+done
+HTTP/2 404  | NO-CORS | /?cors
+HTTP/2 404  | NO-CORS | /?acl
+HTTP/2 404  | NO-CORS | /?versioning
+HTTP/2 404  | NO-CORS | /?policy
+HTTP/2 404  | NO-CORS | /?tagging
+HTTP/2 404  | NO-CORS | /?torrent
+HTTP/2 404  | NO-CORS | /?website
+HTTP/2 404  | NO-CORS | /?lifecycle
+HTTP/2 404  | NO-CORS | /?versionId=test
+HTTP/2 404  | NO-CORS | /?response-content-disposition=test
+HTTP/2 404  | NO-CORS | /?response-content-type=test
+[0m
+[0m$ [0m# Check for credential-inclusive CORS on various app-api endpoints
+for path in "/app-api/enduserapp/current-user" "/app-api/enduserapp/shared-item" "/app-api/enduserapp/config" "/api/oauth2/authorize" "/api/oauth2/authorize/data"; do
+  resp=$(curl -sI -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://cloud.app.box.com${path}" 2>/dev/null)
+  creds=$(echo "$resp" | grep -i "access-control-allow-credentials" || echo "NO-CREDENTIALS")
+  cors=$(echo "$resp" | grep -i "access-control-allow-origin" || echo "NO-CORS")
+  echo "$creds | $cors | $path"
+  sleep 2
+done
+NO-CREDENTIALS | NO-CORS | /app-api/enduserapp/current-user
+NO-CREDENTIALS | NO-CORS | /app-api/enduserapp/shared-item
+NO-CREDENTIALS | NO-CORS | /app-api/enduserapp/config
+NO-CREDENTIALS | access-control-allow-origin: https://evil.com | /api/oauth2/authorize
+NO-CREDENTIALS | access-control-allow-origin: https://evil.com | /api/oauth2/authorize/data
+[0m
+Let me check for WebSocket endpoints that might be hijackable.
+[0m$ [0m# Check for WebSocket upgrade support on various hosts
+for host in "cloud.app.box.com" "app.box.com" "account.box.com" "notes.services.box.com"; do
+  for path in "/realtime" "/ws" "/socket" "/api/realtime" "/connect" "/events"; do
+    resp=$(curl -sI -H "Origin: https://evil.com" -H "Upgrade: websocket" -H "Connection: Upgrade" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" -H "User-Agent: box-research/1.0+(research)" "https://${host}${path}" 2>/dev/null)
+    code=$(echo "$resp" | head -1)
+    upgrade=$(echo "$resp" | grep -i "upgrade" || echo "NO-UPGRADE")
+    if [ "$code" != "HTTP/2 404" ]; then
+      echo "$code | $upgrade | $host$path"
+    fi
+    sleep 2
+  done
+done
+HTTP/2 405  | NO-UPGRADE | cloud.app.box.com/realtime
+HTTP/2 405  | NO-UPGRADE | cloud.app.box.com/ws
+HTTP/2 405  | NO-UPGRADE | cloud.app.box.com/socket
+HTTP/2 404  | NO-UPGRADE | cloud.app.box.com/api/realtime
+HTTP/2 405  | NO-UPGRADE | cloud.app.box.com/connect
+HTTP/2 405  | NO-UPGRADE | cloud.app.box.com/events
+HTTP/2 405  | NO-UPGRADE | app.box.com/realtime
+HTTP/2 405  | NO-UPGRADE | app.box.com/ws
+HTTP/2 405  | NO-UPGRADE | app.box.com/socket
+HTTP/2 404  | NO-UPGRADE | app.box.com/api/realtime
+HTTP/2 405  | NO-UPGRADE | app.box.com/connect
+HTTP/2 405  | NO-UPGRADE | app.box.com/events
+HTTP/2 405  | NO-UPGRADE | account.box.com/realtime
+HTTP/2 405  | NO-UPGRADE | account.box.com/ws
+HTTP/2 405  | NO-UPGRADE | account.box.com/socket
+HTTP/2 404  | NO-UPGRADE | account.box.com/api/realtime
+HTTP/2 405  | NO-UPGRADE | account.box.com/connect
+HTTP/2 405  | NO-UPGRADE | account.box.com/events
+HTTP/2 502  | NO-UPGRADE | notes.services.box.com/realtime
+HTTP/2 404  | NO-UPGRADE | notes.services.box.com/ws
+HTTP/2 404  | NO-UPGRADE | notes.services.box.com/socket
+HTTP/2 404  | NO-UPGRADE | notes.services.box.com/api/realtime
+HTTP/2 404  | NO-UPGRADE | notes.services.box.com/connect
+HTTP/2 404  | NO-UPGRADE | notes.services.box.com/events
+[0m
+notes.services.box.com/realtime returns 502. Let me investigate.
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://notes.services.box.com/realtime" 2>&1
+...output truncated...
 
-## Gaps in Current Research
+Full output saved to: /home/runner/.local/share/opencode/tool-output/tool_027abfd63001kPzdAyZCagel4H
 
-1. **Authenticated Testing**: No probes with valid OAuth tokens to test if authenticated endpoints with wildcard CORS leak user data
-2. **accounts.account.box.com Unique Paths**: The [NEXT] suggestion to test `/account/recover` and similar paths on this login-origin
-3. **WebSocket/Real-time Surface**: notes.services.box.com Socket.IO issues session IDs without auth but no CORS headers
-4. **New MCP Server**: `mcp.box.com` discovered in developer docs - Model Context Protocol server for AI agent integrations (not in original 8 hosts)
 
-## Proposed Plan
+--_
+Content-Location:icons
+Content-Transfer-Encoding:base64
 
-### Phase 1: Final Unauthenticated Probes (1 cycle)
-1. Test `accounts.account.box.com` unique paths (`/account/recover`, `/signup`, `/enterprise/contact`) for:
-   - Different `Box.config` embedded data
-   - Different CORS behavior
-   - New information disclosure
-2. Test `mcp.box.com` (if within scope - need to verify against scope.txt)
+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
 
-### Phase 2: Parking Decision
-**If Phase 1 yields no new findings:**
-- Park this host with recommendation: "Read-only unauthenticated research exhausted"
-- Request authorization for **authenticated testing** (Phase 3)
+--_
 
-### Phase 3: Authenticated Testing (requires explicit authorization)
-With a valid OAuth token, test:
-1. Admin endpoints with wildcard CORS: `/api/2.0/administer/users`, `/api/2.0/enterprise/audit_logs`
-2. File metadata endpoints with wildcard CORS
-3. Any authenticated endpoints that might return sensitive data cross-origin
+]]>
+<![endif]-->
 
-## Recommendation
+<head>
+	<title>Box | Temporarily Unavailable</title>
 
-**Immediate Action:** Execute Phase 1 (final unauthenticated probes on `accounts.account.box.com` unique paths).
+	<meta name="description" content="Collaboration tools adopted by over 50,000 companies globally. Box simplifies online file storage, replaces FTP and connects teams in online workspaces." />
+	<meta name="keywords" content="free online storage, online storage, file sharing, online file storage, share files online, store documents online, online collaboration, collaboration tools, ftp replacement, sharepoint alternative, file storage, mobile data access, share files online, asset management, online workspace, workspace." />
 
-**If Phase 1 fails:** Park this host and submit findings as-is. The CORS reflection finding, while interesting, is LOW-MEDIUM severity due to the lack of `access-control-allow-credentials`.
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
 
-**For Higher Severity:** Need authorization for authenticated testing to determine if Bearer tokens can be used cross-origin to access sensitive data.
+	<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+	<style type="text/css">
+		* {	margin: 0;}
+		html, body {font-size: 16px; font-family: Arial; color: #666;}
+		body {background: #ddedf8 url(data:image/gif;base64,R0lGODlhAQDOAtUAAP7///3+//n8/vf7/vz+//T5/f////j7/uz1+/X6/e72/Onz++Du+ev0+/b6/efy+vD3/OXx+vr8/vv9/vv9/+Pw+eTw+e/2/Pr9/vP4/fL4/OHv+fH4/Pz9//P5/er0++31+9/u+PH3/Ojy+t/t+Oby+urz+97t+P7+/+Lv+e32/PL4/ejz+uTx+uLw+e31/O/3/PX5/d/u+d3t+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAABAM4CAAb/QINwSCwaAcikcslsOp9MlHSKCliv2Kx2y+0SvuCweDzumM/oDmXNbrvXk7h8To9j7vh8XsLv+/98AoKDhIWGh4cHiouMjY0DkJGSk5SVkQ6YmZqbmAmen6ChnzGkBaanqKmqpx6trq8ZsbKzsyu2Kxq5uru6HL6/wBwiw8QiEMfIycrHMM0Xz9DR0QrU1dbX1CraKi/dIN/g4Qjj5OXm5A3p6uvs6R/v8PEm8/QmC/f4+fr3LP0sIwADjnhAsKDBgwRLKFxYIoLDhxAjOmxB0YLFixgxVtjIsWNHFyBTiByZYoPJkyg3MFjJsqXLlTJihphJMwSJmzhJnNjJ88SMAxlBAAA7) left top repeat-x;}
+		a {text-decoration: none; color: #1a74ba;}
+		a:hover {text-decoration: underline;}
+		.logo {display: block; margin: 30px auto 0 auto; width: 83px; height: 46px; background: url(data:image/gif;base64,R0lGODlhUwAuAPf/ACCAxjKQ0Uak3zuW1xh6wS+MzzyX2TSR0glvuTaS1EKh3DCN0BV5wD2Z2Uql4QtwuiyDvTiT1TKO0Q54vjWV1DmU1hF1vTma2BN2v0Cd20ue2Q9zvBp9wzaRzA1yuyKEyDuc2bTX71Os6Ljb8yKKyjaZ1bHU7Nnq9hlysT+f202n5B1+xDeX1kmc1T2W0MLd7yV9uD2d2TaT0DKU0S6HwjOOyRBwsazN5BF9wS6LzjqZ1kWi3gtyu0Sa2B95tez1+yR5tSmCwn275Ory+Fev6h17vpC82sji9B2BxRZ8whF6wBJrqgt0vBp+xESf3kGd3H++50Sa1Fal3CWBvCh/uUKXz4XD7U+h2n6w0xyExs7i7x50sTqU0T6g2hmFxhiCxVGp5tPm8ur0+qzR6g11vRp0shF1txdwrxJ0uzyTzC+LyDqPxUGb3EKZ1it8tBpxrR92tEGf2tTo9VaVwxOAw0STxWG27SWAwS+OzzKKxjCFwSJ+wQ56wFyhzUOk3ozB5Obw91ql1kCa2zuW0zKEuy6JxBV9vhyIx1uq3iZ+vVGl3DaKv5bB3luy60+TwUKY0Rl4vSqFxr7Z6xWCxR2GyFCk2qbK4kuZyx+EwSN7ukaa0mOeyDeV1UWd1xZ0syGGxVmXw0qi3NLj7xV2vTuU1DWBtmejzSF1r3S14nGz3ejx9yKAxBd/vT6Y1RNqp5rK6jCMyqTO6oW315HE5B6JyXSw1xJ7um6r0yJ9uSmJyBV8u+/3/CeNzGSp1SaIxx58vy6PzGuu3CiDxRyAvWew4Z3F3mWt27jT5kCW0/7+/1KYxh6Cvxx8uECc14K84UiazjiU00ei3B98wFicyiaDxqLH4Rx7wVCi1Q1mpniy2jOV1hB6vj6GuWWv4LnX6USNvxiAv1Wj3FSk3E+r6F2cx2S57kSl5yeExyN+vmWm0IC63nWu05zK5lWbyLDP5RV1tCB3szCT1EGHulWj2nCnzS+S1CaFw+Ht9Rh+uxJ8va7Z9Rp2tBR5uRt6uRBzu////yH5BAEAAP8ALAAAAABTAC4AAAj/AP/tsmPOnAg5/xIqXMiwocOHECNKlNhIRDk7RFT8mMixo8ePDI+Mu2jHjgh9IFOqXPlvhAg7jYjEtMKypk2II8ZVFEGECM2bQIGOULGz58+gSFcOJQIGjAgRR5NK9bgUjIqnUadqjTjCgQgVKppm3UqWYVcwDhyAHVu27QgBaNWqYNuW7IgdKnY4SQulrt+EIXY4cLLXQd+/dUMoGPxEQKjDCY+8gkJMkSIoUEaolAwFkWVUmTc2/EGsEqIjHkmbRh0ijoAnbHZEE/Lvh5AG2i6ASKFAAQgQFOp10zzRNm7dvRWkAMEiHiLiCq+A8JNiwImOoWJQtx6i2WtBTmII/xFC4YJgAejTo3cQg0Wl6xD/lBfgQL39FO5R/+uelr0GjqiAUJ8As3WngCANCKLABRcosMMOccCWwYRsZPBEHDsIAAInrzj0wxUsKCCAXk9kwMaJEz7hoIYU/LFfJ6Fk4IQAOqAi0Rg6COCEhaEIEUIrCjRggAEK+qFABkIOqaSSDTSQgXI60LbQETKUYCSSSS45ZJNPKkCBMT/IoMGQGfjBwhgQnQBNFxkMqYgOIfwYhwEDDEBkDA3UOUAPV0jhpzhj6tkAb1EqFGaDceRZJ59++qlBG4LyVkI3sQyiwQANxNGFDPA11MIFGdSpQSeI/GPCIDEMUMGqrFbQQzgacP8RAB4BHNCGFJeuOkAMXbDQ4T9RUNBFnqu+esUgASQbQCviXNGKroOW8EcwLWhQgQ74ReFQKhRU5+oVj4hhqgupRmDuuRq0gMc1s4RwwgsmGNMBF1f0YO6uIHRwQjAHDFuBuRpoEIAmzpjwwhEhoDLvPPbeC4IMR7jQQhvXpjBDKgzFIkMMOgDcwQsJmcDFhgmUXHKsmoC8LTATl8zJBTO0MEMMF3ByMjIumPCQM7C00IPJLFBwzQk1aGLuBZvGotAJHZSgw8kuzKKQyBdQcMDVB7TARSASvQBLFBFcXV4JXVR9dQsuBCIuRC+o0QIpWLPQQQixdNDCARSAUEIN8D3/MsPTB/TwCNdTN52AsqRUQXjXNXSibAIssHB4AAlU0QJHXjue7AEBBJKMMS60EUB5M1TxTzAzXHA4KZq4sHbITR8gwexR1PC6RKlUkcDsswfAOzJ53B6ROlVA03sCaoibRhWkSHBACcA8A0wJsksQhRoILWRCBywEsMACB6ThokdrtCHB9+gvEID4H60RxfngdyC1HIU8cv7zFFD/fRQdsNPQGDWgQAAKUIBB5AEkvXjEAAnIwEEUQngSUYcLFhiAGmQjIeyoQRQKAD4BEhAZaeiFQwBIATxw0AXPAMn2ZrAABnJQBpcAyQtqQEEYKqQXaXABAVtYgABUYQ0PAeAM//CQAzx04IIfkUMeWJiDJhYxDX1ICQ1mUIAcLMCGCllDFZyYgwK4gAbZ+x8NePEBAHxADbdICQRIUEYAuPEDvqiFGsloxlzUQXtBaKMZPyHHh9yABiR4oz366JEwrNGNiIRjDEEyBTa60Y4LWcMn9PgBEkwhjAwRxSHd+Ik7fmQMjUQkIj8BxI+8IJRuhIUn/5EOTARSlCTAxCIgAgNeIGEFSKAFFUDSSlrccgXARAIlcBGGj8hiGZQIZiHS+I9qNDILwDxHMEkwjGk8ZBFqQAIHmkCJZRjBI0OAAS0o0QQOmHObWVjGOj4CgUNokwNIoAEj/hEGGGQhC+bMQx7UsP8CDmQhlt9sSB/y0AQCEKAJWYDAEDpyi2EcoqAGjWgTvACDYnIECw6FaC4yoYp/LAIc+CRAJCCwiCkUggAcOMQhYCCJhkhiCr4waBK+wIpVRsQdzPDCFyK6iojOlBWEWKhEJJHTLyTBoDSoQzL6gA8vcIAAq6ABBP4xDQhEAqVeAEdQG7KIQjDgq0nwgi6UIZEb+IAVk/gqA4RBg3OolQFfMMRW2XbWL6iVGjCwRDGYYdSv0sAHFqWCHlbBgLCOtSGWwEUkMMDYJEyCHxC4gUOGYApPGIIODGCsNSBACHQslrEMmIQugCDZhlDWsmllLAE4GwYfGCIJjI0ELuaZkDD/wCEIjZ1EPwK6kHZAYBUWCK4S6GALT7hhHTdIriwc8QYz0AEHSgguARKxBVH0gQrCCK4FhpsP45oiuTdgBDlQ4Fw6RDe41JUEBGyBg+BSgwrtYAgjfJBdDODAEFto6UJUQQUa7GEDAJ6AEnCwDRsY2MBmGHB0ATyKRKAgoECggjQAvAEBE9gMB7aBGXDA4QlQ+A5wkEUf2GuBDWwWBg5RBgz+u10zuKGjC/EGCiCwBw/YmAxkmICOd6xjMtjYAw0uAxYUAogI3+HHOZ4AH5bM5B7bGANB8ME3ivGOCfh4A1N4gxYeEmFIeCDHNnBEQ7xxBhjcYQMPSDMP1swEHrSZ/wdpfoA0IHCGIS9EC0AAwh3QEGc3M+HPb45zEYKAgm+o4hQegPMD7lAG3jZEC2/IRJr/jALaLgQQbiiDHvbgDwR4+tOffgAkggCEJTiayKWY8R7QAOpWI2DUpR6yJbbwAE//wgdijogRUIAOTz9gH5t4iCmWcIYgbLoIRUDDKJBtbDgsoRRbhggW3nCGROjhDshWNrP14IMluCHa1djCL9AACRicgiOOgMe4y00OiNxjE2/AxhJQUAY4bAEFZ1iCK7jhjo7QI97zrve9873vYjDkFCjIhA9cEe2JnKIMmYADwyOyixNYAgtzAMUcMr4JI4hCqByp+DEwrnGOexzkRBCWBxBKcQyPAMIRbmB5MgICADs=) left top no-repeat;}
+		.logo:hover {text-decoration: none;}
+		h1 {padding: 0; color: #1a74ba; margin: 30px 0 0 0; text-align: center; font-size: 32px;}
+		.cloud {margin: 30px auto 0 auto; width: 574px; height:203px; background: url(data:image/jpeg;base64,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) left top no-repeat;}
+		.text {width: 580px; margin: 10px auto 0 auto; text-align: center; line-height: 20px;}
+		h3 {color: #333; font-size: 18px;}
+		.line {display: block; line-height: 34px; text-align: left; margin-left: 190px; padding-left: 25px; background: url(data:image/gif;base64,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) left 9px no-repeat;}
+		.line2 {background-position: 0 -26px;}
+		.line3 {background-position: 0 -60px;}
+		.line4 {background-position: 0 -97px;}
+		p {margin: 10px 0;}
+	</style>
 
-Should I proceed with Phase 1 (final unauthenticated probes on `accounts.account.box.com`)?
+	<!--[if lte IE 8]>
+  	<style type="text/css">
+		body {background-image: url(mhtml:http://www.box.com/difficulties.html!bg)}
+		.logo {background-image: url(mhtml:http://www.box.com/difficulties.html!logo)}
+		.cloud {background-image: url(mhtml:http://www.box.com/difficulties.html!cloud)}
+		.line {background-image: url(mhtml:http://www.box.com/difficulties.html!icons)}
+  	</style>
+	<![endif]-->
+</head>
+
+
+<body>
+
+	<a class="logo" href="http://www.box.com" title="Box"><!--  --></a>
+	<h1>Sorry, we can't access that page.</h1>
+	<div class="cloud"><!--  --></div>
+	<div class="text">
+		<h3>Your Box account may be temporarily unavailable. We're working on resolving the issue and should be back up soon.</h3>
+		<p>For more information or to troubleshoot the issue yourself, you can:</p>
+		<span class="line line1">Refresh your browser</span>
+		<span class="line line2">Check our <a href="http://blog.box.net">blog for any news</a></span>
+		<span class="line line3">Submit a <a href="http://support.box.com/tickets/new">support ticket</a></span>
+		<p>Visit <a href="http://status.box.com">status.box.com</a> to view and subscribe to updates on the current operational status of Box Services.</p>
+	</div>
+</body>
+</html>
+[0m
+[0m$ [0m# Check for CORS+credentials on any path
+for path in "/login" "/api/oauth2/authorize" "/app-api/enduserapp/current-user" "/app-api" "/api/2.0/me" "/api/2.0/skills" "/api/2.0/folders/0" "/api/2.0/users/me"; do
+  resp=$(curl -sI -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0+(research)" "https://account.box.com${path}" 2>/dev/null)
+  creds=$(echo "$resp" | grep -i "access-control-allow-credentials: true" || echo "NO-CREDS")
+  cors=$(echo "$resp" | grep -i "access-control-allow-origin" || echo "NO-CORS")
+  echo "$creds | $cors | $path"
+  sleep 2
+done
+NO-CREDS | access-control-allow-origin: https://evil.com | /login
+NO-CREDS | access-control-allow-origin: https://evil.com | /api/oauth2/authorize
+NO-CREDS | NO-CORS | /app-api/enduserapp/current-user
+NO-CREDS | NO-CORS | /app-api
+NO-CREDS | access-control-allow-origin: * | /api/2.0/me
+NO-CREDS | access-control-allow-origin: * | /api/2.0/skills
+NO-CREDS | NO-CORS | /api/2.0/folders/0
+NO-CREDS | NO-CORS | /api/2.0/users/me
+[0m
+[0m$ [0m# Test for open redirect patterns
+curl -sI -H "User-Agent: box-research/1.0+(research)" "https://account.box.com/login?redirect_to=https://evil.com" 2>&1 | grep -i "location\|access-control" || echo "No redirect or CORS"
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+[0m
+Based on my thorough analysis of the attack surface, here is my assessment:
+
+**CONFIRMED FINDING — OAuth2 SPA Shell CORS Reflection (LOW-MEDIUM)**
+
+The primary confirmed finding across 6+ subdomains (cloud.app.box.com, account.box.com, accounts.account.box.com, app.box.com) is the SPA catch-all route that reflects arbitrary Origin in `access-control-allow-origin` with `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. However, **NO `access-control-allow-credentials`** header is ever present, making cookie-based session theft impossible.
+
+**EXHAUSTED surfaces:**
+- dl.boxcloud.com: All 404, no CORS
+- upload.box.com: All 404, no CORS  
+- notes.services.box.com: No CORS on any endpoint
+- m.box.com: 301→app.box.com
+- app.box.com API endpoints: wildcard CORS is standard Box API behavior (no credentials)
+
+**PARKED items (no further action possible without auth):**
+- Authenticated endpoint testing with Bearer tokens
+- Clickjacking (requires human interaction)
+- GraphQL endpoint (returns 503 on all hosts)
+
+**Summary:** The read-only attack surface for all 8 eligible hosts is exhausted. The CORS reflection finding is real but low-severity due to missing `access-control-allow-credentials`. All metadata leaked via Box.config is already present in public JS bundles. No SSRF, IDOR, or high-impact vulnerabilities were discoverable through passive probes. Testing should either proceed to AUTH_HELPED (valid token required) or be concluded.

@@ -288,3 +288,17 @@ https://app.box.com/api/2.0/enterprise/audit_logs -> HTTP 401
 https://app.box.com/api/2.0/metadata_templates -> HTTP 401
 https://app.box.com/login?redirect_url=https://evil.com -> 206
 https://app.box.com/api/2.0/skills -> HTTP 401
+
+## 2026-08-22 04:14:28 UTC app.box.com
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/app-api/enduserapp/current-user -> 200
+https://cloud.app.box.com/app-api/enduserapp/shared-item?sharedItem=test -> HTTP 400
+https://cloud.app.box.com/api/2.0/folders/0 -> HTTP 401
+https://cloud.app.box.com${path -> ERR <urlopen error [Errno -2] Name or service not known>
+https://cloud.app.box.com/app-api/enduserapp/tags -> HTTP 401
+https://cloud.app.box.com/graphql -> HTTP 503
+https://cloud.app.box.com/admin -> HTTP 403
+https://cloud.app.box.com/debug -> 206
+https://cloud.app.box.com/metrics -> 206
+https://cloud.app.box.com/info -> 200

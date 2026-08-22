@@ -996,3 +996,4 @@ testability: PASSIVE
 [PARKED] Cache poisoning on SPA shell: `cache-control: no-store, no-cache, must-revalidate, proxy-revalidate` + `surrogate-control: max-age=0` properly prevents all caching. No poisoning vector.
 [NEXT] The research surface for read-only probes on app.box.com is EXHAUSTED. Further exploitation would require AUTH_HELPED probes (valid OAuth token) to test if authenticated endpoints with wildcard CORS leak user data, or HUMAN_ONLY testing (clickjacking, social engineering). Recommend parking this host or requesting authorization for authenticated testing.
 ## 2026-08-22 03:28:56 UTC app.box.com (mimo)
+## 2026-08-22 04:13:59 UTC app.box.com (mimo)
