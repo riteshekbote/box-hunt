@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 04:46:23 UTC"
 }=== MY LAST LEADS (tail) ===
-verify_steps: N/A — already verified
 impact: NONE (safe misconfiguration). Wildcard OPTIONS without credentials is overly permissive but not exploitable because: (1) cookies not sent cross-origin, (2) GET responses lack CORS headers preventing cross-origin reads. Information on current-user endpoint is same-origin only.
 testability: PASSIVE
 [LEARN] EXHAUSTED app.box.com: Login page reflects Origin (no credentials) + leaks requestToken cross-origin. /settings redirects to account.box.com/login without CORS. /shared/* returns 404 without CORS. API endpoints (/api/2.0/*) return 401 without CORS. OPTIONS preflight returns wildcard on all paths. Primary finding: login page CORS reflection with token leakage.
@@ -97,6 +96,7 @@ verify_steps: N/A — already verified
 impact: LOW-MEDIUM (information disclosure). Cross-origin JavaScript can read comprehensive Box configuration including analytics API keys, deployment metadata, feature flags, and CDN bundle versions. The analytics keys (Amplitude, Split.io, Pendo) are client-side tracking keys typically embedded in frontend JS, but CORS reflection makes them trivially extractable cross-origin. Combined with infrastructure metadata, this aids reconnaissance for targeted attacks. Cannot exfiltrate session tokens or user data without credentials flag.
 testability: PASSIVE
 ## 2026-08-22 05:00:25 UTC upload.box.com (mimo)
+## 2026-08-22 05:04:27 UTC upload.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
