@@ -37,19 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 00:28:18 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: upload.box.com/api/2.0/* (POST endpoints: /files/content, /shared_items, /collaborations, /folders, /comments)
-confidence: 97
-reasoning: All tested POST API paths return `access-control-allow-origin: <attacker_origin>` with `access-control-allow-credentials: true` on OPTIONS preflight. Session cookies (`z`, `box_visitor_id`) on account.box.com and app.box.com are set with `SameSite=None`, so they ARE sent on cross-site POST requests. The `/files/content` endpoint accepts multipart POST without auth and returns meaningful error ("API upload did not contain a file part"), confirming server processes the request. DELETE/PUT preflight do NOT reflect Origin. GET responses return 404 without CORS headers.
-evidence: [Cycles 2026-08-21 22:35-22:56] 11+ OPTIONS preflight tests across 4 API paths × 3 origins all reflected with credentials:true. SameSite=None confirmed on `z` and `box_visitor_id` cookies. POST to /files/content returns 400 JSON error confirming server-side processing.
-verify_steps: N/A — already verified via 15+ probes
-impact: HIGH (CSRF with credentials on upload pipeline). Attacker page forces logged-in Box user's browser to: (1) upload arbitrary files to victim's account, (2) create shared links for victim's files, (3) add attacker as collaborator, (4) create folders, (5) post comments. Write actions execute server-side with victim's session cookies (SameSite=None). Cannot read responses (GET/POST lack CORS headers). Persistent access possible via collaboration addition.
-testability: PASSIVE (preflight verification passive; full exploit requires victim interaction — trivially demonstrable POC)
-[CONFIRMED] account.box.com SameSite=None session cookies enabling cross-site request forgery
-class: MISCONFIG
-asset: account.box.com, app.box.com (Set-Cookie headers)
-confidence: 95
-reasoning: Both account.box.com and app.box.com set session cookies (`z`, `box_visitor_id`) with `SameSite=None`. This means cookies ARE sent on cross-site requests (including POST from evil.example.com). Combined with upload.box.com CORS misconfiguration, this creates a HIGH severity CSRF vulnerability.
-evidence: [This cycle] account.box.com/login sets `z=...; SameSite=None` and `box_visitor_id=...; SameSite=None`. app.box.com/login sets same cookies with SameSite=None.
 verify_steps: N/A — already verified
 impact: LOW-MEDIUM (enables CSRF). SameSite=None on session cookies allows cross-site request forgery attacks. Combined with upload.box.com CORS misconfiguration, this creates a HIGH severity CSRF vulnerability.
 testability: PASSIVE
@@ -97,14 +84,20 @@ impact: HIGH (CSRF with credentials on entire write API surface). Attacker page 
 testability: PASSIVE (preflight verification passive; full exploit requires victim interaction — trivially demonstrable POC)
 [LEARN] EXHAUSTED upload.box.com: Systemic CORS+CSRF on all POST endpoints confirmed. DELETE/PUT/PATCH properly configured (no Origin reflection). No static content, no non-API surfaces, no alternative API versions (/api/1.0, /api/2.1, /api/3.0 all 404). Host fully mapped — no new attack surfaces remain.
 ## 2026-08-22 01:56:13 UTC upload.box.com (mimo)
+## 2026-08-22 02:47:52 UTC upload.box.com (mimo)
+[LEARN] EXHAUSTED upload.box.com: Comprehensive CORS+CSRF finding on all POST endpoints fully documented. No remaining read-only attack surface. Moving focus to cloud.app.box.com and api.box.com.
+[HYP] cloud.app.box.com Method/CORS surface on SPA catch-all
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 65
+reasoning: Root returns 206 with SPA content. OPTIONS preflight previously returned wildcard. Need to test different HTTP methods (PUT, PATCH, DELETE, HEAD) to determine if method-specific CORS behavior differs from POST/GET. SPA catch-all may have different backend handling per method.
+verify_steps: HEAD https://cloud.app.box.com/, OPTIONS https://cloud.app.box.com/ (Access-Control-Request-Method: PUT), HEAD https://cloud.app.box.com/app-api/enduserapp/current-user, OPTIONS https://cloud.app.box.com/app-api/enduserapp/current-user (Access-Control-Request-Method: POST)
+impact: MISCONFIG (method-dependent CORS allowing cross-origin writes if POST/PUT accepted with wildcard)
+testability: PASSIVE
+[NEXT] OPTIONS: cloud.app.box.com (root) with Access-Control-Request-Method: POST, Origin: https://evil.example.com
+[NEXT] HEAD: cloud.app.box.com/ and cloud.app.box.com/app-api/enduserapp/current-user
+[NEXT] OPTIONS: cloud.app.box.com/app-api/enduserapp/current-user with Access-Control-Request-Method: POST, Origin: https://attacker.com
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 22:36:36 UTC
-- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE (preflight verification passive; full exploit requires vict
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 03:04:04 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 23:34:44 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-22 01:46:50 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 03:04:04 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404

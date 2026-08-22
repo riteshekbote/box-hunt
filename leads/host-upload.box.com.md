@@ -1190,3 +1190,35 @@ testability: PASSIVE
 [NEXT] OPTIONS: cloud.app.box.com (root) with Access-Control-Request-Method: POST, Origin: https://evil.example.com
 [NEXT] HEAD: cloud.app.box.com/ and cloud.app.box.com/app-api/enduserapp/current-user
 [NEXT] OPTIONS: cloud.app.box.com/app-api/enduserapp/current-user with Access-Control-Request-Method: POST, Origin: https://attacker.com
+## 2026-08-22 03:32:23 UTC upload.box.com (mimo)
+[CONFIRMED] app.box.com/login HTML-page CORS reflection without credentials — leaks requestToken cross-origin
+class: MISCONFIG
+asset: app.box.com/login
+confidence: 90
+reasoning: app.box.com/login reflects any attacker Origin in access-control-allow-origin without access-control-allow-credentials. The response includes access-control-expose-headers but no credentials flag. The page body contains requestToken (CSRF token for login form, e.g. '24323964dcbf7072fcd6edbe346557733754dbbafab2356587b05793a3acc7d6') which is readable cross-origin via fetch(). Origin: null also reflected. Login page redirects to account.box.com for unauthenticated users but the HTML body is served directly. Settings/other paths redirect without CORS headers.
+evidence: [This cycle] GET with Origin: https://evil.example.com returns access-control-allow-origin: https://evil.example.com. Body contains requestToken. Origin: null reflected. /settings redirects to account.box.com/login without CORS. /shared/123 returns 404 without CORS.
+verify_steps: N/A — already verified
+impact: LOW-MEDIUM (information disclosure). Cross-origin JavaScript can read the login page HTML and extract CSRF token (requestToken). Cannot send cookies (no credentials flag). Token could be used in conjunction with other vulnerabilities for CSRF, but standalone impact is limited to token leakage.
+testability: PASSIVE
+[CONFIRMED] api.box.com OAuth token endpoint wildcard CORS — GET response readable cross-origin (same as account.box.com)
+class: MISCONFIG
+asset: api.box.com/oauth2/token
+confidence: 90
+reasoning: api.box.com/oauth2/token returns access-control-allow-origin: * on GET responses (not just OPTIONS preflight). The GET response includes JSON error body and is fully readable cross-origin. Same pattern as the account.box.com finding. OPTIONS returns wildcard with authorization header allowed. Actual API endpoints (e2.0/*) return 401 without CORS headers, so only the token endpoint is affected.
+evidence: [This cycle] GET on api.box.com/oauth2/token returns wildcard CORS with JSON body. OPTIONS returns wildcard with authorization header allowed. /2.0/* endpoints return 401 without CORS headers.
+verify_steps: N/A — already verified
+impact: LOW-MEDIUM (information disclosure). Cross-origin readable token endpoint leaks supported grant types. Same as the account.box.com finding.
+testability: PASSIVE
+[CONFIRMED] cloud.app.box.com wildcard CORS on OPTIONS without credentials — NOT exploitable for data exfiltration
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 95
+reasoning: cloud.app.box.com returns access-control-allow-origin: * on OPTIONS preflight for ALL paths tested (root, /app-api/enduserapp/current-user) with all methods and authorization header allowed. However, NO access-control-allow-credentials: true is present, so cookies are not sent cross-origin. Actual GET/HEAD responses have NO CORS headers, so response bodies are not readable cross-origin. /app-api/enduserapp/current-user returns 200 with comprehensive config JSON (feature flags, API keys, deployment metadata) but this is same-origin only. /graphql returns 503. Defense-in-depth is correct on actual responses.
+evidence: [This cycle] OPTIONS on root and /app-api/* returns wildcard + all methods + authorization. GET/HEAD responses have no CORS headers. /app-api/enduserapp/current-user returns 200 with JSON config (same-origin only). /graphql returns 503.
+verify_steps: N/A — already verified
+impact: NONE (safe misconfiguration). Wildcard OPTIONS without credentials is overly permissive but not exploitable because: (1) cookies not sent cross-origin, (2) GET responses lack CORS headers preventing cross-origin reads. Information on current-user endpoint is same-origin only.
+testability: PASSIVE
+[LEARN] EXHAUSTED app.box.com: Login page reflects Origin (no credentials) + leaks requestToken cross-origin. /settings redirects to account.box.com/login without CORS. /shared/* returns 404 without CORS. API endpoints (/api/2.0/*) return 401 without CORS. OPTIONS preflight returns wildcard on all paths. Primary finding: login page CORS reflection with token leakage.
+[LEARN] EXHAUSTED cloud.app.box.com: OPTIONS wildcard without credentials on all paths. GET responses lack CORS headers. /app-api/enduserapp/current-user returns config without auth (same-origin only). /graphql returns 503. No cross-origin data exfiltration possible. Defense-in-depth correct on actual responses.
+[LEARN] EXHAUSTED api.box.com: OPTIONS wildcard on all paths. GET/HEAD responses lack CORS headers (not readable cross-origin). Only exception: oauth2/token GET has wildcard CORS (same as account.box.com). All API endpoints return 401 without CORS headers. No new attack surface beyond what's already confirmed on account.box.com.
+[NEXT] probe: GET https://app.box.com/login/federated with Origin: https://evil.example.com (check if federated login page also reflects Origin + leaks SSO config)
