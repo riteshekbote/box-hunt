@@ -1006,3 +1006,4 @@ verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.bo
 impact: Low — information disclosure of internal build metadata and dependency versions, enabling targeted reconnaissance against known CVEs
 testability: PASSIVE
 [NEXT] PROBE: Explore cloud.app.box.com embed and preview paths for additional unauthenticated data leakage. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/embed/preview?file_id=1 — test for file preview metadata endpoint (2) cloud.app.box.com/app-api/enduserapp/user-avatar?user_id=0 — test for user avatar/profile endpoint (3) cloud.app.box.com/app-api/enduserapp/quota — test for storage quota endpoint
+## 2026-08-22 03:27:52 UTC api.box.com (mimo)
