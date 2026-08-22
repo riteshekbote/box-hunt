@@ -928,3 +928,32 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?callback=alert(1) — test for XSS via callback parameter reflection in prefetchedData
 [NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?state=malicious_value — test state parameter reflection (OAuth state vector)
 [NEXT] RECON: GET https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — search for "postMessage" patterns to map all message actions the child iframe can trigger on the parent
+## 2026-08-22 03:35:27 UTC dl.boxcloud.com (mimo)
+class: MISCONFIG
+asset: cloud.app.box.com/embed/shared/{token} + app.box.com/embed/shared/{token}
+confidence: 90
+reasoning: embed.js `completeChallenge` action does `t.src=s` where `s=prefetchedData.url`. Server reflects `redirect_uri=https://evil.com` into `prefetchedData.url` as `https://cloud.app.box.com/shared/abc123test?redirect_uri=https://evil.com&is_embed_widget=true`. After challenge completion, iframe navigates to this URL. Confirmed on BOTH cloud.app.box.com and app.box.com. The `originalURL` field also feeds into `window.location.assign(o)` in MS Teams auth callbacks.
+verify_steps: 1) GET https://cloud.app.box.com/embed/shared/VALID_TOKEN?redirect_uri=https://attacker.com 2) Observe if completeChallenge fires and iframe src changes to the redirect_uri URL
+impact: If shared link page respects redirect_uri param, attacker can chain reflected redirect_uri with valid token for open redirect on Box domain. Severity: Medium-High.
+testability: HUMAN_ONLY
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js (Box embed widget)
+confidence: 90
+reasoning: The embed widget's postMessage handler processes `case "redirectParentIframe": window.location.href=n.url` with NO URL validation — no protocol check, no allowlist check on the URL value. Any origin matching the allowlist (`*.box.com`, `*.box.net`, `*.boxcloud.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`, `*.boxgov.us`) can send this message and redirect the top-level page to any URL including `javascript:`, `data:`, or external phishing sites. The origin allowlist regex also accepts `http://` origins.
+verify_steps: 1) Embed cloud.app.box.com/embed/shared/abc in an attacker-controlled page on any *.box.com subdomain 2) Send postMessage({action:"redirectParentIframe", url:"https://evil.com"}) to the widget iframe 3) Observe if top-level page navigates to evil.com
+impact: Open redirect from any Box-domain origin — chains with OAuth flows for token theft, session hijacking, or phishing. Severity: Medium-High (requires whitelisted origin as prerequisite).
+testability: HUMAN_ONLY
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js (Box embed widget)
+confidence: 85
+reasoning: The `MSTeamsAuthenticate` handler constructs `new URL(n.loginUrl)` directly from postMessage data, then passes it to `f.current.authentication.authenticate({url:i.toString()})`. No URL validation on `loginUrl` — any allowed-origin parent can open an auth popup to an arbitrary URL. The MS Teams auth flow constructs and opens a popup window with attacker-controlled URL.
+verify_steps: 1) Embed the widget on a *.box.com origin 2) Send postMessage({action:"MSTeamsAuthenticate", loginUrl:"https://evil.com/phish"}) 3) Observe if auth popup opens to attacker URL
+impact: OAuth/auth popup URL injection — attacker can capture auth codes or credentials via fake auth page. Severity: Medium-High.
+testability: HUMAN_ONLY
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 75
+reasoning: The postMessage origin validation regex uses `(?:https?:\\/\\/)?` which accepts both `http://` and `https://` origins. In mixed-content or downgrade scenarios, an attacker controlling an HTTP Box subdomain could inject postMessages to the widget. The subdomain regex `(?:(?:[a-zA-Z0-9\\-_]+)\\.)*` also allows deep nesting (e.g., `evil.attacker.box.com`).
+verify_steps: 1) Serve a page over HTTP on any *.box.com subdomain (if any accept HTTP) 2) Embed the Box widget 3) Send postMessage with redirect URL 4) Check if widget processes it
+impact: Weakens origin allowlist — could enable postMessage injection from HTTP origins. Severity: Low (requires HTTP-accessible Box subdomain).
+testability: HUMAN_ONLY
