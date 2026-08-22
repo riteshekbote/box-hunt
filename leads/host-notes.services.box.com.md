@@ -1123,3 +1123,4 @@ testability: AUTH_HELPED
 [LEARN] ACCEPTED notes.services.box.com Express: x-powered-by: Express, CSRF double-submit cookie pattern, access-control-expose-headers: Server-Timing without allow-origin
 [LEARN] REJECTED notes.services.box.com CORS at root: Wildcard * without credentials — standard secure
 [LEARN] CONFIRMED upload.box.com CORS scope: POST collection endpoints only, Origin reflection + credentials, box.com.evil.com accepted as valid Origin
+## 2026-08-22 00:25:59 UTC notes.services.box.com (mimo)
