@@ -1,44 +1,420 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[CONFIRMED] app.box.com login page reflects CORS — dual-subdomain CORS on OAuth  
-class: MISCONFIG  
-asset: app.box.com/login  
-confidence: 88  
-reasoning: GET with Origin returns 200 HTML with Box.config.requestToken, currentRm, debug, locale, isSandbox, etc. all accessible cross-origin.  
-verify_steps: Already verified.  
-impact: Cross-origin extraction of login page config tokens. Severity: Low-Medium.  
-testability: PASSIVE  
+[0m# [0mTodos
+[•] Test app.box.com token endpoint CORS policy
+[ ] Test app.box.com start and forgot_password CORS
+[ ] Test app.box.com API proxy routes CORS
+[ ] Test notes.services.box.com CORS
+[ ] Analyze results and update hypotheses
+[0m
+[0m$ [0mcurl -s -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/api/oauth2/token 2>&1 | head -30
+HTTP/2 400 
+date: Sat, 22 Aug 2026 04:43:16 GMT
+content-type: application/json;charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 31
+vary: Origin
+box-request-id: 0cd6b3def788c77b9674ecb880ba56c89
+cache-control: no-store
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -X OPTIONS -H "Origin: https://evil.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type" -H "User-Agent: box-research/1.0" https://app.box.com/api/oauth2/token 2>&1 | head -30
+(no output)
+[0m
+This is very interesting. The token endpoint returns `access-control-allow-origin: *` (wildcard). Let me now check OPTIONS preflight and the other paths.
+[0m$ [0mcurl -s -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/start 2>&1 | head -30
+HTTP/2 405 
+date: Sat, 22 Aug 2026 04:43:28 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 13
+strict-transport-security: max-age=31536000
+box-request-id: 04a92e88eaddf0509546ba369ee601da3
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -v -X OPTIONS -H "Origin: https://evil.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Authorization" -H "User-Agent: box-research/1.0" https://app.box.com/api/oauth2/token 2>&1
+* Host app.box.com:443 was resolved.
+* IPv6: 2620:117:bff0:12d::
+* IPv4: 74.112.186.157
+*   Trying 74.112.186.157:443...
+* Connected to app.box.com (74.112.186.157) port 443
+* ALPN: curl offers h2,http/1.1
+} [5 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+} [512 bytes data]
+*  CAfile: /etc/ssl/certs/ca-certificates.crt
+*  CApath: /etc/ssl/certs
+{ [5 bytes data]
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+{ [19 bytes data]
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+{ [3100 bytes data]
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+{ [264 bytes data]
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+{ [52 bytes data]
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+} [1 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+} [52 bytes data]
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / X25519 / RSASSA-PSS
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: C=US; ST=California; L=Redwood City; O=Box, Inc.; CN=box.com
+*  start date: Dec 20 00:00:00 2025 GMT
+*  expire date: Dec 22 23:59:59 2026 GMT
+*  subjectAltName: host "app.box.com" matched cert's "*.box.com"
+*  issuer: C=US; O=DigiCert Inc; CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1
+*  SSL certificate verify ok.
+*   Certificate level 0: Public key type RSA (2048/112 Bits/secBits), signed using sha256WithRSAEncryption
+*   Certificate level 1: Public key type RSA (2048/112 Bits/secBits), signed using sha256WithRSAEncryption
+*   Certificate level 2: Public key type RSA (2048/112 Bits/secBits), signed using sha256WithRSAEncryption
+} [5 bytes data]
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://app.box.com/api/oauth2/token
+* [HTTP/2] [1] [:method: OPTIONS]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: app.box.com]
+* [HTTP/2] [1] [:path: /api/oauth2/token]
+* [HTTP/2] [1] [accept: */*]
+* [HTTP/2] [1] [origin: https://evil.com]
+* [HTTP/2] [1] [access-control-request-method: POST]
+* [HTTP/2] [1] [access-control-request-headers: Content-Type,Authorization]
+* [HTTP/2] [1] [user-agent: box-research/1.0]
+} [5 bytes data]
+> OPTIONS /api/oauth2/token HTTP/2
+> Host: app.box.com
+> Accept: */*
+> Origin: https://evil.com
+> Access-Control-Request-Method: POST
+> Access-Control-Request-Headers: Content-Type,Authorization
+> User-Agent: box-research/1.0
+> 
+{ [5 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [284 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [284 bytes data]
+* old SSL session ID is stale, removing
+{ [5 bytes data]
+< HTTP/2 204 
+< date: Sat, 22 Aug 2026 04:43:35 GMT
+< content-type: text/plain charset=UTF-8;charset=UTF-8
+< access-control-allow-origin: *
+< x-envoy-upstream-service-time: 19
+< strict-transport-security: max-age=31536000
+< access-control-max-age: 1800
+< vary: Origin
+< access-control-allow-headers: Content-Type,Authorization
+< box-request-id: 085571abd9a75c7dfeb519f7fbe76b7cb
+< access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+< via: 1.1 google
+< alt-svc: h3=":443"; ma=2592000
+< 
+* Connection #0 to host app.box.com left intact
+[0m
+Critical finding — token endpoint has `access-control-allow-origin: *`. Let me verify the OPTIONS preflight response and test more paths.
+[0m$ [0mcurl -s -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/forgot_password 2>&1 | head -20
+HTTP/2 405 
+date: Sat, 22 Aug 2026 04:43:36 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 14
+strict-transport-security: max-age=31536000
+box-request-id: 02e20f98454f3f41a54f8aaffb992cb15
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m# [0mTodos
+[✓] Test app.box.com token endpoint CORS policy
+[•] Test app.box.com start and forgot_password CORS
+[ ] Test app.box.com API proxy routes CORS
+[ ] Test notes.services.box.com CORS
+[ ] Analyze results and update hypotheses
+[0m
+This is a critical finding. The token endpoint on `app.box.com` has:
 
-[CONFIRMED] app.box.com OAuth authorize reflects CORS — dual-subdomain CORS on OAuth  
-class: OATH  
-asset: app.box.com/api/oauth2/authorize, account.box.com/api/oauth2/authorize  
-confidence: 95  
-reasoning: Both subdomains return 404 with reflected access-control-allow-origin. Response bodies contain Box.config with requestToken cross-origin readable. Implicit flow identical.  
-verify_steps: HEAD + GET with Origin confirmed on both.  
-impact: Cross-origin extraction of Box.config from OAuth authorize. Severity: Low-Medium.  
-testability: PASSIVE  
+1. **`Access-Control-Allow-Origin: *`** (wildcard CORS)
+2. **Allows `Authorization` header** and all methods including `POST`
+3. **Preflight returns 204** — confirming cross-origin POST is fully permitted
 
-[HYP] app.box.com token endpoint inherits CORS policy  
-class: MISCONFIG  
-asset: app.box.com/api/oauth2/token  
-confidence: 72  
-reasoning: Auth backend routes (/login, /login_pre, /login_post, /api/oauth2/authorize) consistently reflect CORS. Token endpoint is part of the same OAuth flow backend. If it reflects, cross-origin token exchange becomes possible.  
-evidence_needed: CORS headers on GET/OPTIONS to /api/oauth2/token with Origin: https://evil.com  
-verify_steps: GET https://app.box.com/api/oauth2/token with Origin: https://evil.com — check for access-control-allow-origin  
-impact: Cross-origin OAuth token endpoint access. Severity: Medium.  
-testability: PASSIVE  
+Let me now check `forgot_password` with GET and verify the complete CORS surface.
+[0m$ [0mcurl -s -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/forgot_password 2>&1 | head -20
+HTTP/2 405 
+date: Sat, 22 Aug 2026 04:44:00 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 18
+strict-transport-security: max-age=31536000
+box-request-id: 018fad0863805bd2c9c2bce6843a5c291
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/api/2.0/folders/0 2>&1 | head -20
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:44:01 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 0ebb5fd1a152ea4696efec5c78a0e29f2
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/api/2.0/users/me 2>&1 | head -20
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:44:01 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 02a2763248139e53b34e102a148826e14
+x-envoy-upstream-service-time: 0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m
+[0m# [0mTodos
+[✓] Test app.box.com token endpoint CORS policy
+[✓] Test app.box.com start and forgot_password CORS
+[✓] Test app.box.com API proxy routes CORS
+[•] Deep-dive token endpoint: body, credentials, methods
+[ ] Test notes.services.box.com CORS
+[ ] Analyze results and update hypotheses
+[0m
+Critical distinction visible: `/api/oauth2/token` has `access-control-allow-origin: *` (WILDCARD), but `/api/2.0/folders/0` and `/api/2.0/users/me` return 401 with NO CORS headers. The API proxy routes do NOT inherit the CORS policy.
 
-[HYP] app.box.com API proxy routes test CORS inheritance  
-class: MISCONFIG  
-asset: app.box.com/api/2.0/folders/0, /api/2.0/users/me  
-confidence: 65  
-reasoning: If backend API routes on app.box.com inherit the same CORS policy as auth routes, user/folder data could be accessible cross-origin. Requires testing multiple API paths.  
-evidence_needed: CORS headers on API proxy routes with Origin: https://evil.com  
-verify_steps: GET https://app.box.com/api/2.0/folders/0 with Origin: https://evil.com, then GET https://app.box.com/api/2.0/users/me  
-impact: Cross-origin API data access. Severity: High.  
-testability: PASSIVE  
+Let me get more detail on the token endpoint response body and check credentials allowance.
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/api/oauth2/token 2>&1
+HTTP/2 400 
+date: Sat, 22 Aug 2026 04:44:31 GMT
+content-type: application/json;charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 28
+vary: Origin
+box-request-id: 099bde3d115e9f764c49efbb4e84c93ae
+cache-control: no-store
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-[PARKED] dl.boxcloud.com wildcard CORS hypothesis: All tested paths (/, /api/*, OPTIONS) return 404 without CORS headers. No cross-origin data leakage observed.  
+{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://app.box.com/api/oauth2/token 2>&1
+HTTP/2 400 
+date: Sat, 22 Aug 2026 04:44:32 GMT
+content-type: application/json;charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 36
+vary: Origin
+box-request-id: 01730e51512a3dee0ee7ab7ea5361403b
+cache-control: no-store
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
 
-[NEXT] PROBE: GET https://app.box.com/api/oauth2/token with Origin: https://evil.com — test if token endpoint reflects CORS. Then GET https://app.box.com/start and https://app.box.com/forgot_password. 1 req/2s.
+{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://account.box.com/api/oauth2/token 2>&1
+HTTP/2 400 
+date: Sat, 22 Aug 2026 04:44:44 GMT
+content-type: application/json;charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 31
+vary: Origin
+box-request-id: 1f8b78a1608c5406eec58e17cd82f9c88
+cache-control: no-store
+strict-transport-security: max-age=31536000
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+
+{"error":"invalid_request","error_description":"Invalid grant_type parameter or parameter missing"}
+[0m
+[0m$ [0mcurl -s -I -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://app.box.com/api/oauth2/authorize 2>&1 | head -25
+HTTP/2 404 
+date: Sat, 22 Aug 2026 04:44:45 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 35
+expires: 0
+vary: origin
+x-frame-options: SAMEORIGIN
+x-download-options: noopen
+pragma: no-cache
+strict-transport-security: max-age=31536000
+access-control-expose-headers: WWW-Authenticate,Server-Authorization
+access-control-allow-origin: https://evil.com
+set-cookie: box_visitor_id=6a89293d954ed8.31143966; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
+x-xss-protection: 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+referrer-policy: no-referrer
+box-request-id: 073c6d574052bbe33ac130485bc2c992b
+server-timing: traceparent;desc="00-fae9b5c585711f04727d3fe7fc97fb12-070c066c91f99ea6-00"
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
+surrogate-control: max-age=0
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+Key findings from token endpoint:
+- `access-control-allow-origin: *` (WILDCARD)
+- Allows `Authorization` header and `POST` method
+- No `access-control-allow-credentials` header (browsers won't send cookies)
+- Error response reveals it's a real OAuth token endpoint requiring `grant_type`
+
+Now let me check `account.box.com` for comparison and test a few more app.box.com endpoints.
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" -X OPTIONS -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Authorization" https://app.box.com/api/oauth2/token 2>&1
+HTTP/2 204 
+date: Sat, 22 Aug 2026 04:44:46 GMT
+content-type: text/plain charset=UTF-8;charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 19
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+access-control-allow-headers: Content-Type,Authorization
+box-request-id: 1e8cde34157b8b1cd5325d1608ab8651f
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m# [0mTodos
+[✓] Test app.box.com token endpoint CORS policy
+[✓] Test app.box.com start and forgot_password CORS
+[✓] Test app.box.com API proxy routes CORS
+[✓] Deep-dive token endpoint: body, credentials, methods
+[•] Test notes.services.box.com CORS
+[ ] Analyze results and update hypotheses
+[0m
+Now I have a clear picture. Let me update the todo and analyze the complete CORS surface.
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://notes.services.box.com/ 2>&1
+HTTP/2 302 
+date: Sat, 22 Aug 2026 04:45:07 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 15
+strict-transport-security: max-age=31536000
+location: https://services.app.box.com/
+box-request-id: 038f65acabd68715313049f04c73be3fb
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -s -D- -H "Origin: https://evil.com" -H "User-Agent: box-research/1.0" https://services.app.box.com/ 2>&1 | head -30
+HTTP/2 302 
+date: Sat, 22 Aug 2026 04:45:10 GMT
+content-type: text/html; charset=utf-8
+set-cookie: z=39ahek43vrfouh866ga7u70m43; path=/; domain=.app.box.com; secure; HttpOnly
+set-cookie: z=39ahek43vrfouh866ga7u70m43; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
+set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
+set-cookie: box_visitor_id=6a892956416cc1.44014356; expires=Sun, 22 Aug 2027 04:45:10 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
+set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:45:10 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
+set-cookie: cn=82; expires=Sun, 22 Aug 2027 04:45:10 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
+set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+x-envoy-upstream-service-time: 27
+location: https://app.box.com/
+box-request-id: 030131aa1adf2b272084409b7d31a7b1e
+cache-control: no-store, no-cache, must-revalidate
+strict-transport-security: max-age=31536000
+pragma: no-cache
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m# [0mTodos
+[✓] Test app.box.com token endpoint CORS policy
+[✓] Test app.box.com start and forgot_password CORS
+[✓] Test app.box.com API proxy routes CORS
+[✓] Deep-dive token endpoint: body, credentials, methods
+[✓] Test notes.services.box.com CORS
+[•] Analyze results and update hypotheses
+[0m
+Now let me analyze and provide my findings. `notes.services.box.com` just redirects to `app.box.com`.
+[0m# [0mTodos
+[✓] Test app.box.com token endpoint CORS policy
+[✓] Test app.box.com start and forgot_password CORS
+[✓] Test app.box.com API proxy routes CORS
+[✓] Deep-dive token endpoint: body, credentials, methods
+[✓] Test notes.services.box.com CORS
+[✓] Analyze results and update hypotheses
+[0m
+Here are the results of this cycle:
+
+---
+
+**[CONFIRMED] app.box.com/api/oauth2/token — wildcard CORS with Authorization header**
+class: MISCONFIG
+asset: app.box.com/api/oauth2/token
+confidence: 95
+reasoning: OPTIONS preflight returns 204 with `access-control-allow-origin: *`, `access-control-allow-headers: Content-Type,Authorization`, `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT`. GET and POST both return 400 with JSON error body. No `access-control-allow-credentials` header present. Confirmed on both app.box.com and account.box.com.
+verify_steps: Already verified — OPTIONS + GET + POST with Origin: https://evil.com.
+impact: Cross-origin JavaScript can send requests with Authorization header to token endpoint and read responses. Without credentials:true, cookies are not sent. Severity: Low-Medium (defense-in-depth violation; exploitable only if combined with token leakage or OAuth CSRF).
+testability: PASSIVE
+
+**[CONFIRMED] account.box.com/api/oauth2/token — same wildcard CORS**
+class: MISCONFIG
+asset: account.box.com/api/oauth2/token
+confidence: 95
+reasoning: Identical response to app.box.com: `access-control-allow-origin: *`, same error body. Same backend.
+verify_steps: Already verified.
+impact: Same as above.
+testability: PASSIVE
+
+**[CONFIRMED] app.box.com/api/oauth2/authorize — Origin reflection persists**
+class: MISCONFIG
+asset: app.box.com/api/oauth2/authorize
+confidence: 92
+reasoning: HEAD with Origin returns 404 with `access-control-allow-origin: https://evil.com` (Origin reflection, not wildcard). Also sets `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Confirms prior finding.
+verify_steps: Already verified.
+impact: Cross-origin extraction of response headers. Severity: Low.
+testability: PASSIVE
+
+**[LEARN] REJECTED — app.box.com API proxy routes do NOT inherit CORS**
+class: MISCONFIG
+asset: app.box.com/api/2.0/*
+confidence: 0
+reasoning: `/api/2.0/folders/0` and `/api/2.0/users/me` both return 401 with `www-authenticate: Bearer` but NO CORS headers. The CORS policy is limited to OAuth endpoints only, not proxied API routes.
+verify_steps: HEAD with Origin on both paths — no access-control headers returned.
+impact: None — CORS does not apply to these routes.
+testability: PASSIVE
+
+**[LEARN] REJECTED — app.box.com SPA routes do NOT have CORS**
+class: MISCONFIG
+asset: app.box.com/forgot_password, /start
+confidence: 0
+reasoning: Both return 405 with no CORS headers. Static/SPA catch-all does not set CORS.
+verify_steps: HEAD with Origin — no access-control headers.
+impact: None.
+testability: PASSIVE
+
+**[LEARN] ACCEPTED — notes.services.box.com redirects to app.box.com**
+class: OTHER
+asset: notes.services.box.com
+confidence: 100
+reasoning: 302 → services.app.box.com → 302 → app.box.com. No unique surface.
+verify_steps: GET confirmed.
+impact: None — all paths converge to app.box.com.
+testability: PASSIVE
+
+**[HYP] app.box.com token endpoint CORS + Authorization allows token exfil chain**
+class: MISCONFIG
+asset: app.box.com/api/oauth2/token
+confidence: 82
+reasoning: Wildcard CORS allows any origin to POST with Authorization header and read the response. While cookies aren't sent (no credentials:true), an attacker who obtains a token via other means (e.g., referrer leak, XSS on a Box-hosted page, OAuth CSRF) could exfiltrate it cross-origin via this endpoint. The error responses also reveal endpoint behavior (grant_type validation).
+evidence_needed: Confirmation of whether refresh_token or access_token exchange succeeds with valid tokens via cross-origin POST.
+verify_steps: Requires AUTH_HELPED: authenticate, obtain a token, then test cross-origin POST with valid Bearer token from evil.com.
+impact: Token exfiltration if combined with token leakage. Severity: Medium.
+testability: AUTH_HELPED
+
+**[HYP] OAuth authorize endpoint Origin reflection enables CSRF token harvesting**
+class: OATH
+asset: app.box.com/api/oauth2/authorize
+confidence: 75
+reasoning: The authorize endpoint reflects Origin in CORS and exposes response headers cross-origin. If a user is directed to the authorize endpoint via a malicious link, the resulting response (which may contain authorization codes or state parameters) could be readable cross-origin via the reflected CORS. The state parameter is user-controlled in the URL.
+evidence_needed: Test whether the authorize endpoint's HTML body contains any sensitive tokens readable cross-origin when Origin is reflected.
+verify_steps: GET https://app.box.com/api/oauth2/authorize?response_type=code&client_id=test&state=xss with Origin: https://evil.com — inspect body for tokens.
+impact: Potential OAuth CSRF or authorization code interception. Severity: Medium.
+testability: PASSIVE
+
+---
+
+**[NEXT] PROBE**: GET `https://app.box.com/api/oauth2/authorize?response_type=code&client_id=test&state=probe1` with `Origin: https://evil.com` — inspect the response body for any tokens, state echo, or sensitive data readable cross-origin. Then try the same on `account.box.com`. 1 req/2s.
+Analysis complete for this cycle. Key finding: **wildcard CORS (`*`) on both `app.box.com/api/oauth2/token` and `account.box.com/api/oauth2/token` allows cross-origin requests with Authorization header, but no `credentials:true` means cookies aren't sent**. Severity: Low-Medium as a standalone finding; becomes Medium if combined with token leakage vectors. API proxy routes and SPA routes are properly isolated from CORS.

@@ -136,3 +136,6 @@ https://account.box.com/api/v2.0/users/me -> HTTP 404
 https://account.box.com/api/oauth2/authorize?response_type=token&client_id=test&redirect_uri=https://evil.com -> 206
 https://account.box.com/api/v1.0/users/me -> HTTP 404
 https://account.box.com/login?redirect_url=%2Ffolder%2F0 -> 206
+
+## 2026-08-22 04:46:08 UTC account.box.com
+https://account.box.com/api/oauth2/token -> HTTP 400

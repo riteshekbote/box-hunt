@@ -1,34 +1,56 @@
-[CONFIRMED] app.box.com login page reflects CORS — dual-subdomain CORS on OAuth  
-class: MISCONFIG  
-asset: app.box.com/login  
-confidence: 88  
-reasoning: GET with Origin returns 200 HTML with Box.config.requestToken, currentRm, debug, locale, isSandbox, etc. all accessible cross-origin.  
-verify_steps: Already verified.  
-impact: Cross-origin extraction of login page config tokens. Severity: Low-Medium.  
-testability: PASSIVE  
-[CONFIRMED] app.box.com OAuth authorize reflects CORS — dual-subdomain CORS on OAuth  
-class: OATH  
-asset: app.box.com/api/oauth2/authorize, account.box.com/api/oauth2/authorize  
-confidence: 95  
-reasoning: Both subdomains return 404 with reflected access-control-allow-origin. Response bodies contain Box.config with requestToken cross-origin readable. Implicit flow identical.  
-verify_steps: HEAD + GET with Origin confirmed on both.  
-impact: Cross-origin extraction of Box.config from OAuth authorize. Severity: Low-Medium.  
-testability: PASSIVE  
-[HYP] app.box.com token endpoint inherits CORS policy  
-class: MISCONFIG  
-asset: app.box.com/api/oauth2/token  
-confidence: 72  
-reasoning: Auth backend routes (/login, /login_pre, /login_post, /api/oauth2/authorize) consistently reflect CORS. Token endpoint is part of the same OAuth flow backend. If it reflects, cross-origin token exchange becomes possible.  
-verify_steps: GET https://app.box.com/api/oauth2/token with Origin: https://evil.com — check for access-control-allow-origin  
-impact: Cross-origin OAuth token endpoint access. Severity: Medium.  
-testability: PASSIVE  
-[HYP] app.box.com API proxy routes test CORS inheritance  
-class: MISCONFIG  
-asset: app.box.com/api/2.0/folders/0, /api/2.0/users/me  
-confidence: 65  
-reasoning: If backend API routes on app.box.com inherit the same CORS policy as auth routes, user/folder data could be accessible cross-origin. Requires testing multiple API paths.  
-verify_steps: GET https://app.box.com/api/2.0/folders/0 with Origin: https://evil.com, then GET https://app.box.com/api/2.0/users/me  
-impact: Cross-origin API data access. Severity: High.  
-testability: PASSIVE  
-[PARKED] dl.boxcloud.com wildcard CORS hypothesis: All tested paths (/, /api/*, OPTIONS) return 404 without CORS headers. No cross-origin data leakage observed.  
-[NEXT] PROBE: GET https://app.box.com/api/oauth2/token with Origin: https://evil.com — test if token endpoint reflects CORS. Then GET https://app.box.com/start and https://app.box.com/forgot_password. 1 req/2s.
+class: MISCONFIG
+asset: app.box.com/api/oauth2/token
+confidence: 95
+reasoning: OPTIONS preflight returns 204 with `access-control-allow-origin: *`, `access-control-allow-headers: Content-Type,Authorization`, `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT`. GET and POST both return 400 with JSON error body. No `access-control-allow-credentials` header present. Confirmed on both app.box.com and account.box.com.
+verify_steps: Already verified — OPTIONS + GET + POST with Origin: https://evil.com.
+impact: Cross-origin JavaScript can send requests with Authorization header to token endpoint and read responses. Without credentials:true, cookies are not sent. Severity: Low-Medium (defense-in-depth violation; exploitable only if combined with token leakage or OAuth CSRF).
+testability: PASSIVE
+class: MISCONFIG
+asset: account.box.com/api/oauth2/token
+confidence: 95
+reasoning: Identical response to app.box.com: `access-control-allow-origin: *`, same error body. Same backend.
+verify_steps: Already verified.
+impact: Same as above.
+testability: PASSIVE
+class: MISCONFIG
+asset: app.box.com/api/oauth2/authorize
+confidence: 92
+reasoning: HEAD with Origin returns 404 with `access-control-allow-origin: https://evil.com` (Origin reflection, not wildcard). Also sets `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Confirms prior finding.
+verify_steps: Already verified.
+impact: Cross-origin extraction of response headers. Severity: Low.
+testability: PASSIVE
+class: MISCONFIG
+asset: app.box.com/api/2.0/*
+confidence: 0
+reasoning: `/api/2.0/folders/0` and `/api/2.0/users/me` both return 401 with `www-authenticate: Bearer` but NO CORS headers. The CORS policy is limited to OAuth endpoints only, not proxied API routes.
+verify_steps: HEAD with Origin on both paths — no access-control headers returned.
+impact: None — CORS does not apply to these routes.
+testability: PASSIVE
+class: MISCONFIG
+asset: app.box.com/forgot_password, /start
+confidence: 0
+reasoning: Both return 405 with no CORS headers. Static/SPA catch-all does not set CORS.
+verify_steps: HEAD with Origin — no access-control headers.
+impact: None.
+testability: PASSIVE
+class: OTHER
+asset: notes.services.box.com
+confidence: 100
+reasoning: 302 → services.app.box.com → 302 → app.box.com. No unique surface.
+verify_steps: GET confirmed.
+impact: None — all paths converge to app.box.com.
+testability: PASSIVE
+class: MISCONFIG
+asset: app.box.com/api/oauth2/token
+confidence: 82
+reasoning: Wildcard CORS allows any origin to POST with Authorization header and read the response. While cookies aren't sent (no credentials:true), an attacker who obtains a token via other means (e.g., referrer leak, XSS on a Box-hosted page, OAuth CSRF) could exfiltrate it cross-origin via this endpoint. The error responses also reveal endpoint behavior (grant_type validation).
+verify_steps: Requires AUTH_HELPED: authenticate, obtain a token, then test cross-origin POST with valid Bearer token from evil.com.
+impact: Token exfiltration if combined with token leakage. Severity: Medium.
+testability: AUTH_HELPED
+class: OATH
+asset: app.box.com/api/oauth2/authorize
+confidence: 75
+reasoning: The authorize endpoint reflects Origin in CORS and exposes response headers cross-origin. If a user is directed to the authorize endpoint via a malicious link, the resulting response (which may contain authorization codes or state parameters) could be readable cross-origin via the reflected CORS. The state parameter is user-controlled in the URL.
+verify_steps: GET https://app.box.com/api/oauth2/authorize?response_type=code&client_id=test&state=xss with Origin: https://evil.com — inspect body for tokens.
+impact: Potential OAuth CSRF or authorization code interception. Severity: Medium.
+testability: PASSIVE
