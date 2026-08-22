@@ -974,3 +974,13 @@ testability: PASSIVE
 [LEARN] ACCEPTED OTHER @ cloud.app.box.com /app-api/enduserapp/folder/0: Returns 401 — auth-gated endpoint, different from current-user/app-version which are unauthenticated
 [LEARN] CONFIRMED OTHER @ cloud.app.box.com /app-api/enduserapp/config,features,experiments,search,notifications,preferences,metadata,enterprise,split-proxy: All return 404 — only app-version and current-user are live unauthenticated endpoints in this namespace
 [NEXT] PROBE: Explore additional /app-api/ sub-namespaces and cloud.app.box.com edge paths for more unauthenticated data. 3xGET with UA "box-research/1.0 +(research)", 2s apart: (1) cloud.app.box.com/app-api/enduserapp/branding — test for white-label theme config (2) cloud.app.box.com/app-api/enduserapp/available-locales — test for i18n config (3) cloud.app.box.com/app-api/shared_link_api/preview — test if shared-link preview API is accessible unauthenticated
+## 2026-08-22 01:57:07 UTC api.box.com (mimo)
+[NEW] cloud.app.box.com/app-api/shared_link_api/preview: 401 (auth required) — path exists but is auth-gated
+[HYP] Unauthenticated Split.io API key enables feature flag targeting rule enumeration
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 85
+reasoning: GET without auth returns 200 with full Split.io API key and 70+ feature flags. Split.io SDK keys can query targeting rules server-side to enumerate A/B test configurations and user segments.
+verify_steps: 1xGET with UA "box-research/1.0 +(research)": https://cloud.app.box.com/app-api/enduserapp/current-user — confirm splitIOAPIKey field
+impact: Low-Medium — information disclosure of internal experiment configurations and feature flag targeting rules
+testability: PASSIVE
