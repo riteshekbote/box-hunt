@@ -35,43 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 04:05:45 UTC"
+  "last_advance": "2026-08-22 04:48:21 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/embed/shared/{token} + app.box.com/embed/shared/{token}
-confidence: 90
-reasoning: embed.js `completeChallenge` action does `t.src=s` where `s=prefetchedData.url`. Server reflects `redirect_uri=https://evil.com` into `prefetchedData.url` as `https://cloud.app.box.com/shared/abc123test?redirect_uri=https://evil.com&is_embed_widget=true`. After challenge completion, iframe navigates to this URL. Confirmed on BOTH cloud.app.box.com and app.box.com. The `originalURL` field also feeds into `window.location.assign(o)` in MS Teams auth callbacks.
-verify_steps: 1) GET https://cloud.app.box.com/embed/shared/VALID_TOKEN?redirect_uri=https://attacker.com 2) Observe if completeChallenge fires and iframe src changes to the redirect_uri URL
-impact: If shared link page respects redirect_uri param, attacker can chain reflected redirect_uri with valid token for open redirect on Box domain. Severity: Medium-High.
-testability: HUMAN_ONLY
-class: MISCONFIG
-asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js (Box embed widget)
-confidence: 90
-reasoning: The embed widget's postMessage handler processes `case "redirectParentIframe": window.location.href=n.url` with NO URL validation — no protocol check, no allowlist check on the URL value. Any origin matching the allowlist (`*.box.com`, `*.box.net`, `*.boxcloud.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`, `*.boxgov.us`) can send this message and redirect the top-level page to any URL including `javascript:`, `data:`, or external phishing sites. The origin allowlist regex also accepts `http://` origins.
-verify_steps: 1) Embed cloud.app.box.com/embed/shared/abc in an attacker-controlled page on any *.box.com subdomain 2) Send postMessage({action:"redirectParentIframe", url:"https://evil.com"}) to the widget iframe 3) Observe if top-level page navigates to evil.com
-impact: Open redirect from any Box-domain origin — chains with OAuth flows for token theft, session hijacking, or phishing. Severity: Medium-High (requires whitelisted origin as prerequisite).
-testability: HUMAN_ONLY
-class: MISCONFIG
-asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js (Box embed widget)
-confidence: 85
-reasoning: The `MSTeamsAuthenticate` handler constructs `new URL(n.loginUrl)` directly from postMessage data, then passes it to `f.current.authentication.authenticate({url:i.toString()})`. No URL validation on `loginUrl` — any allowed-origin parent can open an auth popup to an arbitrary URL. The MS Teams auth flow constructs and opens a popup window with attacker-controlled URL.
-verify_steps: 1) Embed the widget on a *.box.com origin 2) Send postMessage({action:"MSTeamsAuthenticate", loginUrl:"https://evil.com/phish"}) 3) Observe if auth popup opens to attacker URL
-impact: OAuth/auth popup URL injection — attacker can capture auth codes or credentials via fake auth page. Severity: Medium-High.
-testability: HUMAN_ONLY
-class: MISCONFIG
-asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
-confidence: 75
-reasoning: The postMessage origin validation regex uses `(?:https?:\\/\\/)?` which accepts both `http://` and `https://` origins. In mixed-content or downgrade scenarios, an attacker controlling an HTTP Box subdomain could inject postMessages to the widget. The subdomain regex `(?:(?:[a-zA-Z0-9\\-_]+)\\.)*` also allows deep nesting (e.g., `evil.attacker.box.com`).
-verify_steps: 1) Serve a page over HTTP on any *.box.com subdomain (if any accept HTTP) 2) Embed the Box widget 3) Send postMessage with redirect URL 4) Check if widget processes it
-impact: Weakens origin allowlist — could enable postMessage injection from HTTP origins. Severity: Low (requires HTTP-accessible Box subdomain).
-testability: HUMAN_ONLY
-## 2026-08-22 04:05:45 UTC dl.boxcloud.com (mimo)
-[NEW] app.box.com `/embed/shared/{token}`: Same `redirect_uri` reflection confirmed — `prefetchedData.url` contains `https://app.box.com/shared/abc123test?redirect_uri=https://evil.com&is_embed_widget=true`
-[CONFIRMED] cloud.app.box.com embed shared-item query param reflection
-class: MISCONFIG
-asset: cloud.app.box.com/embed/shared/{token} + app.box.com/embed/shared/{token}
-confidence: 95
-reasoning: `redirect_uri`, `callback`, `state`, and arbitrary query params are all reflected verbatim into `prefetchedData.url`, `prefetchedData.displayedURL`, `prefetchedData.originalURL`, and `embed.originalLocation` in the message JSON. Confirmed on BOTH cloud.app.box.com AND app.box.com. The `url` field is consumed by `completeChallenge` action (`t.src=s`) in embed.js — after challenge completion, the iframe navigates to the reflected URL. The `originalURL` field feeds `window.location.assign(o)` in MS Teams auth callbacks.
-verify_steps: 1) Obtain a valid Box shared link token 2) GET `https://app.box.com/embed/shared/VALID_TOKEN?redirect_uri=https://attacker.com` 3) Observe if `completeChallenge` fires and iframe src changes to attacker URL
 impact: Open redirect on app.box.com/cloud.app.box.com domain — chains with OAuth flows for token theft, session hijacking, or phishing. Severity: Medium-High (requires valid shared link token).
 testability: HUMAN_ONLY
 [CONFIRMED] embed.js `redirectParentIframe` postMessage — no URL validation
@@ -97,14 +62,42 @@ testability: HUMAN_ONLY
 [NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?callback=test123 — test if callback value is used in any script context
 [NEXT] RECON: Search for Box subdomains that accept user input (search, forms, comments) which could host postMessage injection to chain with embed widget's redirectParentIframe
 [NEXT] RECON: GET https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — search for `eval`, `innerHTML`, `document.write` patterns that could execute reflected parameters
+## 2026-08-22 04:48:21 UTC dl.boxcloud.com (mimo)
+[LEARN] ACCEPTED class=MISCONFIG @ cdn01.boxcdn.net/embed-widget/1.4.4/embed.js: embed.js `redirectParentIframe` handler does `window.location.href=n.url` with ZERO validation — confirmed via source analysis. No eval, no innerHTML dangerous patterns, no document.write.
+[LEARN] ACCEPTED class=MISCONFIG @ cdn01.boxcdn.net/embed-widget/1.4.4/embed.js: `MSTeamsAuthenticate` handler passes `n.loginUrl` directly to `new URL(n.loginUrl)` with no domain check — confirmed. Success/failure callbacks both do `window.location.assign(o)` with the component's `redirectURL` prop.
+[NEW] blog.box.com: Drupal CMS with backend at backend.blog.box.com — static blog, no search reflection, no iframes
+[NEW] community.box.com: 200 — potential user-generated content source for postMessage injection
+[HYP] Embed widget `reload` action — forced page reload via postMessage
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 80
+reasoning: The postMessage handler processes `case "reload": window.location.reload()` — any whitelisted origin can force the parent page to reload at will. Combined with `redirectParentIframe`, this allows an attacker on a whitelisted origin to force reload + redirect chains.
+verify_steps: 1) Embed cloud.app.box.com/embed/shared/abc on attacker page 2) Send postMessage({action:"reload"}) 3) Observe page reloads
+impact: Denial-of-service via forced reloads; potential cache-poisoning prelude for redirect chains. Severity: Low-Medium.
+testability: HUMAN_ONLY
+[HYP] Embed widget `retrieveEmbedState` leaks feature flags to whitelisted origins
+class: BUSLOGIC
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 70
+reasoning: The `retrieveEmbedStateResult` message contains ~80 feature flags (boxAI flags, relay config, admin console, Shield, sign, etc.) plus embed configuration. When sent to the widget from a whitelisted origin, the widget responds with `e.source.postMessage(r, e.origin)` — leaking all feature flags and internal configuration to the requesting origin. This reveals enterprise feature state that could be useful for targeted attacks.
+verify_steps: 1) Embed the widget on a whitelisted origin page 2) Send postMessage({action:"retrieveEmbedState"}) 3) Capture the response message and parse the JSON payload
+impact: Information disclosure of enterprise feature configuration, AI feature rollout status, admin capabilities. Severity: Low (requires whitelisted origin).
+testability: HUMAN_ONLY
+[HYP] blog.box.com search reflection for postMessage injection chaining
+class: XSS
+asset: blog.box.com
+confidence: 50
+reasoning: blog.box.com is a Drupal/Next.js CMS with backend at backend.blog.box.com. Blog sites commonly have search functionality with query parameter reflection. If `?s=query` reflects in the page without sanitization, an attacker could inject an iframe + postMessage script targeting the embed widget. The blog is a `*.box.com` subdomain that matches the embed widget's origin allowlist.
+verify_steps: 1) GET https://blog.box.com/?s=test 2) Check if `test` appears in page HTML 3) Check for iframe embedding capability
+impact: If search reflects unsanitized input, XSS on blog.box.com → postMessage injection to embed widget → open redirect via redirectParentIframe. Severity: Medium-High (full chain).
+testability: PASSIVE
+[PARKED] cloud.app.box.com embed callback in script context: `callback=alert(1)` reflects in `Box.prefetchedData` JSON inside `<script>` tag, but is URL-encoded (`%22` not `"`) — no JSON breakout possible. LOW impact.
+[PARKED] cloud.app.box.com embed redirect_uri javascript: protocol: Server prepends `https://cloud.app.box.com/shared/abc?` as base URL, so `redirect_uri=javascript:alert(1)` becomes `?redirect_uri=javascript:alert(1)` — not a standalone `javascript:` URL. LOW impact.
+[NEXT] PROBE: GET https://blog.box.com/?s=testBhx9k3 — check if search parameter reflects in page HTML
+[NEXT] PROBE: GET https://community.box.com/ — check for user-generated content, forums, search
+[NEXT] PROBE: GET https://blog.box.com/search?q=testBhx9k3 — alternate search path
+[NEXT] RECON: Search for Box embed widget documentation to identify all accepted postMessage actions
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 23:34:44 UTC
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: HUMAN_ONLY
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 04:44:19 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-22 01:46:50 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -201,9 +185,31 @@ https://dl.boxcloud.com/ -> HTTP 404
 https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 04:44:19 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 === LATEST SPEC FILE (tail, if any) ===
 no-spec
 You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
+MAX MODE (ox-alpha-free 1M ctx): dig DEEPER + FASTER. Directives:
+- Hunt HIGH-VALUE classes first: broken auth/session handling, IDOR/BOLA, SSRF-to-cloud-metadata (169.254.169.254), mass assignment, JWT alg/key confusion, OAuth redirect_uri/state flaws, business logic on money/auth flows, file upload, GraphQL introspection+mutations.
+- CHAIN primitives aggressively: open redirect -> OAuth code theft -> ATO; XSS -> session theft -> ATO; IDOR -> cross-tenant PII dump; SSRF -> metadata -> keys. One chained lead beats ten weak ones.
+- Request-level reasoning only: exact METHOD path + params + headers + body, expected vs actual status codes. No prose filler, no restating context.
+- Breadth pass over the FULL inventory for anomalies (odd status codes, interesting param names like id/uid/email/user_id, versioned APIs /api/v1|v2|beta|internal, debug/test flags, swagger/openapi/json exposure), then depth on top-3 anomalies this cycle.
+- If a hypothesis needs live confirmation you cannot do passively, emit [NEXT] PROBE with the EXACT read-only request so the next cycle executes it immediately.
 (mapped from APP_ORIGIN). Session rules:
 1. ONLY read-only HTTP (GET/HEAD/OPTIONS); never any write.
 2. NEVER touch signrequest/sr-staging-1 or any host outside scope.txt (honeypot warning in scope.txt).
