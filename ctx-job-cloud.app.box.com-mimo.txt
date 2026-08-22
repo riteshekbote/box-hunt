@@ -35,18 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 04:09:46 UTC"
+  "last_advance": "2026-08-22 04:45:12 UTC"
 }=== MY LAST LEADS (tail) ===
-class: MISCONFIG
-asset: app.box.com/api/2.0/{events,search,metadata_templates,webhooks,collaborations}
-confidence: 40
-reasoning: /api/2.0/internal/* consistently returns wildcard CORS on actual responses (confidence 95, 12+ endpoints tested). Non-internal paths (/api/2.0/users/me, /api/2.0/folders/0) returned 401 with no CORS headers in prior tests. However, /api/2.0/events, /api/2.0/search, /api/2.0/metadata_templates, /api/2.0/webhooks, and /api/2.0/collaborations have never been tested for CORS. If any of these data-heavy endpoints return wildcard CORS (like the /internal/* paths), the attack chain impact increases significantly — attacker can read file metadata, search results, and collaboration data cross-origin without a Bearer token.
-verify_steps: |
-impact: If any non-internal data endpoint has wildcard CORS, attacker can enumerate events, search results, or collaboration data cross-origin. Severity: Medium-High if wildcard + response readable. Low if same 401+no-CORS pattern as tested endpoints.
-testability: PASSIVE
-[HYP] app.box.com API versioning variants may bypass CORS proxy
-class: MISCONFIG
-asset: app.box.com/api/{v2.0,v3.0,v1.0}/users/me
 confidence: 30
 reasoning: /api/2.0/internal/* has wildcard CORS, /api/2.0/* (non-internal) has no CORS on 401. If version variant paths (/api/v2.0/*, /api/v3.0/*) hit a different backend or bypass the proxy entirely, they may have a different CORS policy. Version-path variants are commonly used for A/B testing or legacy API migration, each potentially with distinct security configuration.
 verify_steps: |
@@ -97,14 +87,17 @@ testability: AUTH_HELPED
 [NEXT] HUMAN_ONLY: POST to account.box.com/login from attacker-controlled origin to capture response body with reflected CORS
 [NEXT] PROBE: curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/2.0/internal/events" — test if account.box.com internal endpoints also have wildcard CORS
 [NEXT] PROBE: curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/login" — test preflight for POST on reflected-origin endpoint
+## 2026-08-22 04:45:11 UTC cloud.app.box.com (mimo)
+[PARKED] app.box.com non-internal API preflight wildcard CORS: Preflight OPTIONS returns `access-control-allow-origin: *` on all tested non-internal endpoints (/events, /search, /metadata_templates, /webhooks). However, actual GET/HEAD 401 responses carry NO CORS headers. Without confirmed CORS on authenticated success responses, cross-origin data theft is unverified. Preflight wildcard alone is insufficient — the `vary: Origin` header suggests the backend might return CORS on success, but this requires auth to test.
+[PARKED] app.box.com `/api/v2.0/` version variant proxy bypass: GET to `/api/v2.0/users/me` returns 404 (SPA catch-all), not proxied to API gateway. Different handler, no auth check, no data. Preflight returns wildcard but endpoint is dead.
+[LEARN] ACCEPTED MISCONFIG @ app.box.com /api/2.0/*: Preflight handler applies wildcard CORS generically to all paths via the API gateway proxy. The actual response handler strips CORS from 401 error responses on non-internal paths but preserves them on /internal/* paths. This is a two-layer architecture: generic preflight middleware + per-path response CORS policy.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com /api/2.0/internal/*: Confirmed wildcard CORS on actual 401 responses (mirrors app.box.com). Both origins share the same API gateway proxy configuration for /internal/* paths.
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0"` — re-verify /internal/ wildcard CORS on actual response to confirm consistency
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" "https://app.box.com/api/2.0/internal/folders/0"` — test if Range header affects CORS behavior
+[NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization" "https://app.box.com/api/2.0/internal/folders/0"` — test preflight with Authorization header requested
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/search?query=test"` — test if /internal/search exists and has wildcard CORS
+[NEXT] PROBE: `curl -sI -H "Origin: https://null" "https://app.box.com/api/2.0/internal/folders/0"` — test null origin on /internal/ (sandboxed iframe vector)
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 23:34:44 UTC
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: AUTH_HELPED
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 04:44:19 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-22 01:46:50 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-22 03:52:20 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 04:44:19 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
