@@ -1186,3 +1186,37 @@ testability: AUTH_HELPED
 [NEXT] VERIFY: GET https://upload.box.com/api/2.0/files/upload_session with Origin: evil.com -> confirm GET still returns no CORS even on upload-specific endpoints
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/users/me with Origin: evil.com, Method: POST -> test if user-specific endpoints also get POST CORS (even though GET doesn't)
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST -> test nested resource endpoints
+## 2026-08-22 03:34:03 UTC notes.services.box.com (mimo)
+[LEARN] ACCEPTED upload.box.com CORS full-scope: OPTIONS preflight reflects arbitrary Origin + credentials + Authorization on ALL tested POST collection endpoints (24+ endpoints including folders, files, events, search, collaborations, tasks, comments, groups, shared_items, webhooks, collections, memberships, skills, ai, retention_policies, metadata, watermarking, legal_holds, shield, integrations, zip-downloads, tasks/{id}/assignments, users, files/content, upload_session). CRITICAL NUANCE: actual GET/POST responses carry NO CORS headers. Only OPTIONS preflight does.
+[LEARN] REJECTED cloud.app.box.com CORS data-exfil: `api/2.0/*` OPTIONS returns `Access-Control-Allow-Origin: *` (wildcard, no credentials) but actual GET/POST responses carry ZERO CORS headers. Cross-origin JS cannot read any API response body.
+[LEARN] REJECTED cloud.app.box.com current-user CORS upgrade: GET with `Origin: evil.com` returns 200 with JSON but NO `access-control-allow-origin` header. Earlier cycle's assessment that "cross-origin JS can read the response" was based on OPTIONS headers only, not actual response headers. This was an incorrect prior assessment.
+[NEW] cloud.app.box.com/app-api/enduserapp/shared-item: Alive endpoint, returns `{"status":400,"errorCode":"expectedParamError"}` for all tested `shared_link` param variants. Needs valid shared-link token format.
+[NEW] cloud.app.box.com/app-api/enduserapp/favorites: Alive endpoint, returns 401 sessionExpired with session cookie setup (z= cookie on .app.box.com, HttpOnly+Secure+SameSite=None).
+[NEW] cloud.app.box.com/app-api/enduserapp/trash: Alive endpoint, same 401 behavior as favorites.
+[NEW] cloud.app.box.com/graphql: Real GraphQL endpoint, currently returning 503 Service Unavailable with Box-format error JSON.
+[NEW] cloud.app.box.com/internal/api: Returns HTTP 512 (non-standard) with empty body. Likely reverse-proxy error for an internal service.
+[HYP] upload.box.com — CORS Origin Reflection on ALL POST Collection Endpoints (revised impact)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/* (all POST collection endpoints)
+confidence: 95
+reasoning: |
+verify_steps: |
+impact: If attacker has stolen Bearer token: blind CSRF on any Box API write endpoint (create files, collaborations, tasks, delete resources). Cannot read responses. Severity: MEDIUM (requires prior token theft + no data exfiltration).
+testability: AUTH_HELPED
+[HYP] cloud.app.box.com — shared-item Parameter Enumeration / Access Control Bypass
+class: AUTH
+asset: cloud.app.box.com/app-api/enduserapp/shared-item
+confidence: 40
+reasoning: |
+verify_steps: |
+impact: If parameter format is guessable/brute-forceable: unauthenticated access to shared file metadata or content. Severity: HIGH if exploitable, LOW if tokens are long/unguessable.
+testability: PASSIVE
+[PARKED] upload.box.com — oauth2/token CORS: OPTIONS returns 200 but NO CORS headers (no ACAO header). Endpoint is clean — not affected by the CORS misconfiguration.
+[PARKED] cloud.app.box.com/api/2.0/* wildcard CORS: OPTIONS returns `ACAO: *` without credentials. But actual responses carry NO CORS headers. Same limitation as upload.box.com — cross-origin JS cannot read response bodies. Not exploitable for data theft.
+[PARKED] cloud.app.box.com/current-user SDK key disclosure: Keys are client-side by design (Amplitude ingest, Split.io browser SDK). No admin/data access. Information disclosure only.
+[PARKED] cloud.app.box.com/graphql: Returns 503 Service Unavailable. Temporarily down — cannot test further.
+[PARKED] cloud.app.box.com/internal/api: Returns 512 (non-standard). Empty body. Likely reverse-proxy error for decommissioned or internal-only service.
+[NEXT] VERIFY: GET https://upload.box.com/api/2.0/events?stream_type=admin with Origin: evil.com — test if event-stream endpoints have different CORS behavior on GET responses
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/oauth2/token with Origin: null — confirm null-origin is reflected on token endpoint (already confirmed evil.com gets 200 with no CORS)
+[NEXT] VERIFY: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with additional query params (limit, fields, offset) — enumerate parameter acceptance
+[NEXT] VERIFY: OPTIONS https://cloud.app.box.com/app-api/enduserapp/shared-item with Origin: evil.com — check if this endpoint has CORS headers on OPTIONS

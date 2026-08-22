@@ -35,37 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 02:07:08 UTC"
+  "last_advance": "2026-08-22 02:51:34 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: notes.services.box.com/socket.io/?EIO=4&transport=polling
-confidence: 72
-reasoning: |
-verify_steps: |
-impact: |
-testability: AUTH_HELPED
-[HYP] notes.services.box.com — Subdomain-Controlled Socket.IO Session Hijacking via CORS + CSRF Cookie Chain
-class: AUTH
-asset: notes.services.box.com/socket.io/
-confidence: 65
-reasoning: |
-verify_steps: |
-impact: |
-testability: AUTH_HELPED
-[PARKED] notes.services.box.com — Express CORS middleware misconfiguration (access-control-expose-headers without allow-origin): Dead middleware layer, not exploitable without access-control-allow-origin. All 404 responses include `access-control-expose-headers: Server-Timing` but no `access-control-allow-origin`. Low priority unless routes are added.
-[PARKED] notes.services.box.com — /graphql 503 Service Unavailable: Box-format JSON error confirms a separate backend exists but is currently down. Cannot probe further while 503.
-[PARKED] notes.services.box.com — /realtime 502 Bad Gateway: nginx upstream dead. No information leakage.
-[NEXT] VERIFY: GET https://notes.services.box.com/socket.io/?EIO=4&transport=polling&note_id=test123 — test if query params change handshake behavior or leak note-specific info
-[NEXT] VERIFY: GET https://notes.services.box.com/socket.io/notes/?EIO=4&transport=polling — test if path-based namespaces exist (different rooms/channels)
-[NEXT] VERIFY: GET https://notes.services.box.com/socket.io/?EIO=4&transport=polling with rapid-fire requests (5 within 2s) — test rate limiting on unauthenticated handshake endpoint
-[NEXT] VERIFY: Check Set-Cookie domain attribute on csrf-token from Express 404 — determines if cookie is scoped to .box.com (accessible from all subdomains) or notes.services.box.com only
-[LEARN] ACCEPTED notes.services.box.com surface: Root now 302 → services.app.box.com → app.box.com (consolidated). Only Socket.IO server remains live on notes.services.box.com.
-[LEARN] ACCEPTED notes.services.box.com Socket.IO: Engine.IO v4, no auth on handshake, no CORS headers, accepts arbitrary Origin at HTTP layer
-[LEARN] ACCEPTED notes.services.box.com Express: x-powered-by: Express, CSRF double-submit cookie pattern, access-control-expose-headers: Server-Timing without allow-origin
-[LEARN] REJECTED notes.services.box.com CORS at root: Wildcard * without credentials — standard secure
-[LEARN] CONFIRMED upload.box.com CORS scope: POST collection endpoints only, Origin reflection + credentials, box.com.evil.com accepted as valid Origin
-## 2026-08-22 00:25:59 UTC notes.services.box.com (mimo)
-## 2026-08-22 02:06:41 UTC notes.services.box.com (mimo)
-[LEARN] ACCEPTED notes.services.box.com Socket.IO: Fully broken — envoy LB has no session stickiness. Handshake returns valid SID but subsequent POST returns "Session ID unknown". No Socket.IO connection can ever complete. Dead service.
 [LEARN] ACCEPTED notes.services.box.com rate-limiting: None observed — 5 rapid-fire handshakes all returned 200 within 1s
 [LEARN] ACCEPTED notes.services.box.com Express CSRF: csrf-token cookie is NOT HttpOnly (JS-readable), Path=/, NO Domain attribute → scoped to notes.services.box.com only. _csrf is HttpOnly. Neither is exploitable cross-origin.
 [LEARN] ACCEPTED notes.services.box.com x-frame-options: ALLOW-FROM https://app.box.com on all Express responses — confirms embedded-iframe history, but with only 404s there's nothing to frame
@@ -97,14 +68,36 @@ testability: AUTH_HELPED
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/zip-downloads with Origin: evil.com, Method: POST — test if batch/download endpoints also have CORS
 [NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST — test nested resource endpoints
 [NEXT] VERIFY: GET https://upload.box.com/api/2.0/users/me with Origin: evil.com — confirm GET requests to user endpoints also lack CORS headers (defense-in-depth)
+## 2026-08-22 02:51:34 UTC notes.services.box.com (mimo)
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 95
+reasoning: |
+evidence: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+class: MISCONFIG
+asset: upload.box.com/api/2.0/*
+confidence: 90
+reasoning: |
+evidence: |
+verify_steps: |
+impact: |
+testability: PASSIVE
+class: OTHER
+asset: upload.box.com/oauth2/token
+confidence: 50
+reasoning: |
+evidence: |
+verify_steps: |
+impact: |
+testability: AUTH_HELPED
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/files/upload_session with Origin: https://app.box.com -> test if legitimate Origin gets different CORS behavior
+[NEXT] VERIFY: GET https://upload.box.com/api/2.0/files/upload_session with Origin: evil.com -> confirm GET still returns no CORS even on upload-specific endpoints
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/users/me with Origin: evil.com, Method: POST -> test if user-specific endpoints also get POST CORS (even though GET doesn't)
+[NEXT] VERIFY: OPTIONS https://upload.box.com/api/2.0/tasks/{id}/assignments with Origin: evil.com, Method: POST -> test nested resource endpoints
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 22:36:36 UTC
-- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: AUTH_HELPED
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 03:04:04 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 23:34:44 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-22 01:46:50 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 03:04:04 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
