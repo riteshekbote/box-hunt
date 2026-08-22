@@ -1,39 +1,9 @@
-[CONFIRMED] Origin reflection on account.box.com login/auth endpoints
-class: MISCONFIG
-asset: account.box.com/login, account.box.com/api/oauth2/authorize
-confidence: 90
-reasoning: GET to /login returns 405 and /api/oauth2/authorize returns 404, but BOTH reflect the exact Origin header value in `access-control-allow-origin` (tested with evil.example.com, attacker.com, and `null`). Also sets `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Without Origin header, no ACAO is returned. Confirmed across 4+ requests with different origins.
-verify_steps: |
-impact: If POST to /login returns session tokens or redirect with tokens in body/location, attacker-controlled page can read response cross-origin via reflected Origin. Severity: Medium-High if tokens exfiltrable, Low (defense-in-depth) if only HTML/error responses. Null origin reflection also bypasses sandboxed iframe restrictions.
-testability: AUTH_HELPED
-[HYP] account.box.com POST /login response contains exfiltrable auth tokens via reflected Origin
-class: MISCONFIG
-asset: account.box.com/login (POST)
-confidence: 55
-reasoning: GET /login returns 405 with reflected Origin CORS + expose-headers. The login endpoint accepts POST and likely returns session cookies, redirect tokens, or account info. If the POST response body or redirect contains bearer tokens, authorization codes, or session identifiers, the reflected Origin allows cross-origin reading by attacker.com. The `null` origin reflection also allows sandboxed iframe (data: or blob:) to exfiltrate.
-verify_steps: |
-impact: Cross-origin credential theft. Attacker page submits login form, reads response containing session token. Severity: High.
-testability: HUMAN_ONLY
-[HYP] account.box.com POST /api/oauth2/authorize returns authorization code readable via reflected Origin
-class: MISCONFIG
-asset: account.box.com/api/oauth2/authorize (POST)
-confidence: 50
-reasoning: GET returns 404 with reflected Origin CORS. POST is the expected method for OAuth authorize. If a valid OAuth flow is initiated and POST returns an authorization code or redirect URL with code, the reflected Origin allows cross-origin reading. This would enable OAuth code theft from any origin.
-verify_steps: |
-impact: OAuth authorization code theft. Attacker intercepts code, exchanges for access token. Severity: High (full account takeover).
-testability: HUMAN_ONLY
-[HYP] app.box.com /api/2.0/internal/* authenticated responses include wildcard CORS enabling cross-origin data theft
-class: MISCONFIG
-asset: app.box.com/api/2.0/internal/*
-confidence: 85
-reasoning: Unauthenticated GET to /api/2.0/internal/folders/0 returns 401 WITH `access-control-allow-origin: *` (confirmed this cycle). This contrasts with non-internal /api/2.0/users/me which returns 401 WITHOUT CORS. The internal endpoint includes CORS even on error responses, confirming the proxy applies wildcard CORS to /internal/* regardless of auth state. Combined with confirmed XSS → Bearer token theft chain, authenticated requests to /internal/* would return data readable cross-origin.
-verify_steps: |
-impact: Full cross-origin read of internal API data (folders, files, users) using stolen Bearer token. Severity: High.
-testability: AUTH_HELPED
-[PARKED] app.box.com non-internal API paths CORS with auth: Preflight returns wildcard on all paths but 401 responses have no CORS headers. Cannot determine if authenticated responses include CORS without a token. Confidence frozen at 40.
-[LEARN] CONFIRMED CORS DIFFERENCE: app.box.com `/api/2.0/internal/*` returns `access-control-allow-origin: *` even on 401 error responses. Non-internal `/api/2.0/*` returns 401 WITHOUT CORS headers. This is the key architectural difference enabling the attack chain: XSS → steal Bearer token → cross-origin read only works on /internal/* paths.
-[LEARN] account.box.com has TWO distinct CORS policies: (1) Reflects ANY Origin (including null) with expose-headers on /login, /api/oauth2/authorize paths — these are the legacy PHP/auth endpoints. (2) Wildcard `*` on /api/oauth2/token, /api/2.0/internal/* — these are the API proxy endpoints. The reflection is more dangerous than wildcard because it allows any origin including null (sandboxed iframes).
-[LEARN] EXHAUSTED surfaces: dl.boxcloud.com (all 404), upload.box.com (all 404), cloud.app.box.com (235+ probes, pinned routes only). notes.services.box.com → redirects to app.box.com. m.box.com → redirects to app.box.com.
-[NEXT] HUMAN_ONLY: POST to account.box.com/login from attacker-controlled origin to capture response body with reflected CORS
-[NEXT] PROBE: curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/2.0/internal/events" — test if account.box.com internal endpoints also have wildcard CORS
-[NEXT] PROBE: curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/login" — test preflight for POST on reflected-origin endpoint
+[PARKED] app.box.com non-internal API preflight wildcard CORS: Preflight OPTIONS returns `access-control-allow-origin: *` on all tested non-internal endpoints (/events, /search, /metadata_templates, /webhooks). However, actual GET/HEAD 401 responses carry NO CORS headers. Without confirmed CORS on authenticated success responses, cross-origin data theft is unverified. Preflight wildcard alone is insufficient — the `vary: Origin` header suggests the backend might return CORS on success, but this requires auth to test.
+[PARKED] app.box.com `/api/v2.0/` version variant proxy bypass: GET to `/api/v2.0/users/me` returns 404 (SPA catch-all), not proxied to API gateway. Different handler, no auth check, no data. Preflight returns wildcard but endpoint is dead.
+[LEARN] ACCEPTED MISCONFIG @ app.box.com /api/2.0/*: Preflight handler applies wildcard CORS generically to all paths via the API gateway proxy. The actual response handler strips CORS from 401 error responses on non-internal paths but preserves them on /internal/* paths. This is a two-layer architecture: generic preflight middleware + per-path response CORS policy.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com /api/2.0/internal/*: Confirmed wildcard CORS on actual 401 responses (mirrors app.box.com). Both origins share the same API gateway proxy configuration for /internal/* paths.
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0"` — re-verify /internal/ wildcard CORS on actual response to confirm consistency
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" "https://app.box.com/api/2.0/internal/folders/0"` — test if Range header affects CORS behavior
+[NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization" "https://app.box.com/api/2.0/internal/folders/0"` — test preflight with Authorization header requested
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/search?query=test"` — test if /internal/search exists and has wildcard CORS
+[NEXT] PROBE: `curl -sI -H "Origin: https://null" "https://app.box.com/api/2.0/internal/folders/0"` — test null origin on /internal/ (sandboxed iframe vector)

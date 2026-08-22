@@ -35,48 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 03:31:33 UTC"
+  "last_advance": "2026-08-22 04:09:46 UTC"
 }=== MY LAST LEADS (tail) ===
-confidence: 95
-reasoning: All tested endpoints (folders/0, users/me, events, groups, devices, 
-verify_steps: curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0"
-impact: XSS on any *.box.com domain → steal Bearer token → full cross-origin API 
-testability: AUTH_HELPED
-[NEW] cloud.app.box.com/app-api/* — wildcard CORS preflight but no actual CORS
-class: MISCONFIG
-asset: cloud.app.box.com/app-api/*
-confidence: 60
-reasoning: OPTIONS returns access-control-allow-origin: * with all methods and 
-verify_steps: curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H 
-impact: Defense-in-depth gap. Attacker can send cross-origin credentialed requests 
-testability: PASSIVE
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: Wildcard CORS preflight 
-[LEARN] ATTACK CHAIN CONFIRMED: app.box.com XSS → Bearer token theft → 
-## 2026-08-22 02:47:45 UTC cloud.app.box.com (mimo)
-## 2026-08-22 03:31:26 UTC cloud.app.box.com (mimo)
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: OPTIONS preflight returns wildcard CORS with all methods, but actual GET responses do NOT include CORS headers. Same defense-in-depth pattern as api.box.com — preflight allows cross-origin requests to be sent but blocks response reading. Severity: Low (defense-in-depth gap only, not exploitable for data theft).
-[LEARN] EXHAUSTED cloud.app.box.com surface: 235 probe results across 14 days confirm only these real routes: / (200/206), /robots.txt (206), /favicon.ico (206), /crossdomain.xml (206), /sitemap.xml (206), /embed (200/206), /login (200/206), /app-api/enduserapp/current-user (200), /app-api/enduserapp/shared-item (400), /api/2.0/* (401), /app-api/* (200/401). All random paths return 404 SPA. CORS explicitly disproven on asset layer (OPTIONS 405, GET no ACAO). SPA catch-all only on /s/* prefix.
-[HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
-class: BUSLOGIC
-asset: cloud.app.box.com/?list-type=2
-confidence: 55
-reasoning: GET /?list-type=2 has returned both 200 and 206 across multiple cycles (observed 2026-08-16 through 2026-08-22). The 200/206 response to an S3 ListObjects-v2 parameter suggests the origin is S3-backed. Adding prefix, max-keys, and delimiter parameters could enumerate bucket contents. Prior cycles confirmed the 200 response but never captured response body content to verify if it is actually XML bucket listing vs app HTML.
-verify_steps: |
-impact: If S3 bucket listing is enabled, attacker can enumerate all objects in the embedded-content bucket, discovering internal file names, folder structure, and potentially sensitive file metadata without authentication. Severity: Medium-High if listing is public, Low if XML error (bucket exists but listing disabled).
-testability: PASSIVE
-[HYP] cloud.app.box.com /app-api/enduserapp/current-user — unauthenticated config disclosure
-class: MISCONFIG
-asset: cloud.app.box.com/app-api/enduserapp/current-user
-confidence: 50
-reasoning: GET /app-api/enduserapp/current-user returns 200 (confirmed 2026-08-21 21:04 and 22:59). This endpoint is called server-side during SPA shell generation but
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: Preflight wildcard CORS but no actual CORS on responses. Defense-in-depth gap only, not exploitable for data theft. Same pattern as api.box.com.
-[LEARN] EXHAUSTED cloud.app.box.com: 235 probes across 14 days confirm only pinned routes (/, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed, login) and API proxies (/api/2.0/*, /app-api/*). CORS explicitly disproven on asset layer (OPTIONS 405, no ACAO on GET). SPA catch-all only on /s/* prefix. Random paths → 404. No further surface remains.
-[LEARN] REJECTEDTOOL @ cloud.app.box.com S3 bucket listing: Prior cycles returned status 200/206 for `/?list-type=2` but executor captures only status codes, never response body. Cannot verify if response is S3 ListBucketResult XML (vulnerability) or SPA HTML (benign). Hypothesis frozen — body content is unobservable with current infrastructure.
-[PARKED] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com: Status 200/206 confirmed across 8+ cycles, but body content never captured. Executor limitation prevents verification. Confidence frozen at 55.
-[PARKED] /app-api/enduserapp/current-user unauthenticated config disclosure: Returns 200 but response body content unknown from status-only capture. Cannot verify what configuration data is exposed.
-[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping: /s/<token> resolves to enduserapp_shared_item_page, arbitrary paths to shared_page_vanity_name. Route mapper names are not security-sensitive.
-[LEARN] PIVOT: cloud.app.box.com fully exhausted. Most productive next surface is **app.box.com non-internal API paths** — the confirmed attack chain (XSS → Bearer token theft → wildcard CORS on /api/2.0/internal/*) hinges on whether non-internal paths also have wildcard CORS, which would widen the impact.
-[HYP] app.box.com non-internal API paths may have wildcard CORS enabling cross-origin data access without token
 class: MISCONFIG
 asset: app.box.com/api/2.0/{events,search,metadata_templates,webhooks,collaborations}
 confidence: 40
@@ -97,6 +57,46 @@ testability: PASSIVE
 [NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/events"` — test actual response for CORS headers
 [NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/search"` — test search endpoint
 [NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/v2.0/users/me"` — test version variant for proxy bypass
+## 2026-08-22 04:09:45 UTC cloud.app.box.com (mimo)
+[CONFIRMED] Origin reflection on account.box.com login/auth endpoints
+class: MISCONFIG
+asset: account.box.com/login, account.box.com/api/oauth2/authorize
+confidence: 90
+reasoning: GET to /login returns 405 and /api/oauth2/authorize returns 404, but BOTH reflect the exact Origin header value in `access-control-allow-origin` (tested with evil.example.com, attacker.com, and `null`). Also sets `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Without Origin header, no ACAO is returned. Confirmed across 4+ requests with different origins.
+verify_steps: |
+impact: If POST to /login returns session tokens or redirect with tokens in body/location, attacker-controlled page can read response cross-origin via reflected Origin. Severity: Medium-High if tokens exfiltrable, Low (defense-in-depth) if only HTML/error responses. Null origin reflection also bypasses sandboxed iframe restrictions.
+testability: AUTH_HELPED
+[HYP] account.box.com POST /login response contains exfiltrable auth tokens via reflected Origin
+class: MISCONFIG
+asset: account.box.com/login (POST)
+confidence: 55
+reasoning: GET /login returns 405 with reflected Origin CORS + expose-headers. The login endpoint accepts POST and likely returns session cookies, redirect tokens, or account info. If the POST response body or redirect contains bearer tokens, authorization codes, or session identifiers, the reflected Origin allows cross-origin reading by attacker.com. The `null` origin reflection also allows sandboxed iframe (data: or blob:) to exfiltrate.
+verify_steps: |
+impact: Cross-origin credential theft. Attacker page submits login form, reads response containing session token. Severity: High.
+testability: HUMAN_ONLY
+[HYP] account.box.com POST /api/oauth2/authorize returns authorization code readable via reflected Origin
+class: MISCONFIG
+asset: account.box.com/api/oauth2/authorize (POST)
+confidence: 50
+reasoning: GET returns 404 with reflected Origin CORS. POST is the expected method for OAuth authorize. If a valid OAuth flow is initiated and POST returns an authorization code or redirect URL with code, the reflected Origin allows cross-origin reading. This would enable OAuth code theft from any origin.
+verify_steps: |
+impact: OAuth authorization code theft. Attacker intercepts code, exchanges for access token. Severity: High (full account takeover).
+testability: HUMAN_ONLY
+[HYP] app.box.com /api/2.0/internal/* authenticated responses include wildcard CORS enabling cross-origin data theft
+class: MISCONFIG
+asset: app.box.com/api/2.0/internal/*
+confidence: 85
+reasoning: Unauthenticated GET to /api/2.0/internal/folders/0 returns 401 WITH `access-control-allow-origin: *` (confirmed this cycle). This contrasts with non-internal /api/2.0/users/me which returns 401 WITHOUT CORS. The internal endpoint includes CORS even on error responses, confirming the proxy applies wildcard CORS to /internal/* regardless of auth state. Combined with confirmed XSS → Bearer token theft chain, authenticated requests to /internal/* would return data readable cross-origin.
+verify_steps: |
+impact: Full cross-origin read of internal API data (folders, files, users) using stolen Bearer token. Severity: High.
+testability: AUTH_HELPED
+[PARKED] app.box.com non-internal API paths CORS with auth: Preflight returns wildcard on all paths but 401 responses have no CORS headers. Cannot determine if authenticated responses include CORS without a token. Confidence frozen at 40.
+[LEARN] CONFIRMED CORS DIFFERENCE: app.box.com `/api/2.0/internal/*` returns `access-control-allow-origin: *` even on 401 error responses. Non-internal `/api/2.0/*` returns 401 WITHOUT CORS headers. This is the key architectural difference enabling the attack chain: XSS → steal Bearer token → cross-origin read only works on /internal/* paths.
+[LEARN] account.box.com has TWO distinct CORS policies: (1) Reflects ANY Origin (including null) with expose-headers on /login, /api/oauth2/authorize paths — these are the legacy PHP/auth endpoints. (2) Wildcard `*` on /api/oauth2/token, /api/2.0/internal/* — these are the API proxy endpoints. The reflection is more dangerous than wildcard because it allows any origin including null (sandboxed iframes).
+[LEARN] EXHAUSTED surfaces: dl.boxcloud.com (all 404), upload.box.com (all 404), cloud.app.box.com (235+ probes, pinned routes only). notes.services.box.com → redirects to app.box.com. m.box.com → redirects to app.box.com.
+[NEXT] HUMAN_ONLY: POST to account.box.com/login from attacker-controlled origin to capture response body with reflected CORS
+[NEXT] PROBE: curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/2.0/internal/events" — test if account.box.com internal endpoints also have wildcard CORS
+[NEXT] PROBE: curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/login" — test preflight for POST on reflected-origin endpoint
 === RANKED HYPOTHESES (tail) ===
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)

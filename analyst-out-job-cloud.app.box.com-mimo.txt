@@ -1,676 +1,176 @@
 [0m
 > build · mimo-v2.5-free
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://dl.boxcloud.com/" 2>&1 | head -30
-HTTP/2 404 
-server: nginx
-date: Sat, 22 Aug 2026 04:05:13 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+[0m✱ [0mGlob "**/probe-results*.md"[90m 9 matches[0m
+[0m→ [0mRead probe-results-next.md
+[0m→ [0mRead probe-results-account-box-com.md
+[0m→ [0mRead probe-results-next.md[90m [offset=1018][0m
+[0m→ [0mRead probe-results-account-box-com.md[90m [offset=100][0m
+[0m→ [0mRead probe-results-app-box-com.md
+Now I have the full picture. Let me execute the queued [NEXT] probes from the leads. I'll run the key CORS verification probes across both app.box.com and account.box.com.
 [0m
-[0m$ [0mcurl -sI "https://dl.boxcloud.com/robots.txt" 2>&1 | head -30
-HTTP/2 404 
-server: nginx
-date: Sat, 22 Aug 2026 04:05:14 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-Looking at the context, cloud.app.box.com is exhausted with 235+ probes. The ranked hypotheses mention dl.boxcloud.com (wildcard CORS + S3 listing), and it's largely untested based on the executor results showing all 404s.
-
-Let me probe dl.boxcloud.com systematically:
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://dl.boxcloud.com/" 2>&1 | head -30
-HTTP/2 404 
-server: nginx
-date: Sat, 22 Aug 2026 04:05:15 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI "https://dl.boxcloud.com/favicon.ico" 2>&1 | head -20
-HTTP/2 404 
-server: nginx
-date: Sat, 22 Aug 2026 04:05:21 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI "https://dl.boxcloud.com/crossdomain.xml" 2>&1 | head -20
-HTTP/2 404 
-server: nginx
-date: Sat, 22 Aug 2026 04:05:21 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI "https://dl.boxcloud.com/sitemap.xml" 2>&1 | head -20
-HTTP/2 404 
-server: nginx
-date: Sat, 22 Aug 2026 04:05:22 GMT
-content-type: text/html;charset=utf-8
-content-length: 144
-x-envoy-upstream-service-time: 0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/events" 2>&1 | head -30
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://app.box.com/api/2.0/events" 2>&1 | head -30
 HTTP/2 200 
-date: Sat, 22 Aug 2026 04:05:28 GMT
+date: Sat, 22 Aug 2026 04:43:20 GMT
 strict-transport-security: max-age=31536000
 access-control-allow-origin: *
 access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
 vary: Origin
-box-request-id: 01ebb95bf968d362bb3d8f20d0c9d51e4
-access-control-max-age: 1800
-x-envoy-upstream-service-time: 0
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/events" 2>&1 | head -30
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:05:29 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0bb4b369d8e5d72a8b16736b9a945ecc4
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/search" 2>&1 | head -30
-HTTP/2 204 
-date: Sat, 22 Aug 2026 04:05:30 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 5
-strict-transport-security: max-age=31536000
-access-control-max-age: 1800
-vary: Origin
-box-request-id: 0a42a24d07f1e0902a9605f57d8e88799
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-dl.boxcloud.com is entirely 404 with nginx+envoy — no surface. Now executing the planned app.box.com probes:
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/v2.0/users/me" 2>&1 | head -30
-HTTP/2 204 
-date: Sat, 22 Aug 2026 04:05:31 GMT
-content-type: text/plain charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 2
-strict-transport-security: max-age=31536000
-access-control-max-age: 1800
-vary: Origin
-box-request-id: 0566e3fc3864f3b54609f344d449d19d3
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/search" 2>&1 | head -20
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:05:51 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0411d698744ffd7628bc77fbd433ce110
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/v2.0/users/me" 2>&1 | head -20
-HTTP/2 404 
-date: Sat, 22 Aug 2026 04:05:52 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 15
-strict-transport-security: max-age=31536000
-box-request-id: 05b5aab5b4ba910533aa77891abfde8c4
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/metadata_templates" 2>&1 | head -20
-HTTP/2 200 
-date: Sat, 22 Aug 2026 04:05:54 GMT
-strict-transport-security: max-age=31536000
-access-control-allow-origin: *
-access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-vary: Origin
-box-request-id: 05fd4a943dd9143f730c4afa5d9bbbb58
+box-request-id: 0a893d6642dbd1dc498594bf741ae5996
 access-control-max-age: 1800
 x-envoy-upstream-service-time: 0
 via: 1.1 google
 content-length: 0
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/webhooks" 2>&1 | head -20
+CRITICAL FINDING. `/api/2.0/events` on app.box.com returns **wildcard CORS on preflight** — this is NOT an /internal/ path. Let me verify with the actual GET response and test more endpoints.
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" "https://app.box.com/api/2.0/events" 2>&1 | head -30
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:43:29 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 0a4dfdb5497ead61b7702afbe04d82baa
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://app.box.com/api/2.0/search" 2>&1 | head -20
 HTTP/2 204 
-date: Sat, 22 Aug 2026 04:05:54 GMT
+date: Sat, 22 Aug 2026 04:43:35 GMT
 content-type: text/plain charset=UTF-8
 access-control-allow-origin: *
 x-envoy-upstream-service-time: 6
 strict-transport-security: max-age=31536000
 access-control-max-age: 1800
 vary: Origin
-box-request-id: 06a44b7a24c9cfd4b01f2d0f06abdecd2
+box-request-id: 069cd5c5d6ed10065ce9f2fb004ea731a
 access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
 via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/collaborations" 2>&1 | head -20
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" "https://app.box.com/api/2.0/search" 2>&1 | head -20
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:43:40 GMT
+strict-transport-security: max-age=31536000
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 08810e2b258779dde911507a30e8308b6
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://app.box.com/api/v2.0/users/me" 2>&1 | head -20
 HTTP/2 204 
-date: Sat, 22 Aug 2026 04:05:55 GMT
+date: Sat, 22 Aug 2026 04:43:41 GMT
+content-type: text/plain charset=UTF-8
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 3
+strict-transport-security: max-age=31536000
+access-control-max-age: 1800
+vary: Origin
+box-request-id: 056fc0bed00cc740e52a47d3fd35821f5
+access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://app.box.com/api/2.0/metadata_templates" 2>&1 | head -20
+HTTP/2 200 
+date: Sat, 22 Aug 2026 04:43:42 GMT
+strict-transport-security: max-age=31536000
+access-control-allow-origin: *
+access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
+vary: Origin
+box-request-id: 0ca3323024ca04ff032a86cbb47ca7119
+access-control-max-age: 1800
+x-envoy-upstream-service-time: 1
+via: 1.1 google
+content-length: 0
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" "https://app.box.com/api/v2.0/users/me" 2>&1 | head -20
+HTTP/2 404 
+date: Sat, 22 Aug 2026 04:44:11 GMT
+content-type: text/html; charset=UTF-8
+x-envoy-upstream-service-time: 17
+strict-transport-security: max-age=31536000
+box-request-id: 04cc3639a7e4d724a05735a9804f86e55
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://app.box.com/api/2.0/webhooks" 2>&1 | head -20
+HTTP/2 204 
+date: Sat, 22 Aug 2026 04:44:12 GMT
 content-type: text/plain charset=UTF-8
 access-control-allow-origin: *
 x-envoy-upstream-service-time: 4
 strict-transport-security: max-age=31536000
 access-control-max-age: 1800
 vary: Origin
-box-request-id: 0cf8fcb0591573085db6b8ac3765b290a
+box-request-id: 0f33b76b73ffe5aced92fe65d277d580e
 access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 [0m
-Critical discovery. All preflight (OPTIONS) responses return `access-control-allow-origin: *` with ALL methods — even on non-internal paths like `/api/2.0/events` and `/api/2.0/search`. Actual GET returns 401 with no CORS headers. Let me verify more endpoints and test actual GET responses:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/metadata_templates" 2>&1 | head -20
+Critical pattern emerging. Let me test more endpoints and the account.box.com internal path.
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" "https://app.box.com/api/2.0/webhooks" 2>&1 | head -20
 HTTP/2 401 
-date: Sat, 22 Aug 2026 04:05:57 GMT
+date: Sat, 22 Aug 2026 04:44:13 GMT
 strict-transport-security: max-age=31536000
 www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0779b0dbd3e3c73b75d652ba63a0f611d
-x-envoy-upstream-service-time: 0
+box-request-id: 03a47c7c40c5bbcd513546d930fbd5cf9
+x-envoy-upstream-service-time: 1
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/3.0/events" 2>&1 | head -20
+Key discovery: `/api/v2.0/users/me` GET returns **404** (not 401) — it hits a different handler. But preflight still returns wildcard. Let me now test the account.box.com internal endpoint and test a few more edge cases.
+[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" -H "User-Agent: box-research/1.0" "https://account.box.com/api/2.0/internal/events" 2>&1 | head -20
+HTTP/2 401 
+date: Sat, 22 Aug 2026 04:44:37 GMT
+access-control-allow-origin: *
+x-envoy-upstream-service-time: 12
+strict-transport-security: max-age=31536000
+vary: Origin
+www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
+box-request-id: 0379e842185bb3f7c2f30a97493a1739a
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000
+[0m
+**CRITICAL: `account.box.com/api/2.0/internal/events` returns `access-control-allow-origin: *` on the actual 401 response!** This confirms wildcard CORS on internal endpoints on BOTH app.box.com and account.box.com.
+
+Let me now test preflight on this account.box.com internal endpoint and a few more probes to complete the picture.
+[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" -H "User-Agent: box-research/1.0" "https://account.box.com/api/2.0/internal/events" 2>&1 | head -20
 HTTP/2 204 
-date: Sat, 22 Aug 2026 04:06:21 GMT
+date: Sat, 22 Aug 2026 04:44:46 GMT
 content-type: text/plain charset=UTF-8
 access-control-allow-origin: *
-x-envoy-upstream-service-time: 2
+x-envoy-upstream-service-time: 3
 strict-transport-security: max-age=31536000
 access-control-max-age: 1800
 vary: Origin
-box-request-id: 0ae96199963131d3d81e46f677bc6aac4
+box-request-id: 0fca22a32d7d80aa9e714377e06c6b2d8
 access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000
 [0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/collaborations" 2>&1 | head -20
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:06:22 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 13f4ae996536d51771be089466028dc2e
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/webhooks" 2>&1 | head -20
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:06:23 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 066921c82db73c7f9585655fba0b1d619
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/3.0/events" 2>&1 | head -20
-HTTP/2 404 
-date: Sat, 22 Aug 2026 04:06:24 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 14
-strict-transport-security: max-age=31536000
-box-request-id: 0ab650d5457ae7ffc29484a393b5afacc
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0" 2>&1 | head -20
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:07:00 GMT
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 12
-strict-transport-security: max-age=31536000
-vary: Origin
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0558096038aab648e2b38a55cde8099a5
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/users/me" 2>&1 | head -20
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:07:02 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 027faac3fe3749ca88bdb56b11a46a32b
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://notes.services.box.com/" 2>&1 | head -25
-HTTP/2 302 
-date: Sat, 22 Aug 2026 04:07:03 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 16
-strict-transport-security: max-age=31536000
-location: https://services.app.box.com/
-box-request-id: 0c8fb78c11280e88feb4220638e26a07d
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://m.box.com/" 2>&1 | head -25
-HTTP/2 301 
-cache-control: private
-location: https://app.box.com/
-content-length: 0
-date: Sat, 22 Aug 2026 04:07:03 GMT
-content-type: text/html; charset=UTF-8
-alt-svc: h3=":443"; ma=2592000
-[0m
-Now let me verify the contrast with `/api/2.0/internal/` endpoints (the confirmed attack chain) and check for new surfaces:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/" 2>&1 | head -25
-HTTP/2 302 
-date: Sat, 22 Aug 2026 04:07:04 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=9g4k80680ecouopfs89qvt36gj; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=9g4k80680ecouopfs89qvt36gj; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a892068b8d778.68561657; expires=Sun, 22 Aug 2027 04:07:04 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:07:04 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=97; expires=Sun, 22 Aug 2027 04:07:04 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 24
-location: https://account.box.com/login
-box-request-id: 083ea63c3849d2f80b25766fc9a57297
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI "https://services.app.box.com/" 2>&1 | head -25
-HTTP/2 302 
-date: Sat, 22 Aug 2026 04:07:17 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=kgmt8onnia1vaavu8aelspobbe; path=/; domain=.app.box.com; secure; HttpOnly
-set-cookie: z=kgmt8onnia1vaavu8aelspobbe; Path=/; Domain=.app.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a892075676621.53921249; expires=Sun, 22 Aug 2027 04:07:17 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:07:17 GMT; Max-Age=604800; path=/; domain=.app.box.com; secure
-set-cookie: cn=11; expires=Sun, 22 Aug 2027 04:07:17 GMT; Max-Age=31536000; path=/; domain=.app.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 29
-location: https://app.box.com/
-box-request-id: 0f0582b9d9d1157803b059681b8686b36
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://api.box.com/" 2>&1 | head -25
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:07:18 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 1991e3117d1abe01145e79cf3b54746bc
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://api.box.com/2.0/events" 2>&1 | head -25
-HTTP/2 200 
-date: Sat, 22 Aug 2026 04:07:19 GMT
-strict-transport-security: max-age=31536000
-access-control-allow-origin: *
-access-control-allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
-vary: Origin
-box-request-id: 01b5e71e5b7234630aeb6b2db9d20d152
-access-control-max-age: 1800
-x-envoy-upstream-service-time: 0
-via: 1.1 google
-content-length: 0
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://api.box.com/2.0/events" 2>&1 | head -25
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:07:19 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0483ed88fc7527f19ec582eac928456ec
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login" 2>&1 | head -30
-HTTP/2 405 
-date: Sat, 22 Aug 2026 04:07:20 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 31
-expires: 0
-vary: origin
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-pragma: no-cache
-strict-transport-security: max-age=31536000
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-set-cookie: box_visitor_id=6a89207816d1f3.49898488; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-box-request-id: 0fce30d7756e03d296022c39949479ec4
-server-timing: traceparent;desc="00-321817819067a78e8d840b1c8f7f8969-c2fa68289a6c5dbf-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-surrogate-control: max-age=0
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-Critical finding: `/api/2.0/internal/folders/0` returns `access-control-allow-origin: *` even on 401, while `/api/2.0/users/me` returns 401 with NO CORS headers. This confirms the CORS policy difference between internal and non-internal paths. Let me explore new surfaces:
-[0m$ [0mcurl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/api/oauth2/token" 2>&1 | head -25
-HTTP/2 204 
-date: Sat, 22 Aug 2026 04:07:21 GMT
-content-type: text/plain charset=UTF-8;charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 20
-strict-transport-security: max-age=31536000
-access-control-max-age: 1800
-vary: Origin
-box-request-id: 0794482638fb260637df13ab966c602cd
-access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/2.0/users/me" 2>&1 | head -25
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:07:36 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 09f7aaf80e5f26604ca05a2e6ad9772a0
-x-envoy-upstream-service-time: 1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/oauth2/authorize" 2>&1 | head -25
-HTTP/2 404 
-date: Sat, 22 Aug 2026 04:07:37 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 50
-expires: 0
-vary: origin
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-pragma: no-cache
-strict-transport-security: max-age=31536000
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-set-cookie: box_visitor_id=6a8920891426b2.80668534; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-box-request-id: 04f50f458576947f565a835cc2e6258ee
-server-timing: traceparent;desc="00-a60f07b432c9d17a709542161a614cd2-d51cbfe1a43b455b-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-surrogate-control: max-age=0
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/oauth2/token" 2>&1 | head -25
-HTTP/2 400 
-date: Sat, 22 Aug 2026 04:07:38 GMT
-content-type: application/json;charset=UTF-8
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 33
-vary: Origin
-box-request-id: 02953eda8be2f18a77d52f86156737df8
-cache-control: no-store
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/oauth2/revoke" 2>&1 | head -25
-HTTP/2 302 
-date: Sat, 22 Aug 2026 04:07:39 GMT
-content-type: text/html; charset=UTF-8
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a89208b6ecd03.72934091; expires=Sun, 22 Aug 2027 04:07:39 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:07:39 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=87; expires=Sun, 22 Aug 2027 04:07:39 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-x-envoy-upstream-service-time: 26
-location: https://account.box.com/login?
-box-request-id: 0e19e57789e20ebf2c69685555745f4f0
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000
-[0m
-Major finding: **account.box.com/login** returns `access-control-allow-origin: https://evil.example.com` — it **reflects the Origin header** (not wildcard). This is potentially more dangerous than wildcard. Let me investigate:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login" 2>&1 | head -30
-HTTP/2 405 
-date: Sat, 22 Aug 2026 04:07:40 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 35
-expires: 0
-vary: origin
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-pragma: no-cache
-strict-transport-security: max-age=31536000
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-set-cookie: box_visitor_id=6a89208c61b399.12628414; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-box-request-id: 0236626bbc51a528d2ac5705ae7ff4275
-server-timing: traceparent;desc="00-a87cb512842fb3350999fc13508ac9a6-9e96c06578808d49-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-surrogate-control: max-age=0
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://attacker.com" "https://account.box.com/login" 2>&1 | grep -i "access-control"
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://attacker.com
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://attacker.com" "https://account.box.com/api/oauth2/authorize" 2>&1 | grep -i "access-control"
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://attacker.com
-[0m
-[0m$ [0mcurl -sI -H "Origin: null" "https://account.box.com/login" 2>&1 | grep -i "access-control"
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: null
-[0m
-[0m$ [0mcurl -sI "https://account.box.com/login" 2>&1 | grep -i "access-control"
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://attacker.com" "https://account.box.com/api/oauth2/token" 2>&1 | grep -i "access-control"
-access-control-allow-origin: *
-[0m
-The `/api/oauth2/authorize` endpoint also reflects Origin (404 with reflected CORS). Let me verify the reflection pattern is consistent and check for more endpoints:
-[0m$ [0mcurl -sI -H "Origin: https://attacker.com" "https://account.box.com/" 2>&1 | head -25
-HTTP/2 302 
-date: Sat, 22 Aug 2026 04:08:01 GMT
-content-type: text/html; charset=utf-8
-set-cookie: z=4aeohkh84o85ojcsq6m5mamr4b; path=/; domain=.account.box.com; secure; HttpOnly
-set-cookie: z=4aeohkh84o85ojcsq6m5mamr4b; Path=/; Domain=.account.box.com; Secure; HttpOnly; SameSite=None
-set-cookie: box_ext_http_referrer=value; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; domain=.box.com; secure
-set-cookie: box_visitor_id=6a8920a1b41684.27687489; expires=Sun, 22 Aug 2027 04:08:01 GMT; Max-Age=31536000; path=/; domain=.box.com; secure; SameSite=None
-set-cookie: bv=MONO-11752; expires=Sat, 29 Aug 2026 04:08:01 GMT; Max-Age=604800; path=/; domain=.account.box.com; secure
-set-cookie: cn=49; expires=Sun, 22 Aug 2027 04:08:01 GMT; Max-Age=31536000; path=/; domain=.account.box.com; secure
-set-cookie: site_preference=desktop; path=/; domain=.box.com; secure
-expires: Thu, 19 Nov 1981 08:52:00 GMT
-x-envoy-upstream-service-time: 26
-location: https://account.box.com/login
-box-request-id: 070f2bda0315c4c4458158e1bd2d1fe02
-cache-control: no-store, no-cache, must-revalidate
-strict-transport-security: max-age=31536000
-pragma: no-cache
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/sso" 2>&1 | head -20
-HTTP/2 405 
-date: Sat, 22 Aug 2026 04:08:42 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 13
-strict-transport-security: max-age=31536000
-box-request-id: 06a70a7f5f4f0264a57758711688f5d1
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/oauth2/authorize?response_type=code&client_id=test" 2>&1 | head -20
-HTTP/2 404 
-date: Sat, 22 Aug 2026 04:08:43 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 35
-expires: 0
-vary: origin
-x-frame-options: SAMEORIGIN
-x-download-options: noopen
-pragma: no-cache
-strict-transport-security: max-age=31536000
-access-control-expose-headers: WWW-Authenticate,Server-Authorization
-access-control-allow-origin: https://evil.example.com
-set-cookie: box_visitor_id=6a8920cbc2fa75.51690073; Max-Age=31536000; Path=/; SameSite=None; Domain=.box.com; Secure
-x-xss-protection: 0
-x-content-type-options: nosniff
-x-dns-prefetch-control: off
-referrer-policy: no-referrer
-box-request-id: 14c6912be1e9b11bbf3d43f490036b57c
-server-timing: traceparent;desc="00-5d98faa79cb00ca95046111b1266603f-d95262113fa2dcbe-00"
-cache-control: no-store, no-cache, must-revalidate, proxy-revalidate
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/defender/api/v1/device_status" 2>&1 | head -20
-HTTP/2 404 
-date: Sat, 22 Aug 2026 04:08:43 GMT
-content-type: text/html; charset=UTF-8
-x-envoy-upstream-service-time: 15
-strict-transport-security: max-age=31536000
-box-request-id: 0111c0ba626dac3c153919310e4adace5
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/2.0/internal/folders/0" 2>&1 | head -20
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:08:43 GMT
-access-control-allow-origin: *
-x-envoy-upstream-service-time: 12
-strict-transport-security: max-age=31536000
-vary: Origin
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 06bb94068be67c68c8d0925eb84121c09
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/2.0/folders/0" 2>&1 | head -20
-HTTP/2 401 
-date: Sat, 22 Aug 2026 04:08:43 GMT
-strict-transport-security: max-age=31536000
-www-authenticate: Bearer realm="Service", error="invalid_request", error_description="The access token was not found."
-box-request-id: 0e0b772899b9a8afd309459719260043f
-x-envoy-upstream-service-time: 2
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-Significant finding. account.box.com `/login` and `/api/oauth2/authorize` reflect **any Origin including `null`** in CORS headers. Let me map more endpoints:
-[0m$ [0mcurl -sI -H "Origin: https://evil.example.com" "https://upload.box.com/api/2.0/files/content" 2>&1 | head -20
-HTTP/2 404 
-server: nginx
-date: Sat, 22 Aug 2026 04:08:43 GMT
-content-type: text/html;charset=utf-8
-content-length: 18
-x-envoy-upstream-service-time: 1
-strict-transport-security: max-age=31536000
-via: 1.1 google
-alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
-[0m
-Key findings confirmed. Let me summarize and emit findings:
+Now I have a complete picture. Let me analyze what I found and emit the findings.
 
-**account.box.com CORS policy is split:**
-- `/login`, `/api/oauth2/authorize` → **reflects ANY Origin (including `null`)** with `access-control-expose-headers`
-- `/api/2.0/internal/*` → wildcard `*`
-- `/api/2.0/*` (non-internal) → no CORS on 401
-- `/api/oauth2/token` → wildcard
-[CONFIRMED] Origin reflection on account.box.com login/auth endpoints
-class: MISCONFIG
-asset: account.box.com/login, account.box.com/api/oauth2/authorize
-confidence: 90
-reasoning: GET to /login returns 405 and /api/oauth2/authorize returns 404, but BOTH reflect the exact Origin header value in `access-control-allow-origin` (tested with evil.example.com, attacker.com, and `null`). Also sets `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. Without Origin header, no ACAO is returned. Confirmed across 4+ requests with different origins.
-evidence_needed: POST response body from /login or /api/oauth2/authorize with valid credentials to determine if auth tokens/redirects are exfiltrable
-verify_steps: |
-  curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/login"
-  curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/oauth2/authorize"
-  curl -sI -H "Origin: null" "https://account.box.com/login"
-impact: If POST to /login returns session tokens or redirect with tokens in body/location, attacker-controlled page can read response cross-origin via reflected Origin. Severity: Medium-High if tokens exfiltrable, Low (defense-in-depth) if only HTML/error responses. Null origin reflection also bypasses sandboxed iframe restrictions.
-testability: AUTH_HELPED
+**Summary of this cycle's probes:**
 
-[HYP] account.box.com POST /login response contains exfiltrable auth tokens via reflected Origin
-class: MISCONFIG
-asset: account.box.com/login (POST)
-confidence: 55
-reasoning: GET /login returns 405 with reflected Origin CORS + expose-headers. The login endpoint accepts POST and likely returns session cookies, redirect tokens, or account info. If the POST response body or redirect contains bearer tokens, authorization codes, or session identifiers, the reflected Origin allows cross-origin reading by attacker.com. The `null` origin reflection also allows sandboxed iframe (data: or blob:) to exfiltrate.
-evidence_needed: Captured POST /login response body with CORS headers
-verify_steps: |
-  # Requires authenticated browser session — HUMAN_ONLY
-  # POST https://account.box.com/login with valid credentials from attacker-controlled page
-  # Observe if response body/tokens readable via reflected ACAO
-impact: Cross-origin credential theft. Attacker page submits login form, reads response containing session token. Severity: High.
-testability: HUMAN_ONLY
+1. **app.box.com non-internal API endpoints** (`/events`, `/search`, `/metadata_templates`, `/webhooks`): Preflight OPTIONS returns `access-control-allow-origin: *` — but actual GET responses (401) have **NO CORS headers**. Preflight passes, but browser blocks response body reading.
 
-[HYP] account.box.com POST /api/oauth2/authorize returns authorization code readable via reflected Origin
-class: MISCONFIG
-asset: account.box.com/api/oauth2/authorize (POST)
-confidence: 50
-reasoning: GET returns 404 with reflected Origin CORS. POST is the expected method for OAuth authorize. If a valid OAuth flow is initiated and POST returns an authorization code or redirect URL with code, the reflected Origin allows cross-origin reading. This would enable OAuth code theft from any origin.
-evidence_needed: Captured POST /api/oauth2/authorize response during active OAuth flow
-verify_steps: |
-  # Requires active OAuth flow — HUMAN_ONLY
-  # Initiate OAuth authorize flow from attacker-controlled page
-  # POST https://account.box.com/api/oauth2/authorize with valid client_id
-  # Observe if authorization code readable via reflected ACAO
-impact: OAuth authorization code theft. Attacker intercepts code, exchanges for access token. Severity: High (full account takeover).
-testability: HUMAN_ONLY
+2. **app.box.com `/api/v2.0/users/me`**: GET returns 404 (hits SPA catch-all, not the API gateway). Preflight still returns wildcard — but it's hitting a different handler entirely.
 
-[HYP] app.box.com /api/2.0/internal/* authenticated responses include wildcard CORS enabling cross-origin data theft
-class: MISCONFIG
-asset: app.box.com/api/2.0/internal/*
-confidence: 85
-reasoning: Unauthenticated GET to /api/2.0/internal/folders/0 returns 401 WITH `access-control-allow-origin: *` (confirmed this cycle). This contrasts with non-internal /api/2.0/users/me which returns 401 WITHOUT CORS. The internal endpoint includes CORS even on error responses, confirming the proxy applies wildcard CORS to /internal/* regardless of auth state. Combined with confirmed XSS → Bearer token theft chain, authenticated requests to /internal/* would return data readable cross-origin.
-evidence_needed: Authenticated GET to /api/2.0/internal/* response body with ACAO header
-verify_steps: |
-  curl -sI -H "Origin: https://evil.example.com" -H "Authorization: Bearer <token>" "https://app.box.com/api/2.0/internal/folders/0"
-impact: Full cross-origin read of internal API data (folders, files, users) using stolen Bearer token. Severity: High.
-testability: AUTH_HELPED
+3. **account.box.com `/api/2.0/internal/events`**: GET 401 returns `access-control-allow-origin: *` on the actual response. Confirms wildcard CORS on `/internal/*` across both origins.
 
-[PARKED] app.box.com non-internal API paths CORS with auth: Preflight returns wildcard on all paths but 401 responses have no CORS headers. Cannot determine if authenticated responses include CORS without a token. Confidence frozen at 40.
+[PARKED] app.box.com non-internal API preflight wildcard CORS: Preflight OPTIONS returns `access-control-allow-origin: *` on all tested non-internal endpoints (/events, /search, /metadata_templates, /webhooks). However, actual GET/HEAD 401 responses carry NO CORS headers. Without confirmed CORS on authenticated success responses, cross-origin data theft is unverified. Preflight wildcard alone is insufficient — the `vary: Origin` header suggests the backend might return CORS on success, but this requires auth to test.
 
-[LEARN] CONFIRMED CORS DIFFERENCE: app.box.com `/api/2.0/internal/*` returns `access-control-allow-origin: *` even on 401 error responses. Non-internal `/api/2.0/*` returns 401 WITHOUT CORS headers. This is the key architectural difference enabling the attack chain: XSS → steal Bearer token → cross-origin read only works on /internal/* paths.
+[PARKED] app.box.com `/api/v2.0/` version variant proxy bypass: GET to `/api/v2.0/users/me` returns 404 (SPA catch-all), not proxied to API gateway. Different handler, no auth check, no data. Preflight returns wildcard but endpoint is dead.
 
-[LEARN] account.box.com has TWO distinct CORS policies: (1) Reflects ANY Origin (including null) with expose-headers on /login, /api/oauth2/authorize paths — these are the legacy PHP/auth endpoints. (2) Wildcard `*` on /api/oauth2/token, /api/2.0/internal/* — these are the API proxy endpoints. The reflection is more dangerous than wildcard because it allows any origin including null (sandboxed iframes).
+[LEARN] ACCEPTED MISCONFIG @ app.box.com /api/2.0/*: Preflight handler applies wildcard CORS generically to all paths via the API gateway proxy. The actual response handler strips CORS from 401 error responses on non-internal paths but preserves them on /internal/* paths. This is a two-layer architecture: generic preflight middleware + per-path response CORS policy.
 
-[LEARN] EXHAUSTED surfaces: dl.boxcloud.com (all 404), upload.box.com (all 404), cloud.app.box.com (235+ probes, pinned routes only). notes.services.box.com → redirects to app.box.com. m.box.com → redirects to app.box.com.
+[LEARN] ACCEPTED MISCONFIG @ account.box.com /api/2.0/internal/*: Confirmed wildcard CORS on actual 401 responses (mirrors app.box.com). Both origins share the same API gateway proxy configuration for /internal/* paths.
 
-[NEXT] HUMAN_ONLY: POST to account.box.com/login from attacker-controlled origin to capture response body with reflected CORS
-[NEXT] PROBE: curl -sI -H "Origin: https://evil.example.com" "https://account.box.com/api/2.0/internal/events" — test if account.box.com internal endpoints also have wildcard CORS
-[NEXT] PROBE: curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" "https://account.box.com/login" — test preflight for POST on reflected-origin endpoint
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/folders/0"` — re-verify /internal/ wildcard CORS on actual response to confirm consistency
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" -H "Range: bytes=0-0" "https://app.box.com/api/2.0/internal/folders/0"` — test if Range header affects CORS behavior
+[NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization" "https://app.box.com/api/2.0/internal/folders/0"` — test preflight with Authorization header requested
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/internal/search?query=test"` — test if /internal/search exists and has wildcard CORS
+[NEXT] PROBE: `curl -sI -H "Origin: https://null" "https://app.box.com/api/2.0/internal/folders/0"` — test null origin on /internal/ (sandboxed iframe vector)
