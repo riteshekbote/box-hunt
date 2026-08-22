@@ -233,3 +233,8 @@ https://cloud.app.box.com/app-api/2.0/files -> HTTP 401
 https://cloud.app.box.com/app-api/internal/folders/0 -> HTTP 401
 https://cloud.app.box.com/app-api/2.0/users/me -> HTTP 401
 https://cloud.app.box.com/app-api/2.0/files/content -> HTTP 401
+
+## 2026-08-22 03:31:33 UTC cloud.app.box.com
+https://cloud.app.box.com/?list-type=2 -> 206
+https://cloud.app.box.com/?list-type=2&prefix=/&max-keys=1 -> 206
+https://cloud.app.box.com/?list-type=2&delimiter=/ -> 206

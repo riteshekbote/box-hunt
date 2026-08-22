@@ -1141,3 +1141,47 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: Wildcard CORS preflight 
 [LEARN] ATTACK CHAIN CONFIRMED: app.box.com XSS → Bearer token theft → 
 ## 2026-08-22 02:47:45 UTC cloud.app.box.com (mimo)
+## 2026-08-22 03:31:26 UTC cloud.app.box.com (mimo)
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: OPTIONS preflight returns wildcard CORS with all methods, but actual GET responses do NOT include CORS headers. Same defense-in-depth pattern as api.box.com — preflight allows cross-origin requests to be sent but blocks response reading. Severity: Low (defense-in-depth gap only, not exploitable for data theft).
+[LEARN] EXHAUSTED cloud.app.box.com surface: 235 probe results across 14 days confirm only these real routes: / (200/206), /robots.txt (206), /favicon.ico (206), /crossdomain.xml (206), /sitemap.xml (206), /embed (200/206), /login (200/206), /app-api/enduserapp/current-user (200), /app-api/enduserapp/shared-item (400), /api/2.0/* (401), /app-api/* (200/401). All random paths return 404 SPA. CORS explicitly disproven on asset layer (OPTIONS 405, GET no ACAO). SPA catch-all only on /s/* prefix.
+[HYP] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com
+class: BUSLOGIC
+asset: cloud.app.box.com/?list-type=2
+confidence: 55
+reasoning: GET /?list-type=2 has returned both 200 and 206 across multiple cycles (observed 2026-08-16 through 2026-08-22). The 200/206 response to an S3 ListObjects-v2 parameter suggests the origin is S3-backed. Adding prefix, max-keys, and delimiter parameters could enumerate bucket contents. Prior cycles confirmed the 200 response but never captured response body content to verify if it is actually XML bucket listing vs app HTML.
+verify_steps: |
+impact: If S3 bucket listing is enabled, attacker can enumerate all objects in the embedded-content bucket, discovering internal file names, folder structure, and potentially sensitive file metadata without authentication. Severity: Medium-High if listing is public, Low if XML error (bucket exists but listing disabled).
+testability: PASSIVE
+[HYP] cloud.app.box.com /app-api/enduserapp/current-user — unauthenticated config disclosure
+class: MISCONFIG
+asset: cloud.app.box.com/app-api/enduserapp/current-user
+confidence: 50
+reasoning: GET /app-api/enduserapp/current-user returns 200 (confirmed 2026-08-21 21:04 and 22:59). This endpoint is called server-side during SPA shell generation but
+[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: Preflight wildcard CORS but no actual CORS on responses. Defense-in-depth gap only, not exploitable for data theft. Same pattern as api.box.com.
+[LEARN] EXHAUSTED cloud.app.box.com: 235 probes across 14 days confirm only pinned routes (/, robots.txt, favicon.ico, crossdomain.xml, sitemap.xml, embed, login) and API proxies (/api/2.0/*, /app-api/*). CORS explicitly disproven on asset layer (OPTIONS 405, no ACAO on GET). SPA catch-all only on /s/* prefix. Random paths → 404. No further surface remains.
+[LEARN] REJECTEDTOOL @ cloud.app.box.com S3 bucket listing: Prior cycles returned status 200/206 for `/?list-type=2` but executor captures only status codes, never response body. Cannot verify if response is S3 ListBucketResult XML (vulnerability) or SPA HTML (benign). Hypothesis frozen — body content is unobservable with current infrastructure.
+[PARKED] S3-compatible bucket-listing parameter acceptance on cloud.app.box.com: Status 200/206 confirmed across 8+ cycles, but body content never captured. Executor limitation prevents verification. Confidence frozen at 55.
+[PARKED] /app-api/enduserapp/current-user unauthenticated config disclosure: Returns 200 but response body content unknown from status-only capture. Cannot verify what configuration data is exposed.
+[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping: /s/<token> resolves to enduserapp_shared_item_page, arbitrary paths to shared_page_vanity_name. Route mapper names are not security-sensitive.
+[LEARN] PIVOT: cloud.app.box.com fully exhausted. Most productive next surface is **app.box.com non-internal API paths** — the confirmed attack chain (XSS → Bearer token theft → wildcard CORS on /api/2.0/internal/*) hinges on whether non-internal paths also have wildcard CORS, which would widen the impact.
+[HYP] app.box.com non-internal API paths may have wildcard CORS enabling cross-origin data access without token
+class: MISCONFIG
+asset: app.box.com/api/2.0/{events,search,metadata_templates,webhooks,collaborations}
+confidence: 40
+reasoning: /api/2.0/internal/* consistently returns wildcard CORS on actual responses (confidence 95, 12+ endpoints tested). Non-internal paths (/api/2.0/users/me, /api/2.0/folders/0) returned 401 with no CORS headers in prior tests. However, /api/2.0/events, /api/2.0/search, /api/2.0/metadata_templates, /api/2.0/webhooks, and /api/2.0/collaborations have never been tested for CORS. If any of these data-heavy endpoints return wildcard CORS (like the /internal/* paths), the attack chain impact increases significantly — attacker can read file metadata, search results, and collaboration data cross-origin without a Bearer token.
+verify_steps: |
+impact: If any non-internal data endpoint has wildcard CORS, attacker can enumerate events, search results, or collaboration data cross-origin. Severity: Medium-High if wildcard + response readable. Low if same 401+no-CORS pattern as tested endpoints.
+testability: PASSIVE
+[HYP] app.box.com API versioning variants may bypass CORS proxy
+class: MISCONFIG
+asset: app.box.com/api/{v2.0,v3.0,v1.0}/users/me
+confidence: 30
+reasoning: /api/2.0/internal/* has wildcard CORS, /api/2.0/* (non-internal) has no CORS on 401. If version variant paths (/api/v2.0/*, /api/v3.0/*) hit a different backend or bypass the proxy entirely, they may have a different CORS policy. Version-path variants are commonly used for A/B testing or legacy API migration, each potentially with distinct security configuration.
+verify_steps: |
+impact: Proxy bypass leading to different CORS policy. Severity: Low-Medium if bypass found.
+testability: PASSIVE
+[PARKED] cloud.app.box.com /app-api/enduserapp/current-user: Returns 200 but body unknown. Cannot verify config disclosure without body capture.
+[NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/events"` — test non-internal events endpoint for wildcard CORS preflight
+[NEXT] PROBE: `curl -sI -H "Origin: https://evil.example.com" "https://app.box.com/api/2.0/events"` — test actual response for CORS headers
+[NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/2.0/search"` — test search endpoint
+[NEXT] PROBE: `curl -sI -X OPTIONS -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: GET" "https://app.box.com/api/v2.0/users/me"` — test version variant for proxy bypass
