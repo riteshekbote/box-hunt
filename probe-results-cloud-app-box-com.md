@@ -205,3 +205,17 @@ https://cloud.app.box.com/preview -> HTTP 404
 ## 2026-08-21 23:58:30 UTC cloud.app.box.com
 https://cloud.app.box.com/ -> 206
 https://cloud.app.box.com/login -> 206
+
+## 2026-08-22 00:28:21 UTC cloud.app.box.com
+https://cloud.app.box.com/api/oauth2/token -> HTTP 400
+https://cloud.app.box.com/api/2.0/files -> HTTP 401
+https://cloud.app.box.com/api/oauth2/authorize -> 206
+https://cloud.app.box.com/api/oauth2/revoke -> HTTP 400
+https://cloud.app.box.com/api/2.0/internal/folders/0 -> HTTP 401
+https://cloud.app.box.com/api/2.0/internal/users/me -> HTTP 401
+https://cloud.app.box.com/ -> 206
+https://cloud.app.box.com/login -> 206
+https://cloud.app.box.com/api/2.0/internal/events -> HTTP 401
+https://cloud.app.box.com/api/2.0/internal/search -> HTTP 401
+https://cloud.app.box.com/api/2.0/internal/webhooks -> HTTP 401
+https://cloud.app.box.com/api/2.0/internal/collaborations -> HTTP 401

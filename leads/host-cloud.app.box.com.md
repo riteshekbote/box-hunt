@@ -1120,3 +1120,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ api.box.com: Preflight wildcard but actual responses have NO CORS. Better defense than app.box.com. Severity: Low.
 [LEARN] ACCEPTED MISCONFIG @ account.box.com/login: Origin reflection without credentials flag. Severity: Low.
 [LEARN] ATTACK CHAIN: app.box.com XSS (any subdomain) → steal Bearer token from Authorization header → app.box.com/api/2.0/internal/* wildcard CORS → full cross-origin API access with response reading → complete account compromise including file access, sharing, admin functions. Severity chain: Medium (requires XSS).
+## 2026-08-22 00:27:56 UTC cloud.app.box.com (mimo)
