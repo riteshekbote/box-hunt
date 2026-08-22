@@ -4041,3 +4041,10 @@
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 03:04:04 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
