@@ -35,34 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 02:51:03 UTC"
+  "last_advance": "2026-08-22 04:49:21 UTC"
 }=== MY LAST LEADS (tail) ===
-impact: LOW-MEDIUM. Infrastructure metadata (k8s zone, deployment type, feature flags, proxy hostnames, billing endpoints, client-side API keys, webpack manifest) readable cross-origin from any evil.com page. Without ACA, cookie-bearing requests blocked. RuntimeMetadata (us-west4-prod, k8s) NOT in public bundles — reveals infrastructure details useful for targeted attacks. Client-side API keys (pendoAnalyticsAPIKey, amplitudeAPIKey, splitIOAPIKey) already present in public JS bundles but accessible as structured JSON without JS parsing from unauthenticated context.
-testability: PASSIVE
-[PARKED] cloud.app.box.com current-user endpoint: Returns HTTP 200 with anonymous user data (isLoggedIn: false, empty name/email, id:2) but NO CORS headers — cross-origin JS cannot read the response. Same data already leaked via OAuth2 endpoint's Box.prefetchedData. Not independently exploitable.
-[PARKED] cloud.app.box.com /api/oauth2/token wildcard CORS: Returns `access-control-allow-origin: *` with preflight allowing POST + Authorization header. Only returns standard OAuth error responses ({"error":"invalid_request","error_description":"..."}). No sensitive data leaked cross-origin.
-[PARKED] cloud.app.box.com /login CORS reflection: Reflects Origin in CORS but immediately redirects (301) to cloud.account.box.com/login. CORS headers on redirect response not useful for data exfiltration.
-[PARKED] cloud.app.box.com /graphql: Returns HTTP 503 with standard error response. Real GraphQL endpoint temporarily unavailable. No CORS headers. Not testable in current state.
-[PARKED] dl.boxcloud.com: All paths return HTTP 404. No CORS-relevant surface discovered.
-[PARKED] m.box.com: 301→app.box.com. No unique surface.
-[PARKED] notes.services.box.com Socket.IO: EIO=4 handshake issues session IDs without authentication but returns no CORS headers. Cross-origin JS cannot read the session ID. Properly secured.
-[PARKED] cloud.app.box.com /api/oauth2/authorize/* subpaths: All subpaths under /api/oauth2/authorize/ (callback, device, decision, consent, accept, reject, confirm, error, deny, success, failure, redirect) reflect Origin in CORS. All return 404 with CORS headers. Same SPA catch-all route behavior as the parent path. No unique data beyond what's already leaked on the parent path.
-[NEXT] Explore app.box.com for additional CORS surface areas or auth-related endpoints that might have misconfigurations — specifically /api/2.0 endpoints with Authorization header probes to check if CORS behavior changes with authentication context.
-## 2026-08-21 23:36:05 UTC app.box.com (mimo)
-[LEARN] ACCEPTED cloud.app.box.com OAuth2 SPA shell CORS: Confirmed 4th subdomain with identical origin reflection. `access-control-allow-origin` reflects arbitrary Origin, `access-control-expose-headers` leaks auth headers, but NO `access-control-allow-credentials`. Metadata leak is LOW-MEDIUM severity — client-side keys already in public JS bundles, runtimeMetadata (us-west4-prod, k8s) is new info but not directly exploitable for user data exfiltration.
-[NEXT] GET https://app.box.com/api/2.0/me with headers: `Origin: https://evil.com, User-Agent: box-research/1.0+(research), Authorization: Bearer test-token` — check if adding Authorization header triggers CORS headers or changes response behavior
-## 2026-08-22 00:01:45 UTC app.box.com (mimo)
-[CONFIRMED] app.box.com /api/2.0/me wildcard CORS with Authorization header: Returns `access-control-allow-origin: *` regardless of Authorization header presence. No `access-control-allow-credentials` header. `vary: Origin` present but CORS remains wildcard. Standard OAuth error response (401 invalid_token) — no user data leaked. Confirms previous [PARKED] assessment: this is standard third-party API integration behavior, not a vulnerability.
-[NEXT] GET https://app.box.com/api/2.0/folders/0 with headers: `Origin: https://evil.com, Authorization: Bearer test-token` — check if folder listing endpoint has wildcard CORS or different behavior than /me
-[NEXT] GET https://dl.boxcloud.com/api/2.0/files/content with headers: `Origin: https://evil.com, Authorization: Bearer test-token` — check if download CDN has different CORS behavior than upload CDN
-[LEARN] ACCEPTED CORS reflection confirmed on account.box.com OAuth2 SPA shell: `access-control-allow-origin: evil.com` + `access-control-expose-headers: WWW-Authenticate,Server-Authorization` + cookies on `.box.com` domain. The `Server-Authorization` exposed header is custom and potentially interesting.
-[NEXT] GET https://account.box.com/api/oauth2/authorize?response_type=code with headers: `Origin: https://evil.com` — capture full response body and check for `Server-Authorization` header value
-[NEXT] GET https://account.box.com/api/2.0/users/me with headers: `Origin: https://evil.com` — check if account.box.com has API endpoints with different CORS behavior than the SPA shell
-[NEW] account.box.com/api/oauth2/token: Returns 400 with `access-control-allow-origin: *` — wildcard CORS on token endpoint, standard OAuth2 behavior.
-[NEW] app.box.com/app-api/enduserapp/current-user: Returns HTTP 200 with `x-enduserapp-currentversion: 23.692.0+hotfix.1` — version information leak. Sets cookies on `.app.box.com` domain.
-[NEW] **Admin endpoints have wildcard CORS!** Both `/api/2.0/administer/users` and `/api/2.0/enterprise/audit_logs` return `access-control-allow-origin: *` on 401. This is unusual for admin-only endpoints.
-[NEW] **account.box.com/login** also reflects Origin in CORS! `access-control-allow-origin: https://evil.com` + `access-control-expose-headers: WWW-Authenticate,Server-Authorization`. The SPA shell catch-all reflects Origin on ANY path, not just OAuth2 authorize.
-[NEW] **e3.boxcdn.net** returns 403 with S3 XML error — reveals it's an S3 bucket in `us-east-1`. The bucket exists but doesn't allow listing.
 [LEARN] ACCEPTED Admin/enterprise API endpoints on app.box.com have `access-control-allow-origin: *` with full method set (DELETE, HEAD, GET, OPTIONS, POST, PUT) and Authorization header. This is by design for third-party API integrations — the Box API uses Bearer tokens and allows cross-origin requests from any origin. Without `access-control-allow-credentials`, cookies are not sent cross-origin, so this is not exploitable for cookie theft. However, any Bearer token obtained through other means (token theft, XSS, social engineering) could be used cross-origin to access admin data.
 [LEARN] ACCEPTED account.box.com/login and app.box.com/login reflect Origin in CORS — this is the SPA shell catch-all behavior, not specific to the OAuth2 authorize endpoint. Any path that serves the SPA shell reflects the Origin header.
 [LEARN] ACCEPTED e3.boxcdn.net is an S3 bucket in us-east-1, properly secured (403 on all paths). No data leakage.
@@ -97,14 +71,33 @@ testability: PASSIVE
 [NEXT] The research surface for read-only probes on app.box.com is EXHAUSTED. Further exploitation would require AUTH_HELPED probes (valid OAuth token) to test if authenticated endpoints with wildcard CORS leak user data, or HUMAN_ONLY testing (clickjacking, social engineering). Recommend parking this host or requesting authorization for authenticated testing.
 ## 2026-08-22 03:28:56 UTC app.box.com (mimo)
 ## 2026-08-22 04:13:59 UTC app.box.com (mimo)
+## 2026-08-22 04:48:56 UTC app.box.com (mimo)
+[NEW] app.box.com `/api/2.0/enterprise`: Wildcard CORS (`access-control-allow-origin: *`) — admin enterprise settings endpoint accessible cross-origin without credentials.
+[NEW] app.box.com `/api/2.0/shield_alerts`: Wildcard CORS — security alert endpoint accessible cross-origin without credentials.
+[NEW] app.box.com `/api/2.0/device_pin`: Wildcard CORS — device PIN endpoint accessible cross-origin without credentials.
+[NEW] API endpoint CORS mapping clarified: `/api/2.0/events`, `/search`, `/collaborations`, `/shared_items`, `/metadata_templates`, `/tasks`, `/webhooks`, `/collections`, `/recent_items`, `/comments`, `/retention_policies`, `/groups`, `/users/me`, `/folders/0/items`, `/integration_mappings` — ALL return 401 with NO CORS headers. Only "public integration" endpoints (`/me`, `/skills`, `/device_pin`, `/enterprise`, `/shield_alerts`, `/administer/users`) get wildcard CORS.
+[LEARN] ACCEPTED Box API per-endpoint CORS policy is by design: "Public integration" endpoints that third-party apps are expected to call get `access-control-allow-origin: *` without credentials. Sensitive user-data endpoints get no CORS. This is documented Box platform behavior for OAuth2 app integrations. Without `access-control-allow-credentials`, no user data can be exfiltrated cross-origin. Standard Bearer token authentication only.
+[PARKED] app.box.com API wildcard CORS endpoints: By design for third-party integrations. No credential passthrough. Not independently exploitable.
+[NEW] app.box.com `/realtime`: Returns HTTP 405 (Method Not Allowed) — server recognizes the path but rejects GET. This is likely a WebSocket endpoint (`wss://app.box.com/realtime`). No CORS headers on the 405 response.
+[NEW] app.box.com `/api/2.0/terms_of_service`: Wildcard CORS — accessible cross-origin.
+[NEW] app.box.com `/api/2.0/trash_items`: Wildcard CORS — accessible cross-origin.
+[NEW] app.box.com `/api/2.0/skill_invocations`: NO CORS — not accessible cross-origin.
+[NEW] app.box.com `/realtime`: GET returns 405 (Method Not Allowed), even with WebSocket upgrade headers. POST returns 404. Server recognizes the path but rejects both GET and POST methods. No CORS headers on 405 response — cross-origin WebSocket/SSE connections properly blocked.
+[NEW] app.box.com `/realtime` OPTIONS preflight returns HTTP 204 with `access-control-allow-origin: *` and `access-control-allow-methods: DELETE, HEAD, GET, OPTIONS, POST, PUT`. Full CORS support. GET returns 405, POST/PUT/DELETE return 404. This endpoint is CORS-wildcard but the actual method it accepts is unclear.
+[NEW] app.box.com `/.well-known/apple-app-site-association`: Returns HTTP 200 with `application/json`. Apple Universal Links/Deep Links configuration file. No CORS headers. Static file.
+[NEW] app.box.com `/api/2.0/internal`: Returns 401 with `access-control-allow-origin: *` — wildcard CORS on an "internal" endpoint. Let me examine both:
+[NEW] app.box.com `.well-known/apple-app-site-association`: Reveals iOS bundle IDs including `K9495WHFU9.com.box.ios.devnotes`, `M683GB7CPW.com.box.mdmios`, `PKH2Z5QVEF.net.box.BoxNet`. Minor info leak (standard for universal links).
+[NEW] app.box.com `.well-known/assetlinks.json`: Returns HTTP 200 with Android app IDs. Standard deep link config.
+[LEARN] ACCEPTED `/api/2.0/internal/*` subpaths: All return 401 with wildcard CORS. Same public integration API pattern as `/api/2.0/me`. Standard Box API behavior.
+[NEW] app.box.com `/graphql`: Returns HTTP 503 with no CORS headers — same as cloud.app.box.com. GraphQL endpoint exists but is currently unavailable for unauthenticated requests.
+[NEW] app.box.com `/api/2.0/internal_cdn`: Returns 401 with wildcard CORS — another "internal" API endpoint with cross-origin accessibility.
+[LEARN] ACCEPTED HTTP/1.1 on `/realtime`: Returns 400 Bad Request — server requires HTTP/2 (no HTTP/1.1 support). The WebSocket endpoint is HTTP/2 only, which uses RFC 8441 for WebSocket — not a standard upgrade. Not testable with curl.
+[LEARN] ACCEPTED `/.well-known/assetlinks.json`: Standard Android deep link configuration. Reveals package names (`com.box.android`, `com.box.android.emm`, `forgepond.com.box.android.emm`) and SHA256 signing certificate fingerprints. Informational only.
+[LEARN] ACCEPTED `/.well-known/apple-app-site-association`: Standard iOS universal links. Reveals bundle IDs. Informational only.
+[LEARN] ACCEPTED `/api/2.0/internal*` subpaths: Standard Box API endpoints with wildcard CORS. Same public integration pattern.
+[PARKED] upload.box.com: All paths return HTTP 404. Pure nginx proxy with no API surface. Exhausted.
+[LEARN] ACCEPTED app.box.com surface exhausted. All accessible unauthenticated endpoints probed across all 8 eligible hosts.
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 23:34:44 UTC
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 04:44:19 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-22 01:46:50 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-22 03:52:20 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 04:44:19 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404

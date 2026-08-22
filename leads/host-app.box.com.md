@@ -1023,3 +1023,4 @@ testability: PASSIVE
 [LEARN] ACCEPTED `/api/2.0/internal*` subpaths: Standard Box API endpoints with wildcard CORS. Same public integration pattern.
 [PARKED] upload.box.com: All paths return HTTP 404. Pure nginx proxy with no API surface. Exhausted.
 [LEARN] ACCEPTED app.box.com surface exhausted. All accessible unauthenticated endpoints probed across all 8 eligible hosts.
+## 2026-08-22 05:00:25 UTC app.box.com (mimo)
