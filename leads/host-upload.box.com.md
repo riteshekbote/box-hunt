@@ -1274,3 +1274,4 @@ evidence: [This cycle] GET app.box.com/api/oauth2/authorize with Origin: https:/
 verify_steps: N/A — already verified
 impact: LOW-MEDIUM (information disclosure). Cross-origin JavaScript can read comprehensive Box configuration including analytics API keys, deployment metadata, feature flags, and CDN bundle versions. The analytics keys (Amplitude, Split.io, Pendo) are client-side tracking keys typically embedded in frontend JS, but CORS reflection makes them trivially extractable cross-origin. Combined with infrastructure metadata, this aids reconnaissance for targeted attacks. Cannot exfiltrate session tokens or user data without credentials flag.
 testability: PASSIVE
+## 2026-08-22 05:00:25 UTC upload.box.com (mimo)

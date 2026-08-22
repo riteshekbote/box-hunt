@@ -35,31 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 04:07:09 UTC"
+  "last_advance": "2026-08-22 04:46:23 UTC"
 }=== MY LAST LEADS (tail) ===
-[CONFIRMED] app.box.com/login HTML-page CORS reflection without credentials — leaks requestToken cross-origin
-class: MISCONFIG
-asset: app.box.com/login
-confidence: 90
-reasoning: app.box.com/login reflects any attacker Origin in access-control-allow-origin without access-control-allow-credentials. The response includes access-control-expose-headers but no credentials flag. The page body contains requestToken (CSRF token for login form, e.g. '24323964dcbf7072fcd6edbe346557733754dbbafab2356587b05793a3acc7d6') which is readable cross-origin via fetch(). Origin: null also reflected. Login page redirects to account.box.com for unauthenticated users but the HTML body is served directly. Settings/other paths redirect without CORS headers.
-evidence: [This cycle] GET with Origin: https://evil.example.com returns access-control-allow-origin: https://evil.example.com. Body contains requestToken. Origin: null reflected. /settings redirects to account.box.com/login without CORS. /shared/123 returns 404 without CORS.
-verify_steps: N/A — already verified
-impact: LOW-MEDIUM (information disclosure). Cross-origin JavaScript can read the login page HTML and extract CSRF token (requestToken). Cannot send cookies (no credentials flag). Token could be used in conjunction with other vulnerabilities for CSRF, but standalone impact is limited to token leakage.
-testability: PASSIVE
-[CONFIRMED] api.box.com OAuth token endpoint wildcard CORS — GET response readable cross-origin (same as account.box.com)
-class: MISCONFIG
-asset: api.box.com/oauth2/token
-confidence: 90
-reasoning: api.box.com/oauth2/token returns access-control-allow-origin: * on GET responses (not just OPTIONS preflight). The GET response includes JSON error body and is fully readable cross-origin. Same pattern as the account.box.com finding. OPTIONS returns wildcard with authorization header allowed. Actual API endpoints (e2.0/*) return 401 without CORS headers, so only the token endpoint is affected.
-evidence: [This cycle] GET on api.box.com/oauth2/token returns wildcard CORS with JSON body. OPTIONS returns wildcard with authorization header allowed. /2.0/* endpoints return 401 without CORS headers.
-verify_steps: N/A — already verified
-impact: LOW-MEDIUM (information disclosure). Cross-origin readable token endpoint leaks supported grant types. Same as the account.box.com finding.
-testability: PASSIVE
-[CONFIRMED] cloud.app.box.com wildcard CORS on OPTIONS without credentials — NOT exploitable for data exfiltration
-class: MISCONFIG
-asset: cloud.app.box.com
-confidence: 95
-reasoning: cloud.app.box.com returns access-control-allow-origin: * on OPTIONS preflight for ALL paths tested (root, /app-api/enduserapp/current-user) with all methods and authorization header allowed. However, NO access-control-allow-credentials: true is present, so cookies are not sent cross-origin. Actual GET/HEAD responses have NO CORS headers, so response bodies are not readable cross-origin. /app-api/enduserapp/current-user returns 200 with comprehensive config JSON (feature flags, API keys, deployment metadata) but this is same-origin only. /graphql returns 503. Defense-in-depth is correct on actual responses.
 evidence: [This cycle] OPTIONS on root and /app-api/* returns wildcard + all methods + authorization. GET/HEAD responses have no CORS headers. /app-api/enduserapp/current-user returns 200 with JSON config (same-origin only). /graphql returns 503.
 verify_steps: N/A — already verified
 impact: NONE (safe misconfiguration). Wildcard OPTIONS without credentials is overly permissive but not exploitable because: (1) cookies not sent cross-origin, (2) GET responses lack CORS headers preventing cross-origin reads. Information on current-user endpoint is same-origin only.
@@ -97,14 +74,30 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://dl.boxcloud.com/ with Origin: https://evil.example.com — record status, headers, redirect Location (cross-origin read of CDN response)
 [NEXT] PROBE: OPTIONS https://m.box.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET — record all Access-Control-* and Allow headers (mobile web app CORS before redirect)
 [NEXT] PROBE: GET https://m.box.com/ with Origin: https://evil.example.com — record status, Location, Set-Cookie, headers (redirect chain CORS leakage)
+## 2026-08-22 04:46:14 UTC upload.box.com (mimo)
+[LEARN] REJECTED MISCONFIG @ dl.boxcloud.com: OPTIONS and GET both return 404 with no CORS headers. CDN edge (nginx) does not reflect Origin or return any Access-Control-* headers. Not vulnerable to CORS misconfiguration.
+[LEARN] REJECTED MISCONFIG @ m.box.com: Both OPTIONS and GET return 301 redirect to app.box.com with no CORS headers. No intermediate page served - pure redirect. No CORS surface.
+[NEW] notes.services.box.com: OPTIONS returns wildcard CORS (`access-control-allow-origin: *`) with all methods allowed, no credentials flag. GET redirects 302 to services.app.box.com without CORS headers.
+[LEARN] notes.services.box.com OPTIONS root returns wildcard CORS (no credentials). GET responses have `access-control-expose-headers: Server-Timing` but no ACAO header. Same pattern as cloud.app.box.com - not exploitable.
+[NEW] app.box.com/notes returns 405 Method Not Allowed - endpoint exists but restricted. notes.services.box.com/realtime returns 502.
+[LEARN] upload.box.com OPTIONS returns 200 with empty body, no CORS headers. API paths return 404. Let me check more cloud.app.box.com surfaces:
+[NEW] cloud.app.box.com/app-api/enduserapp/shared-item returns JSON error `{"status":400,"errorCode":"expectedParamError"}` - endpoint processes parameters. Let me explore this:
+[LEARN] shared-item endpoint returns same error for all parameter combinations - parameter validation only, no data leakage possible.
+[CONFIRMED] app.box.com/login CORS reflection — requestToken readable cross-origin (same as existing finding, re-verified)
+[CONFIRMED] account.box.com/api/oauth2/token wildcard CORS — GET response body readable cross-origin (same as existing finding, re-verified)
+[CONFIRMED] account.box.com/login CORS reflection — same pattern as app.box.com/login (Origin reflected without credentials). Both login pages leak requestToken cross-origin.
+[NEW] app.box.com/login/federated — Returns 200 with CORS reflection (Origin reflected without credentials). Federated login page served directly. Let me check for token leakage:
+[CONFIRMED] app.box.com/login/federated CORS reflection — leaks requestToken AND internal config cross-origin. This is more significant than the regular login page!
+[CONFIRMED] app.box.com CORS reflection across auth endpoints — leaks comprehensive configuration data cross-origin (expanded finding)
+class: MISCONFIG
+asset: app.box.com (multiple auth endpoints: /login, /login/federated, /login/sso, /api/oauth2/authorize)
+confidence: 92
+reasoning: app.box.com reflects any attacker Origin in access-control-allow-origin on multiple authentication-related paths WITHOUT access-control-allow-credentials. The response bodies are fully readable cross-origin via fetch(). /login and /login/sso leak requestToken. /login/federated leaks requestToken + initialConfig. /api/oauth2/authorize leaks the most data: complete Box.prefetchedData with analytics API keys (Amplitude, Split.io, Pendo), deployment metadata (k8s, us-west4-prod), feature flags, experiments, CDN paths with versions for all microfrontends, and account configuration. No credentials flag means session cookies are not sent cross-origin, but all static configuration is exposed.
+evidence: [This cycle] GET app.box.com/api/oauth2/authorize with Origin: https://evil.example.com returns access-control-allow-origin: https://evil.example.com with 26KB HTML body containing Box.prefetchedData JSON with API keys and config. /login/sso returns 200 with CORS reflection and Box.config with requestToken. /login/federated returns 200 with CORS reflection and requestToken + initialConfig. No access-control-allow-credentials present on any endpoint.
+verify_steps: N/A — already verified
+impact: LOW-MEDIUM (information disclosure). Cross-origin JavaScript can read comprehensive Box configuration including analytics API keys, deployment metadata, feature flags, and CDN bundle versions. The analytics keys (Amplitude, Split.io, Pendo) are client-side tracking keys typically embedded in frontend JS, but CORS reflection makes them trivially extractable cross-origin. Combined with infrastructure metadata, this aids reconnaissance for targeted attacks. Cannot exfiltrate session tokens or user data without credentials flag.
+testability: PASSIVE
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 23:34:44 UTC
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 04:44:19 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-22 01:46:50 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -201,9 +185,31 @@ https://dl.boxcloud.com/ -> HTTP 404
 https://dl.boxcloud.com/robots.txt -> HTTP 404
 https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 04:44:19 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 === LATEST SPEC FILE (tail, if any) ===
 no-spec
 You are a senior bug-bounty ANALYST for the Box HackerOne program, assigned to ONE host: ${HOST}
+MAX MODE (ox-alpha-free 1M ctx): dig DEEPER + FASTER. Directives:
+- Hunt HIGH-VALUE classes first: broken auth/session handling, IDOR/BOLA, SSRF-to-cloud-metadata (169.254.169.254), mass assignment, JWT alg/key confusion, OAuth redirect_uri/state flaws, business logic on money/auth flows, file upload, GraphQL introspection+mutations.
+- CHAIN primitives aggressively: open redirect -> OAuth code theft -> ATO; XSS -> session theft -> ATO; IDOR -> cross-tenant PII dump; SSRF -> metadata -> keys. One chained lead beats ten weak ones.
+- Request-level reasoning only: exact METHOD path + params + headers + body, expected vs actual status codes. No prose filler, no restating context.
+- Breadth pass over the FULL inventory for anomalies (odd status codes, interesting param names like id/uid/email/user_id, versioned APIs /api/v1|v2|beta|internal, debug/test flags, swagger/openapi/json exposure), then depth on top-3 anomalies this cycle.
+- If a hypothesis needs live confirmation you cannot do passively, emit [NEXT] PROBE with the EXACT read-only request so the next cycle executes it immediately.
 (mapped from APP_ORIGIN). Session rules:
 1. ONLY read-only HTTP (GET/HEAD/OPTIONS); never any write.
 2. NEVER touch signrequest/sr-staging-1 or any host outside scope.txt (honeypot warning in scope.txt).
