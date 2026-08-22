@@ -35,37 +35,8 @@
 {
   "phase": "POC",
   "status": "IN_PROGRESS",
-  "last_advance": "2026-08-22 02:52:43 UTC"
+  "last_advance": "2026-08-22 03:35:27 UTC"
 }=== MY LAST LEADS (tail) ===
-asset: cloud.app.box.com/app-api/enduserapp/app-version
-confidence: 90
-reasoning: 200 returns full JSON with: app version "23.692.0+hotfix.1", confVersion "21.293.0", isDeveloper:false, cdnHostname "cdn01.boxcdn.net", and complete manifest of 24 micro-frontend remotes with exact CDN URLs, remotePath, remoteVersion, and remoteEntryFileName for each (box_canvas, box_hubs_client, box_sign_client, box_ai_client, box_extract_client, box_workflow_client, box_boxapps_client, etc.).
-verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/app-version
-impact: Exact version enumeration of 24 internal micro-frontend modules, CDN paths, and deployment versions. Aids targeted exploitation of specific module versions. Severity: Low-Medium.
-testability: PASSIVE
-[NEW] cloud.app.box.com `/embed/file/{id}` server-side prefetchedData with feature flags and embed context
-class: MISCONFIG
-asset: cloud.app.box.com/embed/file/{id}
-confidence: 85
-reasoning: 200 returns HTML with Box.prefetchedData containing: full feature flags (embed:true, showProfileAndAccount:false, boxEdit:true, collapseSidebars:true, etc.), embed context (originalLocation, partnerId:"", rootFolderId:0), linkedRequestId. Embed widget loads from cdn01.boxcdn.net/embed-widget/1.4.4/. Different feature flag set than current-user (embed-specific defaults).
-verify_steps: GET https://cloud.app.box.com/embed/file/123456
-impact: Unauthenticated access to embed-specific feature flags and internal embed context. Severity: Low.
-testability: PASSIVE
-[HYP] cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration
-class: BUSLOGIC
-asset: cloud.app.box.com/app-api/enduserapp/shared-item
-confidence: 55
-reasoning: Endpoint returns 400 with `{"status":400,"errorCode":"expectedParamError"}` for all tested params (shared_link, token, shared_link_token, item_id, shared_link_format_test). The structured error confirms it is live. JS bundle shows X-Box-EndUser-API header pattern for app-api calls. The correct parameter name may require the X-Box-EndUser-API header with specific serialized data, not a query parameter.
-verify_steps: GET https://cloud.app.box.com/app-api/enduserapp/shared-item with X-Box-EndUser-API header containing serialized shared link token
-impact: If unauthenticated shared item access possible, severity Medium.
-testability: AUTH_HELPED
-[PARKED] cloud.app.box.com SPA catch-all route-to-API mapping enumeration: Confirmed route-specific behaviors: `/admin`→403, `/settings`→302+cookie `box_user_settings`, `/debug`→302→`/v/debug`, `/embed/file/{id}`→200+prefetchedData, `/v/*`→SPA shell. Different paths trigger different server-side route handlers with different prefetchedData payloads. Low direct impact.
-[PARKED] cloud.app.box.com S3-compatible bucket-listing parameter acceptance: `?list-type=2` returned 302 to login this cycle. No evidence of S3 ListBucketResult XML. Rejected.
-[PARKED] cloud.app.box.com `/sitemap.xml` cross-origin redirect: 302 to `https://www.box.com/sitemap.xml`. Target is Box's own domain — not exploitable as open redirect.
-[PARKED] cloud.app.box.com `/crossdomain.xml` Flash policy: Allows `*.box.net`, `*.box.com`, etc. Flash is EOL — informational only.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/current-user`: Unauthenticated 200 with full config JSON containing feature flags, API keys (amplitude, splitIO), infrastructure config. Severity: Low.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/app-api/enduserapp/app-version`: Unauthenticated 200 with full version manifest of 24 micro-frontend remotes. Severity: Low-Medium.
-[LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/embed/file/{id}`: Server-side prefetchedData with embed-specific feature flags. Severity: Low.
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/admin`: 403 explicit route protection.
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com `/settings`: 302 with `box_redirect_rm=box_user_settings` cookie — route mapper name leaked.
 [LEARN] REJECTED cloud.app.box.com shared-item query params: All tested parameter names return 400.
@@ -97,14 +68,36 @@ testability: PASSIVE
 [NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?callback=alert(1) — test for XSS via callback parameter reflection in prefetchedData
 [NEXT] PROBE: GET https://cloud.app.box.com/embed/shared/abc?state=malicious_value — test state parameter reflection (OAuth state vector)
 [NEXT] RECON: GET https://cdn01.boxcdn.net/embed-widget/1.4.4/embed.js — search for "postMessage" patterns to map all message actions the child iframe can trigger on the parent
+## 2026-08-22 03:35:27 UTC dl.boxcloud.com (mimo)
+class: MISCONFIG
+asset: cloud.app.box.com/embed/shared/{token} + app.box.com/embed/shared/{token}
+confidence: 90
+reasoning: embed.js `completeChallenge` action does `t.src=s` where `s=prefetchedData.url`. Server reflects `redirect_uri=https://evil.com` into `prefetchedData.url` as `https://cloud.app.box.com/shared/abc123test?redirect_uri=https://evil.com&is_embed_widget=true`. After challenge completion, iframe navigates to this URL. Confirmed on BOTH cloud.app.box.com and app.box.com. The `originalURL` field also feeds into `window.location.assign(o)` in MS Teams auth callbacks.
+verify_steps: 1) GET https://cloud.app.box.com/embed/shared/VALID_TOKEN?redirect_uri=https://attacker.com 2) Observe if completeChallenge fires and iframe src changes to the redirect_uri URL
+impact: If shared link page respects redirect_uri param, attacker can chain reflected redirect_uri with valid token for open redirect on Box domain. Severity: Medium-High.
+testability: HUMAN_ONLY
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js (Box embed widget)
+confidence: 90
+reasoning: The embed widget's postMessage handler processes `case "redirectParentIframe": window.location.href=n.url` with NO URL validation — no protocol check, no allowlist check on the URL value. Any origin matching the allowlist (`*.box.com`, `*.box.net`, `*.boxcloud.com`, `*.boxcdn.net`, `*.boxcn.net`, `*.boxenterprise.net`, `*.inside-box.net`, `*.boxgov.us`) can send this message and redirect the top-level page to any URL including `javascript:`, `data:`, or external phishing sites. The origin allowlist regex also accepts `http://` origins.
+verify_steps: 1) Embed cloud.app.box.com/embed/shared/abc in an attacker-controlled page on any *.box.com subdomain 2) Send postMessage({action:"redirectParentIframe", url:"https://evil.com"}) to the widget iframe 3) Observe if top-level page navigates to evil.com
+impact: Open redirect from any Box-domain origin — chains with OAuth flows for token theft, session hijacking, or phishing. Severity: Medium-High (requires whitelisted origin as prerequisite).
+testability: HUMAN_ONLY
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js (Box embed widget)
+confidence: 85
+reasoning: The `MSTeamsAuthenticate` handler constructs `new URL(n.loginUrl)` directly from postMessage data, then passes it to `f.current.authentication.authenticate({url:i.toString()})`. No URL validation on `loginUrl` — any allowed-origin parent can open an auth popup to an arbitrary URL. The MS Teams auth flow constructs and opens a popup window with attacker-controlled URL.
+verify_steps: 1) Embed the widget on a *.box.com origin 2) Send postMessage({action:"MSTeamsAuthenticate", loginUrl:"https://evil.com/phish"}) 3) Observe if auth popup opens to attacker URL
+impact: OAuth/auth popup URL injection — attacker can capture auth codes or credentials via fake auth page. Severity: Medium-High.
+testability: HUMAN_ONLY
+class: MISCONFIG
+asset: cdn01.boxcdn.net/embed-widget/1.4.4/embed.js
+confidence: 75
+reasoning: The postMessage origin validation regex uses `(?:https?:\\/\\/)?` which accepts both `http://` and `https://` origins. In mixed-content or downgrade scenarios, an attacker controlling an HTTP Box subdomain could inject postMessages to the widget. The subdomain regex `(?:(?:[a-zA-Z0-9\\-_]+)\\.)*` also allows deep nesting (e.g., `evil.attacker.box.com`).
+verify_steps: 1) Serve a page over HTTP on any *.box.com subdomain (if any accept HTTP) 2) Embed the Box widget 3) Send postMessage with redirect URL 4) Check if widget processes it
+impact: Weakens origin allowlist — could enable postMessage injection from HTTP origins. Severity: Low (requires HTTP-accessible Box subdomain).
+testability: HUMAN_ONLY
 === RANKED HYPOTHESES (tail) ===
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed — root now proves the 206/Range layer can front the origin root, leaving only arbitrary-path routing unresolved (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed (re-keyed on slash-suffix nonce) (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: OAuth token endpoint exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Method/CORS surface on the 206 asset layer (from host-dl.boxcloud.com.md)
-
-## RANKED 2026-08-21 22:56:13 UTC
-- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Object-store default handler vs whitelist-routed: a random unguessable path decides whether the 206/Range layer fronts the whole origin or only pinned static assets (from host-dl.boxcloud.com.md)
@@ -138,25 +131,16 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-22 03:52:20 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-21 23:55:24 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-22 03:04:04 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-22 03:52:20 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
