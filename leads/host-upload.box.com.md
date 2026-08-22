@@ -1222,3 +1222,32 @@ testability: PASSIVE
 [LEARN] EXHAUSTED cloud.app.box.com: OPTIONS wildcard without credentials on all paths. GET responses lack CORS headers. /app-api/enduserapp/current-user returns config without auth (same-origin only). /graphql returns 503. No cross-origin data exfiltration possible. Defense-in-depth correct on actual responses.
 [LEARN] EXHAUSTED api.box.com: OPTIONS wildcard on all paths. GET/HEAD responses lack CORS headers (not readable cross-origin). Only exception: oauth2/token GET has wildcard CORS (same as account.box.com). All API endpoints return 401 without CORS headers. No new attack surface beyond what's already confirmed on account.box.com.
 [NEXT] probe: GET https://app.box.com/login/federated with Origin: https://evil.example.com (check if federated login page also reflects Origin + leaks SSO config)
+## 2026-08-22 04:07:09 UTC upload.box.com (mimo)
+[CONFIRMED] app.box.com/login CORS reflection without credentials — requestToken leak (REPEAT — already in context, no change)
+[CONFIRMED] api.box.com/oauth2/token wildcard CORS — GET response readable cross-origin (REPEAT — already in context, no change)
+[CONFIRMED] cloud.app.box.com wildcard CORS without credentials — NOT exploitable (REPEAT — already in context, no change)
+[LEARN] EXHAUSTED app.box.com: Login page reflects Origin (no credentials) + leaks requestToken cross-origin. Federated login probe was queued but executor dropped it (stuck fixed batch). All other app.box.com surfaces explored: /settings redirects without CORS, /shared/* returns 404, API endpoints return 401 without CORS. OPTIONS preflight returns wildcard on all paths. Primary finding: login page CORS reflection with token leakage.
+[LEARN] EXHAUSTED cloud.app.box.com: OPTIONS wildcard without credentials on all paths. GET responses lack CORS headers. /app-api/enduserapp/current-user returns config without auth (same-origin only). /graphql returns 503. No cross-origin data exfiltration possible.
+[LEARN] EXHAUSTED api.box.com: OPTIONS wildcard on all paths. GET/HEAD responses lack CORS headers. Only oauth2/token GET has wildcard CORS. All API endpoints return 401 without CORS headers.
+[NEW] dl.boxcloud.com: Download CDN — signed URLs, file access, token leakage surface unexplored. All probes return 404 (root, robots.txt, favicon.ico, random paths). CDN edge returns no content for unauthenticated requests.
+[NEW] m.box.com: Mobile web app — separate rendering/session logic. Redirects to app.box.com. No CORS probes performed yet.
+[HYP] CORS preflight reflection on dl.boxcloud.com download CDN
+class: MISCONFIG
+asset: dl.boxcloud.com
+confidence: 55
+reasoning: dl.boxcloud.com is the file download CDN serving signed URLs. CDN edges often have permissive CORS defaults. The wildcard OPTIONS pattern observed on cloud.app.box.com and api.box.com may also apply here. If dl.boxcloud.com reflects attacker Origin with credentials on OPTIONS preflight, any malicious page could trigger cross-origin file downloads or read download responses.
+verify_steps: OPTIONS https://dl.boxcloud.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET → record Access-Control-* headers; GET https://dl.boxcloud.com/ with Origin: https://evil.example.com → record ACAO/ACAC
+impact: If reflected with credentials → cross-origin read of download responses (file content leakage) — HIGH
+testability: PASSIVE
+[HYP] m.box.com mobile web app CORS surface
+class: MISCONFIG
+asset: m.box.com
+confidence: 45
+reasoning: m.box.com redirects to app.box.com but may have its own CORS configuration before redirect. Mobile web apps sometimes have separate session handling. If the redirect response or any intermediate page reflects CORS headers, it could leak session data.
+verify_steps: OPTIONS https://m.box.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET → record headers; GET https://m.box.com/ with Origin: https://evil.example.com → record ACAO/ACAC and redirect Location
+impact: If CORS reflected before redirect → session token leakage during redirect chain — MEDIUM
+testability: PASSIVE
+[NEXT] PROBE: OPTIONS https://dl.boxcloud.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET — record all Access-Control-* and Allow headers (CDN edge CORS surface)
+[NEXT] PROBE: GET https://dl.boxcloud.com/ with Origin: https://evil.example.com — record status, headers, redirect Location (cross-origin read of CDN response)
+[NEXT] PROBE: OPTIONS https://m.box.com/ with Origin: https://evil.example.com and Access-Control-Request-Method: GET — record all Access-Control-* and Allow headers (mobile web app CORS before redirect)
+[NEXT] PROBE: GET https://m.box.com/ with Origin: https://evil.example.com — record status, Location, Set-Cookie, headers (redirect chain CORS leakage)
