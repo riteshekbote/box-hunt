@@ -1140,3 +1140,4 @@ impact: Defense-in-depth gap. Attacker can send cross-origin credentialed reques
 testability: PASSIVE
 [LEARN] ACCEPTED MISCONFIG @ cloud.app.box.com/app-api/*: Wildcard CORS preflight 
 [LEARN] ATTACK CHAIN CONFIRMED: app.box.com XSS → Bearer token theft → 
+## 2026-08-22 02:47:45 UTC cloud.app.box.com (mimo)
