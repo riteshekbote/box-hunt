@@ -1177,3 +1177,16 @@ impact: HIGH (CSRF with credentials on entire write API surface). Attacker page 
 testability: PASSIVE (preflight verification passive; full exploit requires victim interaction — trivially demonstrable POC)
 [LEARN] EXHAUSTED upload.box.com: Systemic CORS+CSRF on all POST endpoints confirmed. DELETE/PUT/PATCH properly configured (no Origin reflection). No static content, no non-API surfaces, no alternative API versions (/api/1.0, /api/2.1, /api/3.0 all 404). Host fully mapped — no new attack surfaces remain.
 ## 2026-08-22 01:56:13 UTC upload.box.com (mimo)
+## 2026-08-22 02:47:52 UTC upload.box.com (mimo)
+[LEARN] EXHAUSTED upload.box.com: Comprehensive CORS+CSRF finding on all POST endpoints fully documented. No remaining read-only attack surface. Moving focus to cloud.app.box.com and api.box.com.
+[HYP] cloud.app.box.com Method/CORS surface on SPA catch-all
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 65
+reasoning: Root returns 206 with SPA content. OPTIONS preflight previously returned wildcard. Need to test different HTTP methods (PUT, PATCH, DELETE, HEAD) to determine if method-specific CORS behavior differs from POST/GET. SPA catch-all may have different backend handling per method.
+verify_steps: HEAD https://cloud.app.box.com/, OPTIONS https://cloud.app.box.com/ (Access-Control-Request-Method: PUT), HEAD https://cloud.app.box.com/app-api/enduserapp/current-user, OPTIONS https://cloud.app.box.com/app-api/enduserapp/current-user (Access-Control-Request-Method: POST)
+impact: MISCONFIG (method-dependent CORS allowing cross-origin writes if POST/PUT accepted with wildcard)
+testability: PASSIVE
+[NEXT] OPTIONS: cloud.app.box.com (root) with Access-Control-Request-Method: POST, Origin: https://evil.example.com
+[NEXT] HEAD: cloud.app.box.com/ and cloud.app.box.com/app-api/enduserapp/current-user
+[NEXT] OPTIONS: cloud.app.box.com/app-api/enduserapp/current-user with Access-Control-Request-Method: POST, Origin: https://attacker.com

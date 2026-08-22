@@ -1,0 +1,12 @@
+[LEARN] EXHAUSTED upload.box.com: Comprehensive CORS+CSRF finding on all POST endpoints fully documented. No remaining read-only attack surface. Moving focus to cloud.app.box.com and api.box.com.
+[HYP] cloud.app.box.com Method/CORS surface on SPA catch-all
+class: MISCONFIG
+asset: cloud.app.box.com
+confidence: 65
+reasoning: Root returns 206 with SPA content. OPTIONS preflight previously returned wildcard. Need to test different HTTP methods (PUT, PATCH, DELETE, HEAD) to determine if method-specific CORS behavior differs from POST/GET. SPA catch-all may have different backend handling per method.
+verify_steps: HEAD https://cloud.app.box.com/, OPTIONS https://cloud.app.box.com/ (Access-Control-Request-Method: PUT), HEAD https://cloud.app.box.com/app-api/enduserapp/current-user, OPTIONS https://cloud.app.box.com/app-api/enduserapp/current-user (Access-Control-Request-Method: POST)
+impact: MISCONFIG (method-dependent CORS allowing cross-origin writes if POST/PUT accepted with wildcard)
+testability: PASSIVE
+[NEXT] OPTIONS: cloud.app.box.com (root) with Access-Control-Request-Method: POST, Origin: https://evil.example.com
+[NEXT] HEAD: cloud.app.box.com/ and cloud.app.box.com/app-api/enduserapp/current-user
+[NEXT] OPTIONS: cloud.app.box.com/app-api/enduserapp/current-user with Access-Control-Request-Method: POST, Origin: https://attacker.com
