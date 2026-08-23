@@ -37,7 +37,6 @@
   "status": "IN_PROGRESS",
   "last_advance": "2026-08-22 04:46:23 UTC"
 }=== MY LAST LEADS (tail) ===
-reasoning: app.box.com reflects any attacker Origin in access-control-allow-origin on multiple authentication-related paths WITHOUT access-control-allow-credentials. The response bodies are fully readable cross-origin via fetch(). /login and /login/sso leak requestToken. /login/federated leaks requestToken + initialConfig. /api/oauth2/authorize leaks the most data: complete Box.prefetchedData with analytics API keys (Amplitude, Split.io, Pendo), deployment metadata (k8s, us-west4-prod), feature flags, experiments, CDN paths with versions for all microfrontends, and account configuration. No credentials flag means session cookies are not sent cross-origin, but all static configuration is exposed.
 evidence: [This cycle] GET app.box.com/api/oauth2/authorize with Origin: https://evil.example.com returns access-control-allow-origin: https://evil.example.com with 26KB HTML body containing Box.prefetchedData JSON with API keys and config. /login/sso returns 200 with CORS reflection and Box.config with requestToken. /login/federated returns 200 with CORS reflection and requestToken + initialConfig. No access-control-allow-credentials present on any endpoint.
 verify_steps: N/A — already verified
 impact: LOW-MEDIUM (information disclosure). Cross-origin JavaScript can read comprehensive Box configuration including analytics API keys, deployment metadata, feature flags, and CDN bundle versions. The analytics keys (Amplitude, Split.io, Pendo) are client-side tracking keys typically embedded in frontend JS, but CORS reflection makes them trivially extractable cross-origin. Combined with infrastructure metadata, this aids reconnaissance for targeted attacks. Cannot exfiltrate session tokens or user data without credentials flag.
@@ -97,15 +96,8 @@ testability: PASSIVE
 ## 2026-08-22 23:53:45 UTC upload.box.com (mimo)
 ## 2026-08-23 00:26:12 UTC upload.box.com (mimo)
 ## 2026-08-23 02:08:00 UTC upload.box.com (mimo)
+## 2026-08-23 03:12:47 UTC upload.box.com (mimo)
 === RANKED HYPOTHESES (tail) ===
-
-## RANKED 2026-08-22 22:34:05 UTC
-- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: blog.box.com search reflection for postMessage injection chaining (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
-- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 
 ## RANKED 2026-08-22 22:54:49 UTC
 - [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
@@ -138,25 +130,17 @@ testability: PASSIVE
 - [45] cloud.app.box.com/: blog.box.com search reflection for postMessage injection chaining (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
 - [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
+
+## RANKED 2026-08-23 03:12:39 UTC
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/shared-item` parameter enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com `/app-api/enduserapp/current-user` unauthenticated config disclosure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: cloud.app.box.com SPA catch-all route-to-API mapping enumeration (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: blog.box.com search reflection for postMessage injection chaining (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: Wildcard CORS on dl.boxcloud.com file download proxy with Authorization header exposure (from host-dl.boxcloud.com.md)
+- [45] cloud.app.box.com/: S3-compatible bucket-listing parameter acceptance on cloud.app.box.com (from host-dl.boxcloud.com.md)
 === ROBOT PROBE RESULTS (tail) ===
 none
 === NEXT-EXECUTOR RESULTS (tail) ===
-https://upload.box.com/robots.txt -> HTTP 404
-https://upload.box.com/robots.txt/ -> HTTP 404
-https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
-https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
-https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
-https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
-https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
-https://cloud.app.box.com/robots -> HTTP 404
-https://dl.boxcloud.com/ -> HTTP 404
-https://dl.boxcloud.com/robots.txt -> HTTP 404
-https://dl.boxcloud.com/favicon.ico -> HTTP 404
-https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
-
-## 2026-08-22 23:31:35 UTC (executor)
-https://cloud.app.box.com/ -> 206 (len ?)
-https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
 https://upload.box.com/robots.txt/ -> HTTP 404
 https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
@@ -187,6 +171,22 @@ https://dl.boxcloud.com/favicon.ico -> HTTP 404
 https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
 
 ## 2026-08-23 01:56:57 UTC (executor)
+https://cloud.app.box.com/ -> 206 (len ?)
+https://upload.box.com/api/2.0/files/content -> HTTP 404
+https://upload.box.com/robots.txt -> HTTP 404
+https://upload.box.com/robots.txt/ -> HTTP 404
+https://upload.box.com/api/2.0/files/content?probe=bhx-9f3k7 -> HTTP 404
+https://upload.box.com/robots.txt?probe=bhx-k2m8p -> HTTP 404
+https://cloud.app.box.com/bhx-xp4k7-m9f3q -> HTTP 404
+https://cloud.app.box.com/ROBOTS.TXT -> HTTP 404
+https://cloud.app.box.com/bhx-p3n7r/robots.txt -> HTTP 404
+https://cloud.app.box.com/robots -> HTTP 404
+https://dl.boxcloud.com/ -> HTTP 404
+https://dl.boxcloud.com/robots.txt -> HTTP 404
+https://dl.boxcloud.com/favicon.ico -> HTTP 404
+https://dl.boxcloud.com/bhx-q7m2p-x9k4n -> HTTP 404
+
+## 2026-08-23 03:12:39 UTC (executor)
 https://cloud.app.box.com/ -> 206 (len ?)
 https://upload.box.com/api/2.0/files/content -> HTTP 404
 https://upload.box.com/robots.txt -> HTTP 404
